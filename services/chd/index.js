@@ -101,7 +101,7 @@ app.get('/status', (req, res) => res.json(status));
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
-app.listen(PORTS.CHD, () => {
+app.listen(PORTS.CHD, '127.0.0.1', () => {
   log.info(`CHD service em http://127.0.0.1:${PORTS.CHD}`);
   loop();
 });

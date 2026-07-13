@@ -122,7 +122,7 @@ app.get('/status', (req, res) => res.json(status));
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
-app.listen(PORTS.DOWNLOAD, () => {
+app.listen(PORTS.DOWNLOAD, '127.0.0.1', () => {
   log.info(`Download service em http://127.0.0.1:${PORTS.DOWNLOAD}`);
   loop();
 });

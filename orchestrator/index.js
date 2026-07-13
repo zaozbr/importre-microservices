@@ -56,7 +56,7 @@ app.get('/', async (req, res) => {
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
-app.listen(PORTS.ORCHESTRATOR, () => {
+app.listen(PORTS.ORCHESTRATOR, '127.0.0.1', () => {
   log.info(`Orchestrator em http://127.0.0.1:${PORTS.ORCHESTRATOR}`);
   startService('queue', 'services/queue/index.js');
   startService('search', 'services/search/index.js');

@@ -44,7 +44,7 @@ app.get('/status', (req, res) => res.json({ ok: true }));
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
-app.listen(PORTS.SEARCH, () => {
+app.listen(PORTS.SEARCH, '127.0.0.1', () => {
   log.info(`Search service em http://127.0.0.1:${PORTS.SEARCH}`);
   loop();
 });
