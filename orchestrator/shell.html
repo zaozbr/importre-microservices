@@ -31,8 +31,9 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
 .btn-stop{background:#da3633;color:#fff}
 .hdr-update{font-size:10px;color:var(--txt2);margin-left:auto}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:90px 16px 16px}
-.widget-frame{width:100%;height:fit-content;border:none;border-radius:8px}
+.widget-frame{width:100%;height:340px;border:none;border-radius:8px}
 .widget-frame.full{grid-column:1/-1}
+.widget-frame.tall{height:680px}
 .log{grid-column:1/-1;height:180px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:Consolas,monospace;font-size:11px;overflow:auto;white-space:pre-wrap}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
 </style>
@@ -52,8 +53,8 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
   </div>
 </div>
 <div class="grid">
+  <iframe class="widget-frame full tall" id="wf-queue" src="http://127.0.0.1:9001/dashboard"></iframe>
   <iframe class="widget-frame full" id="wf-search" src="http://127.0.0.1:9002/dashboard"></iframe>
-  <iframe class="widget-frame full" id="wf-queue" src="http://127.0.0.1:9001/dashboard"></iframe>
   <iframe class="widget-frame" id="wf-download" src="http://127.0.0.1:9003/dashboard"></iframe>
   <iframe class="widget-frame" id="wf-chd" src="http://127.0.0.1:9004/dashboard"></iframe>
   <div class="log" id="log"></div>
