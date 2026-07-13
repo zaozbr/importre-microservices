@@ -1,0 +1,14 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "^(exec|read|edit|write|find_file_by_name)$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node \"F:/importre/.devin/hooks/fix_leading_dot.js\"",
+          "timeout": 5
+        }
+      ]
+    }
+  ]
+}
