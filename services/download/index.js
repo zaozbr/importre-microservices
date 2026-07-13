@@ -6,6 +6,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { PSX_DIR, PORTS, WORKERS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
+const { aria2Download } = require('./aria2');
 
 const log = new Logger('download-service');
 const app = express();
@@ -47,20 +48,25 @@ function extractWith7z(archivePath, destDir) {
 async function downloadFile(item, url) {
   const ext = path.extname(new URL(url).pathname) || '.7z';
   const tmpPath = path.join(PSX_DIR, `${item.serial}${ext}`);
-  const writer = fs.createWriteStream(tmpPath);
-  const response = await axios({
-    method: 'get',
-    url,
-    responseType: 'stream',
-    timeout: 600000,
-    maxRedirects: 5,
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-  });
-  response.data.pipe(writer);
-  await new Promise((resolve, reject) => {
-    writer.on('finish', resolve);
-    writer.on('error', reject);
-  });
+  try {
+    await aria2Download(url, tmpPath, { connections: 16, split: 16 });
+  } catch (e) {
+    // fallback axios
+    const writer = fs.createWriteStream(tmpPath);
+    const response = await axios({
+      method: 'get',
+      url,
+      responseType: 'stream',
+      timeout: 600000,
+      maxRedirects: 5,
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+    response.data.pipe(writer);
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+  }
   return tmpPath;
 }
 
