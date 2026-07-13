@@ -148,25 +148,46 @@ async function resolvePageDownload(pageUrl, siteHint) {
   // === RomsDL: POST vazio para /download ===
   if (siteHint === 'romsdl' || pageUrl.includes('romsdl')) {
     const dlUrl = pageUrl.endsWith('/') ? pageUrl + 'download' : pageUrl + '/download';
-    const postRes = await axios.post(dlUrl, '', {
-      headers: { ...headers, 'Referer': pageUrl },
-      timeout: 20000,
-      maxRedirects: 0,
-      validateStatus: s => s < 400
-    });
+    let postRes;
+    try {
+      postRes = await axios.post(dlUrl, '', {
+        headers: { ...headers, 'Referer': pageUrl },
+        timeout: 20000,
+        maxRedirects: 5,
+        validateStatus: s => s < 400
+      });
+    } catch (e) {
+      // Se 302 redirect, pega Location
+      if (e.response && e.response.headers && e.response.headers.location) {
+        return e.response.headers.location;
+      }
+      throw new Error('romsdl: POST falhou: ' + e.message);
+    }
+    
+    // Se redirect seguido, verifica URL final
+    const finalUrl = postRes.request?.res?.responseUrl || postRes.config?.url;
+    if (finalUrl && /\.(7z|zip|rar|iso|bin)$/i.test(finalUrl)) {
+      return finalUrl;
+    }
     
     // Metodo 1: link direto <a> com extensao
-    const $resp = cheerio.load(postRes.data);
+    const respData = typeof postRes.data === 'string' ? postRes.data : '';
+    const $resp = cheerio.load(respData);
     const directLink = $resp('a[href*=".7z"], a[href*=".zip"], a[href*=".rar"], a[href*=".iso"], a[href*=".bin"]').attr('href');
     if (directLink) return directLink;
     
     // Metodo 2: JS redirect
-    const jsMatch = postRes.data.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
+    const jsMatch = respData.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
     if (jsMatch) return jsMatch[1];
     
     // Metodo 3: meta refresh
-    const metaMatch = postRes.data.match(/<meta[^>]+refresh[^>]+url=([^"'>]+)/i);
+    const metaMatch = respData.match(/<meta[^>]+refresh[^>]+url=([^"'>]+)/i);
     if (metaMatch) return metaMatch[1];
+    
+    // Metodo 4: Location header
+    if (postRes.headers && postRes.headers.location) {
+      return postRes.headers.location;
+    }
     
     throw new Error('romsdl: URL nao extraida do POST');
   }
