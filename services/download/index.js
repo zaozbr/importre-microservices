@@ -22,15 +22,38 @@ async function queueRequest(method, endpoint, body) {
   return res.data;
 }
 
-async function resolveCoolrom(pageUrl) {
+async function resolvePageDownload(pageUrl, siteHint) {
   const res = await axios.get(pageUrl, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
     timeout: 20000
   });
   const $ = cheerio.load(res.data);
-  const link = $('a[href*="dl.coolrom"]').attr('href');
-  if (!link) throw new Error('link coolrom nao encontrado');
-  return link;
+  // CoolROM
+  if (siteHint === 'coolrom' || pageUrl.includes('coolrom')) {
+    const link = $('a[href*="dl.coolrom"]').attr('href');
+    if (link) return link;
+  }
+  // Vimm: link direto para download
+  if (siteHint === 'vimm' || pageUrl.includes('vimm.net')) {
+    const link = $('a[href*="/vault/"][href*="download"]').attr('href') || $('a[href*="media/"]').attr('href');
+    if (link) return link.startsWith('http') ? link : `https://vimm.net${link}`;
+  }
+  // RetroStic, RomsDL, RetroISO e outros genericos
+  const exts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img'];
+  let best = null;
+  $('a[href]').each((_, el) => {
+    const href = $(el).attr('href');
+    if (!href) return;
+    const lower = href.toLowerCase();
+    if (exts.some(e => lower.includes(e))) {
+      best = href;
+      return false; // para no primeiro
+    }
+  });
+  if (!best) throw new Error('link de download nao encontrado');
+  if (best.startsWith('http')) return best;
+  const base = new URL(pageUrl).origin;
+  return best.startsWith('/') ? base + best : base + '/' + best;
 }
 
 function extractWith7z(archivePath, destDir) {
@@ -83,8 +106,16 @@ async function downloadFile(item, url) {
 
 async function resolveAndDownload(item, source) {
   let url = source.url;
-  if (source.site === 'coolrom') {
-    url = await resolveCoolrom(source.url);
+  const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img'];
+  const isDirect = directExts.some(e => source.url.toLowerCase().endsWith(e));
+  if (!isDirect || source.site === 'coolrom' || source.site === 'vimm' || source.site === 'retrostic' || source.site === 'romsdl' || source.site === 'retroiso') {
+    try {
+      url = await resolvePageDownload(source.url, source.site);
+    } catch (e) {
+      log.warn(`Nao foi possivel resolver pagina ${source.site} para ${item.serial}: ${e.message}`);
+      // tenta URL original como fallback
+      url = source.url;
+    }
   }
   const tmpPath = await downloadFile(item, url);
   if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {

@@ -3,7 +3,7 @@ const axios = require('axios');
 const path = require('path');
 const { PORTS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
-const { searchAll } = require('./sites');
+const { searchAll, listPlugins } = require('./sites');
 
 const log = new Logger('search-service');
 const app = express();
@@ -41,7 +41,7 @@ async function loop() {
   }
 }
 
-app.get('/status', (req, res) => res.json({ ok: true }));
+app.get('/status', (req, res) => res.json({ ok: true, plugins: listPlugins() }));
 
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
