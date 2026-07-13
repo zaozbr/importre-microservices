@@ -240,10 +240,19 @@ async function loop() {
 app.get('/status', (req, res) => res.json(status));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
+process.on('uncaughtException', (e) => {
+  if (e && e.code === 'EPIPE') return;
+  log.error(`uncaught: ${e.message}`);
+});
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
-app.listen(PORTS.CHD, '127.0.0.1', () => {
+const chdServer = app.listen(PORTS.CHD, '127.0.0.1', () => {
   log.info(`CHD service em http://127.0.0.1:${PORTS.CHD}`);
   loop();
+});
+chdServer.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    log.error(`Porta ${PORTS.CHD} em uso. Encerrando.`);
+    process.exit(1);
+  }
 });

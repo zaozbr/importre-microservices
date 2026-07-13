@@ -449,11 +449,10 @@ function startAutoReprocess() {
 }
 
 process.on('uncaughtException', (e) => {
+  if (e && e.code === 'EPIPE') return;
   console.error('uncaughtException', e.stack || e.message);
   log.error(`uncaught: ${e.message}`);
   persistQueue();
-  // NAO sai imediatamente - deixa o orchestrator reiniciar se necessario
-  // Mas persiste estado para nao perder dados
 });
 process.on('unhandledRejection', (e) => {
   console.error('unhandledRejection', e.stack || e.message);
@@ -461,8 +460,14 @@ process.on('unhandledRejection', (e) => {
   // NAO sai - rejections nao deveriam derrubar o processo
 });
 
-app.listen(PORTS.QUEUE, '127.0.0.1', () => {
+const queueServer = app.listen(PORTS.QUEUE, '127.0.0.1', () => {
   log.info(`Queue service em http://127.0.0.1:${PORTS.QUEUE}`);
   startQueueDrainWatchdog();
   startAutoReprocess();
+});
+queueServer.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    log.error(`Porta ${PORTS.QUEUE} em uso. Encerrando.`);
+    process.exit(1);
+  }
 });

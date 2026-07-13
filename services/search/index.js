@@ -70,7 +70,10 @@ async function loop() {
 
 app.get('/status', (req, res) => res.json({ ok: true, plugins: listPlugins() }));
 
-process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
+process.on('uncaughtException', (e) => {
+  if (e && e.code === 'EPIPE') return;
+  log.error(`uncaught: ${e.message}`);
+});
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
@@ -81,7 +84,13 @@ app.get('/queue-proxy', async (req, res) => {
   } catch (e) { res.json({ error: e.message }); }
 });
 
-app.listen(PORTS.SEARCH, '127.0.0.1', () => {
+const searchServer = app.listen(PORTS.SEARCH, '127.0.0.1', () => {
   log.info(`Search service em http://127.0.0.1:${PORTS.SEARCH}`);
   loop();
+});
+searchServer.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    log.error(`Porta ${PORTS.SEARCH} em uso. Encerrando.`);
+    process.exit(1);
+  }
 });

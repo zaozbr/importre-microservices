@@ -140,19 +140,34 @@ function shutdownOrchestrator(delay = 1000) {
 function startService(name, script) {
   if (controlState === 'stopped') return;
   const heap = name === 'download' ? '12288' : '4096';
-  const proc = spawn('node', [`--max-old-space-size=${heap}`, script], { cwd: ROOT });
+  const proc = spawn('node', [`--max-old-space-size=${heap}`, script], {
+    cwd: ROOT,
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
   services[name] = proc;
-  proc.stdout.on('data', d => { try { log.info('[' + name + '] ' + d.toString().trim()); } catch (e) {} });
+  // Handler seguro: ignora EPIPE e erros de stream silenciosamente
+  proc.stdout.on('data', d => {
+    try {
+      const msg = d.toString().trim();
+      if (msg) log.info('[' + name + '] ' + msg);
+    } catch (e) { /* EPIPE ou stream fechado - ignorar */ }
+  });
   proc.stdout.on('error', () => {});
-  proc.stderr.on('data', d => { try { log.error('[' + name + '] ' + d.toString().trim()); } catch (e) {} });
+  proc.stderr.on('data', d => {
+    try {
+      const msg = d.toString().trim();
+      if (msg) log.error('[' + name + '] ' + msg);
+    } catch (e) { /* EPIPE ou stream fechado - ignorar */ }
+  });
   proc.stderr.on('error', () => {});
   proc.on('exit', (code) => {
-    log.warn('[' + name + '] saiu com code ' + code + '.');
+    try { log.warn('[' + name + '] saiu com code ' + code + '.'); } catch (e) {}
     delete services[name];
     if (controlState !== 'stopped') {
       setTimeout(() => startService(name, script), 30000);
     }
   });
+  proc.on('error', () => { /* spawn error - ignorar */ });
 }
 
 async function serviceGet(port, endpoint) {
@@ -351,8 +366,14 @@ async function healthCheck() {
 
 setInterval(healthCheck, 30000);
 
-process.on('uncaughtException', (e) => log.error('uncaught: ' + e.message));
-process.on('unhandledRejection', (e) => log.error('rejection: ' + e.message));
+// Handler robusto: EPIPE é benigno (pipe de processo filho morto), nunca derruba o orchestrator
+process.on('uncaughtException', (e) => {
+  if (e && e.code === 'EPIPE') return; // Ignorar EPIPE silenciosamente
+  try { log.error('uncaught: ' + (e?.message || e)); } catch (logErr) {}
+});
+process.on('unhandledRejection', (e) => {
+  try { log.error('rejection: ' + (e?.message || e)); } catch (logErr) {}
+});
 
 app.listen(PORTS.ORCHESTRATOR, '127.0.0.1', () => {
   log.info('Orchestrator em http://127.0.0.1:' + PORTS.ORCHESTRATOR);

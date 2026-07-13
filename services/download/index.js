@@ -804,6 +804,7 @@ app.get('/status', (req, res) => res.json(status));
 
 // Resiliente: nao morre em uncaught/rejection
 process.on('uncaughtException', (e) => {
+  if (e && e.code === 'EPIPE') return;
   console.error('uncaughtException', e.stack || e.message);
   log.error(`uncaught: ${e.message}`);
 });
