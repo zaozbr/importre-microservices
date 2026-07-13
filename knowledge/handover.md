@@ -24,9 +24,10 @@
 ## Proximos passos recomendados
 
 - Monitorar downloads de `archive.org` para performance.
-- Adicionar resolvers especificos para plugins web (Vimm, RetroStic, RomsDL, etc.) se necessario.
-- Testar downloads a partir de novas fontes.
-- Revisar se `google-fallback` precisa de melhorias (scraping de buscadores pode ser bloqueado).
+- Adicionar indices locais (archive_name_index, coolrom_index, etc.) aos plugins correspondentes para aumentar cobertura.
+- Melhorar resolvers de download para CoolROM, Vimm, RetroStic e RomsDL.
+- Otimizar/google-fallback: scraping de buscadores esta bloqueado/lento; considerar desativar ou usar APIs.
+- Adicionar testes automatizados para search e download.
 
 ## Arquivos abertos no IDE
 
