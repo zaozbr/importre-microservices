@@ -261,18 +261,37 @@ async function checkAutoReprocess() {
   }
 }
 
+let lastDlCompleted = 0;
+let lastDlCompletedTime = Date.now();
+
 async function performanceWatchdog() {
   if (controlState === 'stopped' || controlState === 'paused') return;
   try {
     const q = await serviceGet(PORTS.QUEUE, '/status');
     const dl = await serviceGet(PORTS.DOWNLOAD, '/status');
     const active = dl.active || 0;
+    const dlCompleted = dl.completed || 0;
     const ready = q.ready || 0;
     const pending = q.pending || 0;
     const searching = q.searching || 0;
     const failed = q.failed || 0;
+    const queueCompleted = q.completed || 0;
 
-    log.info(`[WATCHDOG-5m] downloads=${active} ready=${ready} pending=${pending} searching=${searching} failed=${failed}`);
+    log.info(`[WATCHDOG-5m] downloads=${active} ready=${ready} pending=${pending} searching=${searching} failed=${failed} completed=${queueCompleted}`);
+
+    // Detecta estagnacao: se completed do download service nao mudou em 5min e tem ready
+    if (dlCompleted === lastDlCompleted && ready > 0 && active > 0) {
+      const stagnantMs = Date.now() - lastDlCompletedTime;
+      log.warn(`[WATCHDOG-5m] ESTAGNACAO: 0 completos em ${(stagnantMs/1000).toFixed(0)}s. Reiniciando download service...`);
+      const proc = services['download'];
+      if (proc && proc.pid) await killByPid(proc.pid);
+      await killProcessByPort(PORTS.DOWNLOAD);
+      startService('download', 'services/download/index.js');
+      lastDlCompletedTime = Date.now();
+    } else if (dlCompleted !== lastDlCompleted) {
+      lastDlCompleted = dlCompleted;
+      lastDlCompletedTime = Date.now();
+    }
 
     if (ready === 0 && pending > 0 && searching < WORKERS.SEARCH) {
       log.warn('[WATCHDOG-5m] fila pronta vazia e busca subutilizada. Reiniciando search service...');

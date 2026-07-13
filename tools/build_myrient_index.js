@@ -17,7 +17,8 @@ const fs = require('fs');
 const path = require('path');
 
 const SOURCES = [
-  { live: 'https://myrient.erista.me/files/Redump/Sony%20-%20PlayStation/', wayback: '20250102181023' },
+  { live: 'https://myrient.erista.me/files/Redump/Sony%20-%20PlayStation/', wayback: '20251231155849' },
+  // "Sony - PlayStation (Asia)" não existe no Myrient Redump — apenas "Sony - PlayStation/"
   { live: 'https://myrient.erista.me/files/Redump/Sony%20-%20PlayStation%20(Asia)/', wayback: null },
 ];
 

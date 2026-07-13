@@ -647,11 +647,12 @@ async function processOneWithPreferredSource(preferredSite) {
   status.active++;
   let success = false;
   let lastError = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const MAX_ATTEMPTS = 2; // era 3 - reduzido para evitar workers presos
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
       if (attempt > 0) {
-        log.info(`Retry ${attempt}/3 para ${item.serial}...`);
-        await new Promise(r => setTimeout(r, 5000 * attempt));
+        log.info(`Retry ${attempt}/${MAX_ATTEMPTS} para ${item.serial}...`);
+        await new Promise(r => setTimeout(r, 3000 * attempt));
       }
       log.info(`Download ${item.serial}: ${item.sources.length} fontes (tentativa ${attempt + 1}) [worker: ${preferredSite}]`);
       await resolveAndDownload(item, item.sources, preferredSite);
@@ -665,13 +666,22 @@ async function processOneWithPreferredSource(preferredSite) {
       if (e.message && e.message.includes('429')) {
         setSourceCooldown(preferredSite, 60000); // 60s cooldown para rate limit
       }
-      log.warn(`Tentativa ${attempt + 1}/3 falhou para ${item.serial}: ${e.message}`);
+      log.warn(`Tentativa ${attempt + 1}/${MAX_ATTEMPTS} falhou para ${item.serial}: ${e.message}`);
     }
   }
   if (!success) {
     log.error(`Download falhou definitivo ${item.serial}: ${lastError?.message}`);
-    await queueRequest('post', '/queue/fail', { serial: item.serial, reason: lastError?.message || 'erro desconhecido' });
-    status.failed++;
+    // Item falhou - devolve para fila com cooldown (retry depois, nao marca como failed permanente)
+    item.retry_count = (item.retry_count || 0) + 1;
+    if (item.retry_count >= 5) {
+      // 5 falhas = marca como failed definitivo
+      await queueRequest('post', '/queue/fail', { serial: item.serial, reason: lastError?.message || 'erro desconhecido' });
+      status.failed++;
+    } else {
+      // Devolve para cooldown (tenta de novo em 30s)
+      await queueRequest('post', '/queue/requeue', { serial: item.serial });
+      log.info(`Item ${item.serial} devolvido para retry (${item.retry_count}/5 falhas)`);
+    }
   }
   status.active--;
   return true;
