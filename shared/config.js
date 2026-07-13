@@ -50,7 +50,7 @@ module.exports = {
     'archive.org-extra': 2,
     'archive_extra': 2,
     'coolrom': 5,
-    'vimm': 2,
+    'vimm': 3,
     'retrostic': 2,
     'romsdl': 2,
     'romsretro': 2,
@@ -71,6 +71,6 @@ module.exports = {
     'archive.org': 2,
     'archive.org-jp': 2,
     'coolrom': 5,
-    'round_robin': 10
+    'round_robin': 11
   }
 };

@@ -375,7 +375,7 @@ app.post('/reprocess-failures', (req, res) => {
 // === Watchdogs ===
 
 function startQueueDrainWatchdog() {
-  const STUCK_DOWNLOAD_MS = 5 * 60 * 1000;
+  const STUCK_DOWNLOAD_MS = 3 * 60 * 1000; // 3 min (era 5 min - itens presos voltam mais rapido)
   const STUCK_SEARCH_MS = 3 * 60 * 1000;
   setInterval(() => {
     const q = getQueue();

@@ -397,15 +397,48 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
         method: 'get',
         url,
         responseType: 'stream',
-        timeout: 600000,
+        timeout: 30000,          // 30s para headers (era 600000)
         maxRedirects: 5,
         headers
       });
       response.data.pipe(writer);
+      // Stream timeout: 120s + kill se speed < 1MB/s por 60s
+      const streamStart = Date.now();
+      const STREAM_TIMEOUT_MS = 120000;
+      const SLOW_SPEED_THRESHOLD = 1.0; // MB/s
+      const SLOW_SPEED_MS = 60000;
+      let streamSlowSince = 0;
+      let lastStreamSpeed = 0;
+      // Monitora bytes recebidos para detectar speed baixo
+      let lastBytesRead = 0;
+      let lastBytesCheck = Date.now();
+      response.data.on('data', (chunk) => {
+        lastBytesRead += chunk.length;
+      });
+      const streamMonitor = setInterval(() => {
+        const now = Date.now();
+        const elapsed = (now - lastBytesCheck) / 1000;
+        if (elapsed > 0) {
+          const bytesPerSec = (lastBytesRead / elapsed);
+          lastStreamSpeed = bytesPerSec / 1048576; // MB/s
+          lastBytesRead = 0;
+          lastBytesCheck = now;
+          if (lastStreamSpeed < SLOW_SPEED_THRESHOLD) {
+            if (!streamSlowSince) streamSlowSince = now;
+            else if (now - streamSlowSince > SLOW_SPEED_MS) {
+              writer.destroy();
+              clearInterval(streamMonitor);
+            }
+          } else {
+            streamSlowSince = 0;
+          }
+        }
+      }, 5000);
       await new Promise((resolve, reject) => {
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-        setTimeout(() => reject(new Error('axios stream timeout')), 600000);
+        const cleanup = () => clearInterval(streamMonitor);
+        writer.on('finish', () => { cleanup(); resolve(); });
+        writer.on('error', (err) => { cleanup(); reject(err); });
+        setTimeout(() => { cleanup(); writer.destroy(); reject(new Error('axios stream timeout 120s')); }, STREAM_TIMEOUT_MS);
       });
     } catch (axiosErr) {
       try { fs.unlinkSync(tmpPath); } catch (e2) {}
@@ -541,10 +574,25 @@ async function resolveAndDownload(item, sources, preferredSite) {
 // Garante diversificacao: 2 archive.org + 2 archive.org-jp + 5 coolrom + 10 RR (cada um numa fonte diferente)
 // Meta: mínimo 10 fontes diferentes ativas sempre
 
+// Cooldown global por fonte (ex: vimm 429 rate limit)
+const sourceCooldown = new Map(); // site -> timestamp ate quando evitar
+function isSourceInCooldown(site) {
+  const until = sourceCooldown.get(site);
+  if (!until) return false;
+  if (Date.now() < until) return true;
+  sourceCooldown.delete(site);
+  return false;
+}
+function setSourceCooldown(site, ms) {
+  sourceCooldown.set(site, Date.now() + ms);
+  log.warn(`Fonte ${site} em cooldown por ${ms/1000}s (rate limit)`);
+}
+
 // 10 fontes para os 10 RR workers (cada worker fixo numa fonte)
 const rrSources = [
   'archive.org-extra',  // RR 0
   'vimm',               // RR 1
+  'vimm',               // RR 1b (segundo worker vimm - rate limit precisa de 2)
   'retrostic',          // RR 2
   'romsdl',             // RR 3
   'romsretro',          // RR 4
@@ -556,6 +604,13 @@ const rrSources = [
 ];
 
 async function processOneWithPreferredSource(preferredSite) {
+  // Se a fonte preferida esta em cooldown (ex: 429), espera antes de pegar item
+  if (preferredSite && preferredSite !== 'any' && isSourceInCooldown(preferredSite)) {
+    const remaining = Math.ceil((sourceCooldown.get(preferredSite) - Date.now()) / 1000);
+    log.info(`Worker ${preferredSite} aguardando cooldown (${remaining}s)...`);
+    await new Promise(r => setTimeout(r, Math.min(remaining * 1000, 30000)));
+    return false; // nao pegou item, loop espera 3s e re-tenta
+  }
   // Pega item ready com fonte preferida via queue service
   const res = await queueRequest('post', '/queue/next-ready', { preferredSite });
   if (!res || !res.item) return false;
@@ -606,6 +661,10 @@ async function processOneWithPreferredSource(preferredSite) {
       break;
     } catch (e) {
       lastError = e;
+      // Detecta 429 (rate limit) e coloca fonte em cooldown
+      if (e.message && e.message.includes('429')) {
+        setSourceCooldown(preferredSite, 60000); // 60s cooldown para rate limit
+      }
       log.warn(`Tentativa ${attempt + 1}/3 falhou para ${item.serial}: ${e.message}`);
     }
   }
@@ -687,8 +746,15 @@ app.get('/queue-proxy', async (req, res) => {
   } catch (e) { res.json({ error: e.message }); }
 });
 
-app.listen(PORTS.DOWNLOAD, '127.0.0.1', () => {
+const server = app.listen(PORTS.DOWNLOAD, '127.0.0.1', () => {
   log.info(`Download service em http://127.0.0.1:${PORTS.DOWNLOAD}`);
   loop();
   performanceWatchdog();
+});
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    log.error(`Porta ${PORTS.DOWNLOAD} em uso. Encerrando (outra instancia ja rodando).`);
+    process.exit(1);
+  }
+  log.error(`Erro no servidor: ${e.message}`);
 });
