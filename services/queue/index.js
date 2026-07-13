@@ -340,8 +340,8 @@ app.post('/reprocess-failures', (req, res) => {
 // === Watchdogs ===
 
 function startQueueDrainWatchdog() {
-  const STUCK_DOWNLOAD_MS = 20 * 60 * 1000;
-  const STUCK_SEARCH_MS = 10 * 60 * 1000;
+  const STUCK_DOWNLOAD_MS = 5 * 60 * 1000;
+  const STUCK_SEARCH_MS = 3 * 60 * 1000;
   setInterval(() => {
     const q = getQueue();
     let drained = 0;
