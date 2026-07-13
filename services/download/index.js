@@ -171,9 +171,15 @@ async function downloadFile(item, url, sourceIndex = 0) {
   return tmpPath;
 }
 
+function sortSourcesBySpeed(sources) {
+  const speedMap = { 'coolrom': 10, 'vimm': 9, 'romsdl': 8, 'retrostic': 7, 'retroiso': 6, 'archive.org': 3, 'archive.org-jp': 3, 'archive_extra': 3, 'archive_org': 3, 'archive_org_jp': 3 };
+  return [...sources].sort((a, b) => (speedMap[b.site] || 5) - (speedMap[a.site] || 5));
+}
+
 async function resolveAndDownload(item, sources) {
   if (!sources || !sources.length) throw new Error('sem sources');
   const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img'];
+  sources = sortSourcesBySpeed(sources);
   const errors = [];
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i];
@@ -191,14 +197,31 @@ async function resolveAndDownload(item, sources) {
     }
     try {
       const tmpPath = await downloadFile(item, url, i);
+      // aguarda handles serem liberados
+      await new Promise(r => setTimeout(r, 2000));
       if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
+        let archiveOk = false;
+        let archiveErr = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            await testArchive(tmpPath);
+            archiveOk = true;
+            break;
+          } catch (err) {
+            archiveErr = err;
+            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          }
+        }
+        if (!archiveOk) {
+          try { fs.unlinkSync(tmpPath); } catch (e) {}
+          throw new Error('arquivo corrompido: ' + archiveErr.message);
+        }
         try {
-          await testArchive(tmpPath);
           await extractWith7z(tmpPath, PSX_DIR);
           fs.unlinkSync(tmpPath);
-        } catch (archiveErr) {
-          fs.unlinkSync(tmpPath);
-          throw new Error('arquivo corrompido: ' + archiveErr.message);
+        } catch (extractErr) {
+          try { fs.unlinkSync(tmpPath); } catch (e) {}
+          throw new Error('extracao falhou: ' + extractErr.message);
         }
       }
       return; // sucesso
@@ -236,14 +259,17 @@ async function processOne() {
   return true;
 }
 
-async function loop() {
+async function workerLoop(id) {
   while (true) {
-    const workers = Array(WORKERS.DOWNLOAD).fill(null).map(async () => {
-      while (await processOne()) {}
-    });
-    await Promise.all(workers);
-    await new Promise(r => setTimeout(r, 10000));
+    const hadWork = await processOne();
+    if (!hadWork) await new Promise(r => setTimeout(r, 2000));
   }
+}
+
+async function loop() {
+  const workers = Math.max(1, WORKERS.DOWNLOAD || 1);
+  log.info(`Iniciando ${workers} workers de download`);
+  await Promise.all(Array.from({ length: workers }, (_, i) => workerLoop(i)));
 }
 
 app.get('/status', (req, res) => res.json(status));

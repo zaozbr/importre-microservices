@@ -2,7 +2,7 @@ Importre Microservices:
   Performance Downloads (target: 1MB/s por download, 20MB/s total):
     ✔ Diagnosticar estado atual de downloads e velocidades
     ✔ Aumentar paralelismo de downloads e workers
-    ☐ Adicionar indices locais para aumentar cobertura de fontes
+    ✔ Adicionar indices locais para aumentar cobertura de fontes
     ✔ Implementar watchdog de performance a cada 5 minutos
     ✔ Melhorar resolvers de download para fontes principais
     ☐ Testar e validar targets de 1MB/s por download e 20MB/s total

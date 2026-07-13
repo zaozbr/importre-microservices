@@ -31,7 +31,7 @@ module.exports = {
   },
   WORKERS: {
     SEARCH: 10,
-    DOWNLOAD: 12,
+    DOWNLOAD: 20,
     CHD: 2
   },
   ARIA2: {
