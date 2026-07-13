@@ -71,42 +71,114 @@ async function queueRequest(method, endpoint, body) {
 }
 
 async function resolvePageDownload(pageUrl, siteHint) {
-  const res = await axios.get(pageUrl, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-    timeout: 20000
-  });
+  const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' };
+  const res = await axios.get(pageUrl, { headers, timeout: 20000 });
   const $ = cheerio.load(res.data);
-  // CoolROM
+  
+  // === CoolROM ===
   if (siteHint === 'coolrom' || pageUrl.includes('coolrom')) {
     const link = $('a[href*="dl.coolrom"]').attr('href');
     if (link) return link;
   }
-  // Vimm: usa form POST para dl3.vimm.net
+  
+  // === Vimm: extrai mediaId do HTML, GET dl3 com cookies ===
   if (siteHint === 'vimm' || pageUrl.includes('vimm.net')) {
-    const form = $('form[action*="dl3.vimm.net"]');
+    // Extrai cookies da resposta (PHPSESSID é necessario)
+    const setCookies = res.headers['set-cookie'];
+    const cookieStr = setCookies 
+      ? (Array.isArray(setCookies) ? setCookies : [setCookies])
+          .map(c => c.split(';')[0]).join('; ')
+      : '';
+    
+    // Procura mediaId no JavaScript embutido
+    const scriptText = $('script').map((i, el) => $(el).html()).get().join('\n');
+    const mediaMatch = scriptText.match(/"ID":(\d+)/);
+    const mediaId = mediaMatch ? mediaMatch[1] : null;
+    
+    if (mediaId) {
+      // GET dl3.vimm.net com cookies + Referer retorna o arquivo direto
+      const dlUrl = `https://dl3.vimm.net/?mediaId=${mediaId}&alt=0`;
+      log.info(`Vimm resolvido: ${dlUrl} (cookies: ${cookieStr ? 'sim' : 'nao'})`);
+      // Retorna URL especial com cookies embutidos via header customizado
+      // O aria2/axios precisa do Cookie header - armazenamos nos metadados
+      return { url: dlUrl, headers: { 'Cookie': cookieStr, 'Referer': pageUrl } };
+    }
+    throw new Error('vimm: mediaId nao encontrado');
+  }
+  
+  // === RetroStic: POST com session/rom_url/console_url ===
+  if (siteHint === 'retrostic' || pageUrl.includes('retrostic')) {
+    // Extrai form de download com campos hidden
+    const form = $('form[action*="download"]');
     if (form.length) {
-      let action = form.attr('action');
-      if (action) {
-        if (action.startsWith('//')) action = 'https:' + action;
-        else if (action.startsWith('/')) action = 'https://vimm.net' + action;
-        return action;
-      }
+      const formData = {};
+      form.find('input').each((i, el) => {
+        const name = $(el).attr('name');
+        const value = $(el).attr('value');
+        if (name) formData[name] = value || '';
+      });
+      
+      // POST para {pageUrl}/download
+      const dlUrl = pageUrl.endsWith('/') ? pageUrl + 'download' : pageUrl + '/download';
+      const postRes = await axios.post(dlUrl, new URLSearchParams(formData).toString(), {
+        headers: { 
+          ...headers, 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Referer': pageUrl
+        },
+        timeout: 20000,
+        maxRedirects: 0,
+        validateStatus: s => s < 400
+      });
+      
+      // Extrai URL do JS redirect
+      const jsMatch = postRes.data.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
+      if (jsMatch) return jsMatch[1];
+      
+      // Ou procura link direto na resposta
+      const $resp = cheerio.load(postRes.data);
+      const directLink = $resp('a[href*=".7z"], a[href*=".zip"], a[href*=".rar"], a[href*=".iso"]').attr('href');
+      if (directLink) return directLink;
+      
+      throw new Error('retrostic: URL nao extraida do POST');
     }
-    // Fallback: procura link direto
-    const link = $('a[href*="media/"]').attr('href') || $('a[href*="download"]').attr('href');
-    if (link) return link.startsWith('http') ? link : `https://vimm.net${link}`;
+    throw new Error('retrostic: form de download nao encontrado');
   }
-  // RetroISO: link /download/ID
-  if (siteHint === 'retroiso' || pageUrl.includes('retroiso')) {
-    const dlLink = $('a[href*="/download/"]').attr('href');
-    if (dlLink) {
-      if (dlLink.startsWith('http')) return dlLink;
-      const base = new URL(pageUrl).origin;
-      return dlLink.startsWith('/') ? base + dlLink : base + '/' + dlLink;
-    }
+  
+  // === RomsDL: POST vazio para /download ===
+  if (siteHint === 'romsdl' || pageUrl.includes('romsdl')) {
+    const dlUrl = pageUrl.endsWith('/') ? pageUrl + 'download' : pageUrl + '/download';
+    const postRes = await axios.post(dlUrl, '', {
+      headers: { ...headers, 'Referer': pageUrl },
+      timeout: 20000,
+      maxRedirects: 0,
+      validateStatus: s => s < 400
+    });
+    
+    // Metodo 1: link direto <a> com extensao
+    const $resp = cheerio.load(postRes.data);
+    const directLink = $resp('a[href*=".7z"], a[href*=".zip"], a[href*=".rar"], a[href*=".iso"], a[href*=".bin"]').attr('href');
+    if (directLink) return directLink;
+    
+    // Metodo 2: JS redirect
+    const jsMatch = postRes.data.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
+    if (jsMatch) return jsMatch[1];
+    
+    // Metodo 3: meta refresh
+    const metaMatch = postRes.data.match(/<meta[^>]+refresh[^>]+url=([^"'>]+)/i);
+    if (metaMatch) return metaMatch[1];
+    
+    throw new Error('romsdl: URL nao extraida do POST');
   }
-  // RetroStic, RomsDL e outros genericos
-  const exts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img'];
+  
+  // === RomsRetro: link direto dl.romsretro.com ===
+  if (siteHint === 'romsretro' || pageUrl.includes('romsretro')) {
+    const dlLink = $('a[href*="dl.romsretro.com"]').attr('href');
+    if (dlLink) return dlLink;
+  }
+  
+  // === Generico: procura link com extensao ===
+  const exts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img', '.chd'];
   let best = null;
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href');
@@ -116,7 +188,6 @@ async function resolvePageDownload(pageUrl, siteHint) {
       best = href;
       return false;
     }
-    // Tambem procura links /download/
     if (lower.includes('/download/') && !best) {
       best = href;
       return false;
@@ -211,7 +282,7 @@ async function performanceWatchdog() {
   }
 }
 
-async function downloadFile(item, source, url, sourceIndex = 0) {
+async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = null) {
   const ext = path.extname(new URL(url).pathname) || '.7z';
   const tmpPath = path.join(PSX_DIR, `${item.serial}${ext}`);
   await acquireSourceSlot(source.site);
@@ -224,7 +295,8 @@ async function downloadFile(item, source, url, sourceIndex = 0) {
       minSpeedMbps: ARIA2.MIN_SPEED_MBPS,
       slowThresholdMs: ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS,
       stalledThresholdMs: ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS + 30000,
-      onProgress: (p) => { updateProgress(item.serial, p); }
+      onProgress: (p) => { updateProgress(item.serial, p); },
+      extraHeaders
     });
   } catch (e) {
     log.warn(`aria2 falhou ${item.serial}: ${e.message}. Tentando fallback axios.`);
@@ -241,6 +313,9 @@ async function downloadFile(item, source, url, sourceIndex = 0) {
         const archHdrs = getArchiveHeaders();
         headers['Referer'] = archHdrs['Referer'];
         if (archHdrs['Cookie']) headers['Cookie'] = archHdrs['Cookie'];
+      }
+      // Headers extras do resolver (vimm cookies, etc)
+      if (extraHeaders) Object.assign(headers, extraHeaders);
       }
       const response = await axios({
         method: 'get',
@@ -322,10 +397,17 @@ async function resolveAndDownload(item, sources, preferredSite) {
       }
     }
     let url = source.url;
+    let extraHeaders = null;
     const isDirect = directExts.some(e => source.url.toLowerCase().endsWith(e));
-    if (!isDirect || ['coolrom', 'vimm', 'retrostic', 'romsdl', 'retroiso'].includes(source.site)) {
+    if (!isDirect || ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro'].includes(source.site)) {
       try {
-        url = await resolvePageDownload(source.url, source.site);
+        const resolved = await resolvePageDownload(source.url, source.site);
+        if (typeof resolved === 'object' && resolved.url) {
+          url = resolved.url;
+          extraHeaders = resolved.headers || null;
+        } else {
+          url = resolved;
+        }
       } catch (e) {
         log.warn(`Nao foi possivel resolver pagina ${source.site} para ${item.serial}: ${e.message}`);
         errors.push(`${source.site}: ${e.message}`);
@@ -333,7 +415,7 @@ async function resolveAndDownload(item, sources, preferredSite) {
       }
     }
     try {
-      const tmpPath = await downloadFile(item, source, url, i);
+      const tmpPath = await downloadFile(item, source, url, i, extraHeaders);
       // aguarda handles serem liberados
       await new Promise(r => setTimeout(r, 2000));
       if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
@@ -380,12 +462,12 @@ const rrSources = [
   'vimm',               // RR 1
   'retrostic',          // RR 2
   'romsdl',             // RR 3
-  'retroiso',           // RR 4
-  'blueroms',           // RR 5
-  'hexrom',             // RR 6
-  'romspedia',          // RR 7
-  'romsgames',          // RR 8
-  'myrient'             // RR 9
+  'romsretro',          // RR 4
+  'cdromance',          // RR 5
+  'romspedia',          // RR 6
+  'romsgames',          // RR 7
+  'myrient',            // RR 8
+  'homebrew'            // RR 9
 ];
 
 async function processOneWithPreferredSource(preferredSite) {

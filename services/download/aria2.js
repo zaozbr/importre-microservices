@@ -94,6 +94,12 @@ function aria2Download(url, outputPath, options = {}) {
         args.push('--header=Cookie: ' + hdrs['Cookie']);
       }
     }
+    // Headers extras do resolver (vimm cookies, retrostic referer, etc)
+    if (options.extraHeaders) {
+      for (const [key, value] of Object.entries(options.extraHeaders)) {
+        args.push(`--header=${key}: ${value}`);
+      }
+    }
     const proc = spawn(ARIA2C, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let stderr = '';
     let stdout = '';

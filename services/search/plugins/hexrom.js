@@ -5,7 +5,7 @@ module.exports = {
   matchType: 'title',
   needsMultiChunk: true,
   priority: 12,
-  enabled: true,
+  enabled: false, // requer JavaScript - impossivel sem headless
   search(serial, title) {
     return genericSiteSearch('hexrom', 'https://hexrom.com', 'https://hexrom.com/?s={query}', [
       '<a[^>]+href="(/rom/[^"]+)"[^>]*>([^<]{10,120})</a>'

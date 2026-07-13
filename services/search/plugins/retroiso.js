@@ -5,7 +5,7 @@ module.exports = {
   matchType: 'title',
   needsMultiChunk: true,
   priority: 6,
-  enabled: true,
+  enabled: false, // site fake - nao entrega ROMs
   search(serial, title) {
     const cache = loadJson('retroiso_cache.json');
     const target = normalize(title || serial);

@@ -3,3 +3,4 @@
 node_modules/
 *.log
 shared/archive_auth.json
+_tmp/
