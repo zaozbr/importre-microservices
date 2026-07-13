@@ -371,16 +371,22 @@ async function resolveAndDownload(item, sources, preferredSite) {
 }
 
 // === Workers dedicados por fonte ===
-// Garante diversificacao: 2 archive.org + 2 archive.org-jp + 5 coolrom + 5 round-robin
+// Garante diversificacao: 2 archive.org + 2 archive.org-jp + 5 coolrom + 10 RR (cada um numa fonte diferente)
+// Meta: mínimo 10 fontes diferentes ativas sempre
 
-const rrSources = ['archive.org-extra', 'vimm', 'retrostic', 'romsdl', 'retroiso', 'romspedia', 'romsgames', 'blueroms', 'hexrom', 'homebrew', 'myrient'];
-let rrIndex = 0;
-
-function getNextRRSource() {
-  const src = rrSources[rrIndex % rrSources.length];
-  rrIndex++;
-  return src;
-}
+// 10 fontes para os 10 RR workers (cada worker fixo numa fonte)
+const rrSources = [
+  'archive.org-extra',  // RR 0
+  'vimm',               // RR 1
+  'retrostic',          // RR 2
+  'romsdl',             // RR 3
+  'retroiso',           // RR 4
+  'blueroms',           // RR 5
+  'hexrom',             // RR 6
+  'romspedia',          // RR 7
+  'romsgames',          // RR 8
+  'myrient'             // RR 9
+];
 
 async function processOneWithPreferredSource(preferredSite) {
   // Pega item ready com fonte preferida via queue service
@@ -402,12 +408,11 @@ async function processOneWithPreferredSource(preferredSite) {
   }
 
   // Verifica se pelo menos uma fonte tem slot disponivel
-  // (se nao tem preferida ou a preferida nao esta nas sources)
   const hasAvailableSlot = item.sources.some(s => {
     const st = getSlotState(s.site);
     return st.current < st.max;
   });
-  if (!hasAvailableSlot && preferredSite === 'any') {
+  if (!hasAvailableSlot) {
     // Devolve para a fila - todos slots cheios
     await queueRequest('post', '/queue/requeue', { serial: item.serial });
     log.info(`Item ${item.serial} devolvido - todos slots cheios`);
@@ -451,16 +456,14 @@ async function dedicatedWorkerLoop(id, preferredSite) {
   }
 }
 
-async function rrWorkerLoop(id) {
+async function rrWorkerLoop(id, fixedSource) {
+  log.info(`Worker RR ${id} fixo na fonte: ${fixedSource}`);
   while (true) {
-    // Pega proxima fonte do round-robin
-    const site = getNextRRSource();
-    log.info(`Worker RR ${id} tentando fonte: ${site}`);
-    const hadWork = await processOneWithPreferredSource(site);
+    const hadWork = await processOneWithPreferredSource(fixedSource);
     if (!hadWork) {
-      // Se nao achou com essa fonte, tenta qualquer item
-      const hadAny = await processOneWithPreferredSource('any');
-      if (!hadAny) await new Promise(r => setTimeout(r, 3000));
+      // Se nao achou item com essa fonte, espera 3s e tenta de novo
+      // (nao pega de outra fonte - mantem diversificacao)
+      await new Promise(r => setTimeout(r, 3000));
     }
   }
 }
@@ -470,24 +473,27 @@ async function loop() {
   const workers = [];
   let id = 0;
   
-  // Workers dedicados para archive.org
+  // Workers dedicados para archive.org (2)
   for (let i = 0; i < (alloc['archive.org'] || 2); i++) {
     workers.push(dedicatedWorkerLoop(id++, 'archive.org'));
   }
-  // Workers dedicados para archive.org-jp
+  // Workers dedicados para archive.org-jp (2)
   for (let i = 0; i < (alloc['archive.org-jp'] || 2); i++) {
     workers.push(dedicatedWorkerLoop(id++, 'archive.org-jp'));
   }
-  // Workers dedicados para coolrom
+  // Workers dedicados para coolrom (5)
   for (let i = 0; i < (alloc['coolrom'] || 5); i++) {
     workers.push(dedicatedWorkerLoop(id++, 'coolrom'));
   }
-  // Workers round-robin para outras fontes
-  for (let i = 0; i < (alloc['round_robin'] || 5); i++) {
-    workers.push(rrWorkerLoop(id++));
+  // Workers RR fixos em fontes unicas (10)
+  const rrCount = alloc['round_robin'] || 10;
+  for (let i = 0; i < rrCount; i++) {
+    const source = rrSources[i % rrSources.length];
+    workers.push(rrWorkerLoop(id++, source));
   }
   
-  log.info(`Iniciando ${workers.length} workers: ${alloc['archive.org']||2} archive.org + ${alloc['archive.org-jp']||2} archive.org-jp + ${alloc['coolrom']||5} coolrom + ${alloc['round_robin']||5} round-robin`);
+  const fontesUnicas = 3 + Math.min(rrCount, rrSources.length); // archive.org + archive.org-jp + coolrom + RR unicos
+  log.info(`Iniciando ${workers.length} workers: ${alloc['archive.org']||2} archive.org + ${alloc['archive.org-jp']||2} archive.org-jp + ${alloc['coolrom']||5} coolrom + ${rrCount} RR fixos. Meta: ${fontesUnicas} fontes unicas`);
   await Promise.all(workers);
 }
 

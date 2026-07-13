@@ -59,14 +59,24 @@ module.exports = {
     'blueroms': 2,
     'hexrom': 2,
     'homebrew': 2,
-    'myrient': 2
+    'myrient': 2,
+    'romulation': 2,
+    'consoleroms': 2,
+    'freeroms': 2,
+    'classicgames': 2,
+    'oldiesnest': 2,
+    'playretrogames': 2,
+    'roms2000': 2,
+    'retromania': 2,
+    'romspure': 2,
+    'romsretro': 2
   },
-  // Alocação obrigatória de workers por fonte
-  // 2 archive.org + 2 archive.org-jp + 5 coolrom + 5 round-robin
+  // Alocação obrigatória: 2 archive.org + 2 archive.org-jp + 5 coolrom + 10 RR
+  // Total: 19 workers, mínimo 10 fontes diferentes ativas
   WORKER_ALLOCATION: {
     'archive.org': 2,
     'archive.org-jp': 2,
     'coolrom': 5,
-    'round_robin': 5
+    'round_robin': 10
   }
 };
