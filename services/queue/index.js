@@ -242,9 +242,46 @@ app.post('/reprocess-failures', (req, res) => {
   res.json({ ok: true, moved });
 });
 
+function startQueueDrainWatchdog() {
+  const STUCK_DOWNLOAD_MS = 20 * 60 * 1000;
+  const STUCK_SEARCH_MS = 10 * 60 * 1000;
+  setInterval(() => {
+    withQueueLock(() => {
+      const q = loadQueue();
+      let drained = 0;
+      const now = Date.now();
+      for (const item of q.queue) {
+        if (item.status === 'downloading' && item.download_started) {
+          const start = new Date(item.download_started).getTime();
+          if (now - start > STUCK_DOWNLOAD_MS) {
+            item.status = 'ready';
+            item.stuck_released = new Date().toISOString();
+            delete q.in_progress[item.serial];
+            drained++;
+          }
+        }
+        if (item.status === 'searching' && item.search_started) {
+          const start = new Date(item.search_started).getTime();
+          if (now - start > STUCK_SEARCH_MS) {
+            item.status = 'pending';
+            item.stuck_released = new Date().toISOString();
+            delete q.in_progress[item.serial];
+            drained++;
+          }
+        }
+      }
+      if (drained) {
+        saveQueue(q);
+        log.warn(`Queue drain: ${drained} itens presos liberados`);
+      }
+    });
+  }, 60000);
+}
+
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
 app.listen(PORTS.QUEUE, '127.0.0.1', () => {
   log.info(`Queue service em http://127.0.0.1:${PORTS.QUEUE}`);
+  startQueueDrainWatchdog();
 });
