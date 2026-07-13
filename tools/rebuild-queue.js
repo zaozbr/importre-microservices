@@ -15,19 +15,28 @@ for (const f of fs.readdirSync(PSX_DIR)) {
   if (s) chdSerials.add(s);
 }
 
+const titles = {};
 const faltantes = new Set();
 if (fs.existsSync(FALTANTES)) {
   const content = fs.readFileSync(FALTANTES, 'utf-8');
   let m;
   const re = /([A-Z]{2,4}[-]\d{3,5})/gi;
   while ((m = re.exec(content)) !== null) faltantes.add(m[1].toUpperCase());
+  for (const line of content.split('\n')) {
+    const m2 = line.match(/^\s*\|\s*\d+\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/);
+    if (m2) {
+      const serial = m2[1].trim().toUpperCase();
+      const nome = m2[2].trim();
+      if (serial && nome) titles[serial] = nome;
+    }
+  }
 }
 
 const missing = [...faltantes].filter(s => !chdSerials.has(s));
 
 const queue = missing.map(serial => ({
   serial,
-  title: serial,
+  title: titles[serial] || serial,
   status: 'pending',
   priority: 1,
   added: new Date().toISOString(),
