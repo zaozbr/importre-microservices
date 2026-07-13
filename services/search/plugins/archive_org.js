@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { loadJson, buildSource } = require('./_base');
+const { getArchiveHeaders } = require('../../../shared/archive_auth');
 
 module.exports = {
   name: 'archive.org',
@@ -22,16 +23,17 @@ module.exports = {
       return [buildSource('archive.org', jp.url, jp.name || title || serial, { size: jp.size })];
     }
 
-    // 3. Busca online no archive.org (timeout curto, metadata em paralelo)
+    // 3. Busca online no archive.org (com cookies de login)
     try {
+      const hdrs = getArchiveHeaders();
       const q = encodeURIComponent(`"${serial}"`);
       const url = `https://archive.org/advancedsearch.php?q=${q}&fl%5B%5D=identifier&fl%5B%5D=title&sort=title&rows=10&page=1&output=json&save=yes`;
-      const res = await axios.get(url, { timeout: 10000 });
+      const res = await axios.get(url, { timeout: 10000, headers: hdrs });
       const docs = res.data?.response?.docs || [];
       if (!docs.length) return [];
       const metaPromises = docs.map(async d => {
         try {
-          const meta = await axios.get(`https://archive.org/metadata/${d.identifier}`, { timeout: 10000 });
+          const meta = await axios.get(`https://archive.org/metadata/${d.identifier}`, { timeout: 10000, headers: hdrs });
           const files = meta.data?.files || [];
           const romFiles = files.filter(f => /\.(7z|zip|rar|bin|cue|img|iso|chd)$/i.test(f.name) && f.size > 1024 * 1024);
           if (!romFiles.length) return null;

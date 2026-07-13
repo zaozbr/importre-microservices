@@ -237,8 +237,10 @@ async function downloadFile(item, source, url, sourceIndex = 0) {
         'Accept-Encoding': 'gzip, deflate, br',
       };
       if (isArchive) {
-        headers['Referer'] = 'https://archive.org/';
-        headers['Cookie'] = 'logged-in-sig=0; logged-in-user=0';
+        const { getArchiveHeaders } = require('../../shared/archive_auth');
+        const archHdrs = getArchiveHeaders();
+        headers['Referer'] = archHdrs['Referer'];
+        if (archHdrs['Cookie']) headers['Cookie'] = archHdrs['Cookie'];
       }
       const response = await axios({
         method: 'get',
@@ -371,7 +373,7 @@ async function resolveAndDownload(item, sources, preferredSite) {
 // === Workers dedicados por fonte ===
 // Garante diversificacao: 2 archive.org + 2 archive.org-jp + 5 coolrom + 5 round-robin
 
-const rrSources = ['vimm', 'retrostic', 'romsdl', 'retroiso', 'romspedia', 'romsgames', 'blueroms', 'hexrom', 'homebrew', 'myrient', 'archive.org-extra'];
+const rrSources = ['archive.org-extra', 'vimm', 'retrostic', 'romsdl', 'retroiso', 'romspedia', 'romsgames', 'blueroms', 'hexrom', 'homebrew', 'myrient'];
 let rrIndex = 0;
 
 function getNextRRSource() {

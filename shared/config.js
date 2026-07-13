@@ -62,11 +62,11 @@ module.exports = {
     'myrient': 2
   },
   // Alocação obrigatória de workers por fonte
+  // 2 archive.org + 2 archive.org-jp + 5 coolrom + 5 round-robin
   WORKER_ALLOCATION: {
     'archive.org': 2,
     'archive.org-jp': 2,
     'coolrom': 5,
-    // 5 workers restantes fazem round-robin entre outras fontes
     'round_robin': 5
   }
 };

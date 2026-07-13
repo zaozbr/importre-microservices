@@ -1,11 +1,11 @@
 const { loadJson, buildSource } = require('./_base');
 
 module.exports = {
-  name: 'archive.org-extra',
+  name: 'archive.org-extra-old',
   matchType: 'serial',
   needsMultiChunk: true,
   priority: 10,
-  enabled: true,
+  enabled: false,
   search(serial, title) {
     const extra = loadJson('extra_index.json');
     const smart = loadJson('smart_index.json');

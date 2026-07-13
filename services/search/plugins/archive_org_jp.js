@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { loadJson, buildSource } = require('./_base');
+const { getArchiveHeaders } = require('../../../shared/archive_auth');
 
 module.exports = {
   name: 'archive.org-jp',
@@ -18,18 +19,18 @@ module.exports = {
       return [buildSource('archive.org-jp', `https://archive.org/download/${info.collection}/${encodeURIComponent(info.file)}`, info.file, { size: info.size })];
     }
 
-    // 2. Busca online no archive.org por serial JP
+    // 2. Busca online no archive.org por serial JP (com cookies de login)
     try {
+      const hdrs = getArchiveHeaders();
       const q = encodeURIComponent(`"${serial}" AND (collection:psx OR collection:redump OR collection:sony_playstation)`);
       const url = `https://archive.org/advancedsearch.php?q=${q}&fl%5B%5D=identifier&fl%5B%5D=title&sort=title&rows=10&page=1&output=json&save=yes`;
-      const res = await axios.get(url, { timeout: 12000 });
+      const res = await axios.get(url, { timeout: 12000, headers: hdrs });
       const docs = res.data?.response?.docs || [];
       if (!docs.length) return [];
       const metaPromises = docs.map(async d => {
         try {
-          const meta = await axios.get(`https://archive.org/metadata/${d.identifier}`, { timeout: 12000 });
+          const meta = await axios.get(`https://archive.org/metadata/${d.identifier}`, { timeout: 12000, headers: hdrs });
           const files = meta.data?.files || [];
-          // Procura por arquivo que contenha o serial no nome
           const romFiles = files.filter(f => /\.(7z|zip|rar|bin|cue|img|iso|chd)$/i.test(f.name) && f.size > 1024 * 1024);
           if (!romFiles.length) return null;
           const best = romFiles.find(f => f.name.toLowerCase().includes(serial.toLowerCase())) || romFiles[0];
