@@ -2,93 +2,51 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fila</title>
-<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/reset.css">
-<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/antd.min.css">
+<link rel="stylesheet" href="/shared/dashboard.css">
 <style>
-  body { background: #0d1117; color: #c9d1d9; padding: 12px; }
-  .site-card { background: #161b22; border-color: #30363d; }
-  .site-card .ant-card-head { background: #161b22; border-color: #30363d; color: #e94560; }
-  .site-card .ant-card-body { background: #161b22; }
+.site-table{width:100%;border-collapse:collapse}
+.site-table th,.site-table td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--bg3);font-size:11px}
+.site-table th{background:var(--bg3);color:var(--txt2);text-transform:uppercase;font-size:9px;position:sticky;top:0}
+.site-table tr:hover{background:var(--bg3)}
+.bar-wrap{position:relative;background:var(--bg3);border-radius:4px;height:18px;overflow:hidden;min-width:100px}
+.bar-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--purple),var(--blue));opacity:.5}
+.bar-text{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;height:100%;font-size:9px;font-weight:700;color:var(--txt)}
 </style>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/antd@5.20.0/dist/antd.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useEffect } = React;
-const { Card, Table, Tag, Statistic, Row, Col, Progress } = antd;
-
-async function fetchJSON(url) {
-  try { const r = await fetch(url); return await r.json(); } catch (e) { return {}; }
+<div class="widget">
+  <div class="widget-header">Fila <span id="h-cnt"></span></div>
+  <div class="widget-body">
+    <div id="table"></div>
+  </div>
+</div>
+<script src="/shared/dashboard.js"></script>
+<script>
+function statusBar(i){
+  const p = i.progress || {};
+  const pct = p.percent || 0;
+  if(i.status==='downloading'){
+    return `<div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div><div class="bar-text">${i.status} ${pct}%</div></div>`;
+  }
+  return `<span class="status ${i.status}">${i.status}</span>`;
 }
+async function render(){
+  const data = await Dashboard.fetchJSON('/status');
+  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.total);
+  if(data.paused) document.getElementById('h-cnt').innerHTML += ' <span style="color:var(--yellow)">PAUSED</span>';
 
-const statusColors = {
-  pending: 'default',
-  searching: 'processing',
-  ready: 'warning',
-  downloading: 'success',
-  completed: 'success',
-  failed: 'error'
-};
-
-function App() {
-  const [status, setStatus] = useState({});
-  const [items, setItems] = useState([]);
-
-  useEffect(() => {
-    async function load() {
-      const s = await fetchJSON('/status');
-      setStatus(s);
-      const q = await fetchJSON('/queue');
-      const active = (q.queue || []).filter(i => ['pending', 'searching', 'ready', 'downloading'].includes(i.status)).slice(0, 50);
-      setItems(active);
-    }
-    load();
-    const i = setInterval(load, 3000);
-    return () => clearInterval(i);
-  }, []);
-
-  const columns = [
-    { title: 'Serial', dataIndex: 'serial', key: 'serial', render: s => <Tag color="blue">{s}</Tag> },
-    { title: 'Jogo', dataIndex: 'title', key: 'title', ellipsis: true },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: s => <Tag color={statusColors[s] || 'default'}>{s}</Tag> },
-    { title: 'Progresso', key: 'progress', render: (_, item) => {
-      const p = item.progress || {};
-      return item.status === 'downloading' ? <Progress percent={p.percent || 0} size="small" /> : '-';
-    }},
-    { title: 'Velocidade', key: 'speed', render: (_, item) => item.progress?.speed || '-' },
-    { title: 'Retry', dataIndex: 'retry_count', key: 'retry', render: r => r || 0 },
-  ];
-
-  return (
-    <Card title={`Fila: ${status.total || 0} itens`} className="site-card" bordered>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col><Statistic title="Pendentes" value={status.pending || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-        <Col><Statistic title="Buscando" value={status.searching || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-        <Col><Statistic title="Prontos" value={status.ready || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-        <Col><Statistic title="Downloads" value={status.downloading || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-        <Col><Statistic title="OK" value={status.completed || 0} valueStyle={{ color: '#3fb950' }} /></Col>
-        <Col><Statistic title="Falhas" value={status.failed || 0} valueStyle={{ color: '#e94560' }} /></Col>
-      </Row>
-      <Table
-        dataSource={items}
-        columns={columns}
-        rowKey="serial"
-        size="small"
-        pagination={false}
-        scroll={{ y: 280 }}
-        locale={{ emptyText: 'fila vazia' }}
-      />
-    </Card>
-  );
+  const q = await Dashboard.fetchJSON('/queue');
+  const items = (q.queue||[]).filter(i=>['pending','searching','ready','downloading'].includes(i.status)).slice(0,50);
+  const table = document.getElementById('table');
+  if(!items.length){ table.innerHTML='<p class="muted">vazio</p>'; return; }
+  table.innerHTML = `<table class="site-table"><tr><th>Serial</th><th>Título</th><th>Status</th><th>%</th><th>Velocidade</th><th>Retry</th></tr>`+
+    items.map(i=>{
+      const p = i.progress || {};
+      return `<tr><td>${Dashboard.esc(i.serial)}</td><td>${Dashboard.esc(i.title||i.serial)}</td><td>${statusBar(i)}</td><td class="pct">${i.status==='downloading'?(p.percent||0)+'%':'-'}</td><td class="speed">${Dashboard.esc(p.speed||'-')}</td><td>${i.retry_count||0}</td></tr>`;
+    }).join('')+
+    `</table>`;
 }
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+render(); setInterval(render,3000);
 </script>
 </body>
 </html>

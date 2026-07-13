@@ -2,83 +2,41 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Busca</title>
-<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/reset.css">
-<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/antd.min.css">
+<link rel="stylesheet" href="/shared/dashboard.css">
 <style>
-  body { background: #0d1117; color: #c9d1d9; padding: 12px; }
-  .site-card { background: #161b22; border-color: #30363d; }
-  .site-card .ant-card-head { background: #161b22; border-color: #30363d; color: #e94560; }
-  .site-card .ant-card-body { background: #161b22; }
+.site-table{width:100%;border-collapse:collapse}
+.site-table th,.site-table td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--bg3);font-size:11px}
+.site-table th{background:var(--bg3);color:var(--txt2);text-transform:uppercase;font-size:9px;position:sticky;top:0}
+.site-table tr:hover{background:var(--bg3)}
 </style>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/antd@5.20.0/dist/antd.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useEffect } = React;
-const { Card, Table, Tag, Badge } = antd;
+<div class="widget">
+  <div class="widget-header">Busca <span id="h-cnt"></span></div>
+  <div class="widget-body">
+    <div id="status" class="muted"></div>
+    <div id="table"></div>
+  </div>
+</div>
+<script src="/shared/dashboard.js"></script>
+<script>
+async function render(){
+  const data = await Dashboard.fetchJSON('/status');
+  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.active||0);
+  document.getElementById('status').textContent = (data.ok===false ? 'offline' : 'online') + ' | ' + (data.plugins||[]).length + ' plugins';
 
-async function fetchJSON(url) {
-  try { const r = await fetch(url); return await r.json(); } catch (e) { return {}; }
+  const q = await Dashboard.fetchJSON('/queue-proxy');
+  const items = (q.queue||[]).filter(i=>i.status==='searching').slice(0,50);
+  const table = document.getElementById('table');
+  if(!items.length){ table.innerHTML='<p class="muted">nenhuma busca ativa</p>'; return; }
+  table.innerHTML = `<table class="site-table"><tr><th>Serial</th><th>Título</th><th>Site</th></tr>`+
+    items.map(i=>{
+      const src = (i.sources||[])[0]||{};
+      return `<tr><td>${Dashboard.esc(i.serial)}</td><td>${Dashboard.esc(i.title||'-')}</td><td class="muted">${Dashboard.esc(src.site||'scanning')}</td></tr>`;
+    }).join('')+
+    `</table>`;
 }
-
-function App() {
-  const [status, setStatus] = useState({ ok: true });
-  const [items, setItems] = useState([]);
-  const [plugins, setPlugins] = useState([]);
-
-  useEffect(() => {
-    async function load() {
-      const s = await fetchJSON('/status');
-      setStatus(s);
-      setPlugins(s.plugins || []);
-      const q = await fetchJSON('/queue-proxy');
-      const searching = (q.queue || []).filter(i => i.status === 'searching').slice(0, 50);
-      setItems(searching);
-    }
-    load();
-    const i = setInterval(load, 3000);
-    return () => clearInterval(i);
-  }, []);
-
-  const columns = [
-    { title: 'Serial', dataIndex: 'serial', key: 'serial', render: s => <Tag color="blue">{s}</Tag> },
-    { title: 'Jogo', dataIndex: 'title', key: 'title', ellipsis: true },
-    { title: 'Fonte atual', key: 'source', render: (_, item) => {
-      const src = (item.sources || [])[0] || {};
-      return <Tag color="purple">{src.site || 'scanning'}</Tag>;
-    }},
-  ];
-
-  return (
-    <Card
-      title={<span>Busca <Badge count={items.length} style={{ marginLeft: 8 }} showZero /></span>}
-      className="site-card"
-      bordered
-      extra={<Tag color={status.ok ? 'success' : 'error'}>{status.ok ? 'ONLINE' : 'OFFLINE'}</Tag>}
-    >
-      <div style={{ marginBottom: 8 }}>
-        <Tag color="cyan">{plugins.length} plugins</Tag>
-      </div>
-      <Table
-        dataSource={items}
-        columns={columns}
-        rowKey="serial"
-        size="small"
-        pagination={false}
-        scroll={{ y: 320 }}
-        locale={{ emptyText: 'nenhuma busca ativa' }}
-      />
-    </Card>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+render(); setInterval(render,3000);
 </script>
 </body>
 </html>

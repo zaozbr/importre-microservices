@@ -2,99 +2,53 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Downloads</title>
-<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/reset.css">
-<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/antd.min.css">
+<link rel="stylesheet" href="/shared/dashboard.css">
 <style>
-  body { background: #0d1117; color: #c9d1d9; padding: 12px; }
-  .site-card { background: #161b22; border-color: #30363d; }
-  .site-card .ant-card-head { background: #161b22; border-color: #30363d; color: #e94560; }
-  .site-card .ant-card-body { background: #161b22; }
-  .stat-value { color: #58a6ff; font-weight: 700; }
-  .stat-ok { color: #3fb950; }
-  .stat-fail { color: #e94560; }
+.site-table{width:100%;border-collapse:collapse}
+.site-table th,.site-table td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--bg3);font-size:12px}
+.site-table th{background:var(--bg3);color:var(--txt2);text-transform:uppercase;font-size:10px;position:sticky;top:0}
+.site-table tr:hover{background:var(--bg3)}
+.bar-wrap{position:relative;background:var(--bg3);border-radius:4px;height:20px;overflow:hidden;min-width:120px}
+.bar-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--purple),var(--blue));opacity:.5}
+.bar-text{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;height:100%;font-size:10px;font-weight:700;color:var(--txt)}
+.speed{color:var(--purple);font-weight:700;font-size:11px}
+.source{color:var(--orange);font-weight:700;font-size:11px}
 </style>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/antd@5.20.0/dist/antd.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useEffect } = React;
-const { Card, Table, Tag, Space, Statistic, Row, Col, Progress } = antd;
+<div class="widget">
+  <div class="widget-header">Downloads <span id="h-cnt"></span></div>
+  <div class="widget-body">
+    <div class="stat-grid" id="stats"></div>
+    <div id="table"></div>
+  </div>
+</div>
+<script src="/shared/dashboard.js"></script>
+<script>
+async function render(){
+  const data = await Dashboard.fetchJSON('/status');
+  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.active||0);
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="n">${data.active||0}</div><div class="l">Ativos</div></div>
+    <div class="stat"><div class="n" style="color:var(--green)">${data.completed||0}</div><div class="l">OK</div></div>
+    <div class="stat"><div class="n" style="color:#f44336">${data.failed||0}</div><div class="l">Falhas</div></div>
+  `;
 
-async function fetchJSON(url) {
-  try {
-    const r = await fetch(url);
-    return await r.json();
-  } catch (e) { return {}; }
-}
-
-function formatSpeed(s) {
-  if (!s) return '-';
-  return s;
-}
-
-function App() {
-  const [status, setStatus] = useState({ active: 0, completed: 0, failed: 0 });
-  const [items, setItems] = useState([]);
-
-  useEffect(() => {
-    async function load() {
-      const s = await fetchJSON('/status');
-      setStatus(s);
-      const q = await fetchJSON('/queue-proxy');
-      const downloading = (q.queue || []).filter(i => i.status === 'downloading' || i.status === 'ready').slice(0, 50);
-      setItems(downloading);
-    }
-    load();
-    const i = setInterval(load, 3000);
-    return () => clearInterval(i);
-  }, []);
-
-  const columns = [
-    { title: 'Serial', dataIndex: 'serial', key: 'serial', render: s => <Tag color="blue">{s}</Tag> },
-    { title: 'Jogo', dataIndex: 'title', key: 'title', ellipsis: true },
-    { title: 'Origem', key: 'source', render: (_, item) => {
-      const src = (item.sources || [])[0] || {};
-      return <Tag color="purple">{src.site || '-'}</Tag>;
-    }},
-    { title: 'Progresso', key: 'progress', render: (_, item) => {
-      const p = item.progress || {};
+  const q = await Dashboard.fetchJSON('/queue-proxy');
+  const items = (q.queue||[]).filter(i=>i.status==='downloading').slice(0,50);
+  const table = document.getElementById('table');
+  if(!items.length){ table.innerHTML='<p class="muted">nenhum download ativo</p>'; return; }
+  table.innerHTML = `<table class="site-table"><tr><th>Serial</th><th>Jogo</th><th>Origem</th><th>Progresso</th><th>Velocidade</th></tr>`+
+    items.map(i=>{
+      const src = (i.sources||[])[0]||{};
+      const p = i.progress || {};
       const pct = p.percent || 0;
-      return <Progress percent={pct} size="small" status={pct >= 100 ? 'success' : 'active'} />;
-    }},
-    { title: 'Velocidade', key: 'speed', render: (_, item) => {
-      const p = item.progress || {};
-      return <span>{formatSpeed(p.speed)}</span>;
-    }},
-    { title: 'Retry', dataIndex: 'retry_count', key: 'retry', render: r => r || 0 },
-  ];
-
-  return (
-    <Card title={`Downloads ativos: ${status.active || 0}`} className="site-card" bordered>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col><Statistic title="Ativos" value={status.active || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-        <Col><Statistic title="OK" value={status.completed || 0} valueStyle={{ color: '#3fb950' }} /></Col>
-        <Col><Statistic title="Falhas" value={status.failed || 0} valueStyle={{ color: '#e94560' }} /></Col>
-      </Row>
-      <Table
-        dataSource={items}
-        columns={columns}
-        rowKey="serial"
-        size="small"
-        pagination={false}
-        scroll={{ y: 320 }}
-        locale={{ emptyText: 'nenhum download ativo' }}
-      />
-    </Card>
-  );
+      const bar = `<div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div><div class="bar-text">${pct}%</div></div>`;
+      return `<tr><td>${Dashboard.esc(i.serial)}</td><td>${Dashboard.esc(i.title||'-')}</td><td class="source">${Dashboard.esc(src.site||'-')}</td><td>${bar}</td><td class="speed">${Dashboard.esc(p.speed||'-')}</td></tr>`;
+    }).join('')+
+    `</table>`;
 }
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+render(); setInterval(render,3000);
 </script>
 </body>
 </html>

@@ -4,158 +4,179 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Importre v4 — Dashboard</title>
-<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/reset.css">
-<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/antd.min.css">
 <style>
-  body { background: #0d1117; color: #c9d1d9; }
-  .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
-  .site-layout { flex: 1; padding: 16px; overflow: auto; }
-  .widget-card .ant-card-body { padding: 0; }
-  .widget-frame { width: 100%; height: 450px; min-height: 450px; border: none; display: block; }
-  .log-card .ant-card-body { padding: 8px; }
-  .log { height: 180px; font-family: Consolas, monospace; font-size: 11px; overflow: auto; white-space: pre-wrap; background: #161b22; color: #c9d1d9; border-radius: 6px; padding: 8px; }
-  .stat-value { font-size: 18px; font-weight: 700; color: #58a6ff; }
-  .stat-value.ok { color: #3fb950; }
-  .stat-value.fail { color: #e94560; }
-  .header-bar { background: #161b22; border-bottom: 2px solid #e94560; padding: 8px 16px; position: sticky; top: 0; z-index: 1000; }
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;
+  --txt:#c9d1d9;--txt2:#8b949e;--red:#e94560;--green:#3fb950;--yellow:#d29922;
+  --blue:#58a6ff;--purple:#bc8cff;--orange:#f0883e;
+}
+body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:sticky;top:0;z-index:1000;background:var(--bg2);border-bottom:2px solid var(--red);padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
+.header-row1{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.header-title{font-size:20px;font-weight:800;color:var(--red);letter-spacing:1px}
+.badge{padding:4px 10px;border-radius:5px;font-weight:700;font-size:11px;color:#fff}
+.badge.on{background:var(--green)}
+.badge.off{background:#da3633}
+.tag{padding:4px 10px;border-radius:5px;font-weight:700;font-size:11px;border:1px solid}
+.tag.running{border-color:var(--green);color:var(--green)}
+.tag.paused{border-color:var(--yellow);color:var(--yellow)}
+.tag.stopped{border-color:#da3633;color:#da3633}
+.btn{padding:6px 14px;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.2)}
+.btn-go{background:var(--green);color:#fff}
+.btn-pause{background:var(--yellow);color:var(--bg)}
+.btn-restart{background:var(--blue);color:#fff}
+.btn-stop{background:#da3633;color:#fff}
+.header-row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 14px;min-width:90px;text-align:center}
+.stat-card .n{font-size:20px;font-weight:800;color:var(--blue)}
+.stat-card .n.ok{color:var(--green)}
+.stat-card .n.fail{color:#f44336}
+.stat-card .l{font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.spacer{flex:1}
+.update{font-size:10px;color:var(--txt2)}
+.content{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.card-header{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:700;color:var(--red);font-size:14px;display:flex;align-items:center;gap:8px}
+.card-header .cnt{background:var(--bg);color:var(--txt2);font-size:10px;padding:2px 8px;border-radius:10px}
+.card-body{padding:0;height:450px;min-height:450px}
+.widget-frame{width:100%;height:100%;min-height:450px;border:none;display:block}
+.log-card{margin-top:0}
+.log-card .log{height:180px;padding:10px;font-family:Consolas,monospace;font-size:11px;overflow:auto;white-space:pre-wrap;color:var(--txt);background:var(--bg)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}.content{padding:10px}}
 </style>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/antd@5.20.0/dist/antd.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useEffect } = React;
-const { Layout, Card, Button, Space, Row, Col, Statistic, Badge, Typography, Tag } = antd;
-const { Header, Content } = Layout;
-const { Title, Text } = Typography;
-
-const widgets = [
-  { id: 'wf-download', title: 'Downloads', url: 'http://127.0.0.1:9003/dashboard', span: 24 },
-  { id: 'wf-queue', title: 'Fila', url: 'http://127.0.0.1:9001/dashboard', span: 12 },
-  { id: 'wf-search', title: 'Busca', url: 'http://127.0.0.1:9002/dashboard', span: 12 },
-  { id: 'wf-chd', title: 'Conversor CHD', url: 'http://127.0.0.1:9004/dashboard', span: 24 },
-];
-
-async function control(action) {
+<div class="app">
+  <div class="header">
+    <div class="header-row1">
+      <div class="header-title">IMPORTRE v4</div>
+      <div class="badge on" id="srv-status">SERVICES ONLINE</div>
+      <div class="tag running" id="ctrl-state">RUNNING</div>
+      <button class="btn btn-go" onclick="control('resume')">PLAY</button>
+      <button class="btn btn-pause" onclick="control('pause')">PAUSE</button>
+      <button class="btn btn-restart" onclick="control('restart')">RESTART</button>
+      <button class="btn btn-stop" onclick="control('stop')">STOP</button>
+      <button class="btn btn-go" onclick="reprocessFailures()">REPROCESSAR FALHAS</button>
+      <div class="spacer"></div>
+      <div class="update" id="hdr-update">atualizando...</div>
+    </div>
+    <div class="header-row2" id="hdr-stats">
+      <div class="stat-card"><div class="n" id="st-pending">-</div><div class="l">Pendentes</div></div>
+      <div class="stat-card"><div class="n" id="st-searching">-</div><div class="l">Buscando</div></div>
+      <div class="stat-card"><div class="n" id="st-ready">-</div><div class="l">Prontos</div></div>
+      <div class="stat-card"><div class="n" id="st-downloading">-</div><div class="l">Downloads</div></div>
+      <div class="stat-card"><div class="n ok" id="st-completed">-</div><div class="l">OK</div></div>
+      <div class="stat-card"><div class="n fail" id="st-failed">-</div><div class="l">Falhas</div></div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-header">Downloads <span class="cnt" id="h-download">0</span></div>
+      <div class="card-body">
+        <iframe class="widget-frame" src="http://127.0.0.1:9003/dashboard"></iframe>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">Fila <span class="cnt" id="h-queue">0</span></div>
+        <div class="card-body">
+          <iframe class="widget-frame" src="http://127.0.0.1:9001/dashboard"></iframe>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Busca <span class="cnt" id="h-search">0</span></div>
+        <div class="card-body">
+          <iframe class="widget-frame" src="http://127.0.0.1:9002/dashboard"></iframe>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">Conversão CHD <span class="cnt" id="h-chd">0</span></div>
+      <div class="card-body">
+        <iframe class="widget-frame" src="http://127.0.0.1:9004/dashboard"></iframe>
+      </div>
+    </div>
+    <div class="card log-card">
+      <div class="card-header">Log</div>
+      <div class="card-body">
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function control(action){
   const timeout = action === 'stop' || action === 'restart' ? 60000 : 15000;
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeout);
-  try {
-    const r = await fetch('/api/control/' + action, { signal: controller.signal });
-    const text = await r.text();
-    let d = {};
-    try { d = text ? JSON.parse(text) : {}; } catch(e) { throw new Error('Resposta invalida: ' + text.slice(0,200)); }
-    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
-    antd.message.success((d.state || action).toUpperCase() + ' OK');
-  } catch (e) {
-    antd.message.error('Falha: ' + (e.name === 'AbortError' ? 'timeout' : e.message));
-  } finally {
-    clearTimeout(t);
-  }
+  const t = setTimeout(()=>controller.abort(), timeout);
+  fetch('/api/control/'+action, { signal: controller.signal })
+    .then(async r=>{
+      clearTimeout(t);
+      const text = await r.text();
+      let d = {};
+      try { d = text ? JSON.parse(text) : {}; } catch(e) { throw new Error('Resposta invalida: '+text.slice(0,200)); }
+      if(!r.ok) throw new Error(d.error || ('HTTP '+r.status));
+      document.getElementById('ctrl-state').textContent = (d.state||'running').toUpperCase();
+      document.getElementById('ctrl-state').className = 'tag st-'+(d.state||'running');
+      alert(action.toUpperCase()+' OK');
+      loadStatus();
+    })
+    .catch(e=>{
+      clearTimeout(t);
+      alert('Falha: '+(e.name==='AbortError'?'timeout':e.message));
+    });
 }
-
-async function reprocessFailures() {
-  if (!window.confirm('Resetar falhas e colocar no fim da fila?')) return;
+function reprocessFailures(){
+  if(!confirm('Resetar falhas e colocar no fim da fila?')) return;
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 15000);
-  try {
-    const r = await fetch('/api/reprocess-failures', { method: 'POST', signal: controller.signal });
-    const d = await r.json();
-    antd.message.success(d.ok ? d.moved + ' falhas reprocessadas' : 'Erro: ' + d.error);
-  } catch (e) {
-    antd.message.error('Falha: ' + (e.name === 'AbortError' ? 'timeout' : e.message));
-  } finally {
-    clearTimeout(t);
-  }
+  const t = setTimeout(()=>controller.abort(), 15000);
+  fetch('/api/reprocess-failures',{method:'POST', signal: controller.signal})
+    .then(async r=>{
+      clearTimeout(t);
+      const d = await r.json();
+      alert(d.ok ? d.moved+' falhas reprocessadas' : 'Erro: '+d.error);
+      loadStatus();
+    })
+    .catch(e=>{
+      clearTimeout(t);
+      alert('Falha: '+(e.name==='AbortError'?'timeout':e.message));
+    });
 }
-
-function App() {
-  const [status, setStatus] = useState({});
-  const [logs, setLogs] = useState([]);
-  const [online, setOnline] = useState(true);
-  const [controlState, setControlState] = useState('running');
-  const [lastUpdate, setLastUpdate] = useState('');
-
-  const q = status.queue || {};
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await fetch('/api/status').then(r => r.json());
-        const ok = !data.queue.error && !data.search.error && !data.download.error && !data.chd.error;
-        setOnline(ok);
-        setControlState(data.control || 'running');
-        setStatus(data);
-        setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
-      } catch (e) { setOnline(false); }
-    }
-    async function loadLog() {
-      try {
-        const data = await fetch('/api/log').then(r => r.json());
-        setLogs(data.lines || []);
-      } catch (e) {}
-    }
-    load(); loadLog();
-    const i1 = setInterval(load, 3000);
-    const i2 = setInterval(loadLog, 5000);
-    return () => { clearInterval(i1); clearInterval(i2); };
-  }, []);
-
-  const stateColor = controlState === 'running' ? 'success' : controlState === 'paused' ? 'warning' : 'error';
-
-  return (
-    <Layout className="app-shell">
-      <Header className="header-bar">
-        <Space direction="vertical" style={{ width: '100%' }} size="small">
-          <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Space>
-              <Title level={4} style={{ margin: 0, color: '#e94560' }}>IMPORTRE v4</Title>
-              <Badge status={online ? 'success' : 'error'} text={online ? 'SERVICES ONLINE' : 'SERVICES OFFLINE'} />
-              <Tag color={stateColor}>{controlState.toUpperCase()}</Tag>
-            </Space>
-            <Space>
-              <Button type="primary" onClick={() => control('resume')}>PLAY</Button>
-              <Button onClick={() => control('pause')}>PAUSE</Button>
-              <Button onClick={() => control('restart')}>RESTART</Button>
-              <Button danger onClick={() => control('stop')}>STOP</Button>
-              <Button type="primary" onClick={reprocessFailures}>REPROCESSAR FALHAS</Button>
-            </Space>
-          </Space>
-          <Row gutter={[16, 8]}>
-            <Col><Statistic title="Pendentes" value={q.pending || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-            <Col><Statistic title="Buscando" value={q.searching || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-            <Col><Statistic title="Prontos" value={q.ready || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-            <Col><Statistic title="Downloads" value={q.downloading || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
-            <Col><Statistic title="OK" value={q.completed || 0} valueStyle={{ color: '#3fb950' }} /></Col>
-            <Col><Statistic title="Falhas" value={q.failed || 0} valueStyle={{ color: '#e94560' }} /></Col>
-            <Col style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-end' }}>
-              <Text type="secondary">atualizado {lastUpdate}</Text>
-            </Col>
-          </Row>
-        </Space>
-      </Header>
-      <Content className="site-layout">
-        <Row gutter={[16, 16]}>
-          {widgets.map(w => (
-            <Col span={w.span} key={w.id}>
-              <Card title={w.title} className="widget-card" bodyStyle={{ padding: 0 }}>
-                <iframe id={w.id} className="widget-frame" src={w.url}></iframe>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-        <Card title="Log" className="log-card" style={{ marginTop: 16 }}>
-          <div className="log">{logs.join('\n')}</div>
-        </Card>
-      </Content>
-    </Layout>
-  );
+async function loadStatus(){
+  try{
+    const data = await fetch('/api/status').then(r=>r.json());
+    const ok = !data.queue.error && !data.search.error && !data.download.error && !data.chd.error;
+    document.getElementById('srv-status').textContent = ok?'SERVICES ONLINE':'SERVICES OFFLINE';
+    document.getElementById('srv-status').className = 'badge '+(ok?'on':'off');
+    document.getElementById('ctrl-state').textContent = (data.control||'running').toUpperCase();
+    document.getElementById('ctrl-state').className = 'tag '+(data.control||'running');
+    document.getElementById('hdr-update').textContent = 'atualizado '+new Date().toLocaleTimeString('pt-BR');
+    const q = data.queue || {};
+    document.getElementById('st-pending').textContent = q.pending||0;
+    document.getElementById('st-searching').textContent = q.searching||0;
+    document.getElementById('st-ready').textContent = q.ready||0;
+    document.getElementById('st-downloading').textContent = q.downloading||0;
+    document.getElementById('st-completed').textContent = q.completed||0;
+    document.getElementById('st-failed').textContent = q.failed||0;
+    document.getElementById('h-download').textContent = data.download.active||0;
+    document.getElementById('h-queue').textContent = q.total||0;
+    document.getElementById('h-search').textContent = data.search.active||0;
+    document.getElementById('h-chd').textContent = (data.chd.converting||[]).length||0;
+  }catch(e){ console.error(e); }
 }
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+async function loadLog(){
+  try{
+    const data = await fetch('/api/log').then(r=>r.json());
+    document.getElementById('log').textContent = (data.lines||[]).join('\n');
+  }catch(e){ console.error(e); }
+}
+loadStatus(); loadLog();
+setInterval(loadStatus,3000);
+setInterval(loadLog,5000);
 </script>
 </body>
 </html>
