@@ -232,16 +232,25 @@ async function downloadFile(item, source, url, sourceIndex = 0) {
 }
 
 function sortSourcesBySpeed(sources) {
+  // Prioriza fontes diretas e rapidas; diversifica para nao saturar uma so fonte
   const speedMap = {
-    'coolrom': 8, 'vimm': 8, 'romspedia': 8, 'romsgames': 8, 'retromania': 8,
-    'romspure': 8, 'romsretro': 8, 'blueroms': 8, 'consoleroms': 8, 'hexrom': 8,
-    'freeroms': 8, 'classicgames': 8, 'oldiesnest': 8, 'playretrogames': 8,
-    'roms2000': 8, 'romulation': 8, 'retrogames_cc': 8, 'retrogames_games': 8,
-    'myrient': 8, 'homebrew': 8, 'romsdl': 8, 'retrostic': 8, 'retroiso': 8,
-    'archive.org': 3, 'archive.org-jp': 3, 'archive_extra': 3, 'archive_org': 3, 'archive_org_jp': 3,
-    'google_fallback': 1
+    // Fontes diretas rapidas (prioridade alta)
+    'vimm': 10, 'romsdl': 10, 'retrostic': 10, 'romspedia': 10, 'romsgames': 10,
+    'retromania': 10, 'romspure': 10, 'romsretro': 10, 'blueroms': 10, 'consoleroms': 10,
+    'hexrom': 10, 'freeroms': 10, 'classicgames': 10, 'oldiesnest': 10, 'playretrogames': 10,
+    'roms2000': 10, 'romulation': 10, 'retrogames_cc': 10, 'retrogames_games': 10,
+    'myrient': 10, 'homebrew': 10, 'retroiso': 10,
+    // CoolROM: rapido mas satura (prioridade media)
+    'coolrom': 7,
+    // archive.org: lento por arquivo mas estavel (prioridade baixa-media)
+    'archive.org': 5, 'archive.org-jp': 5, 'archive_extra': 5, 'archive_org': 5, 'archive_org_jp': 5,
+    'archive.org-extra': 5,
+    // Fallback web (ultima opcao)
+    'google_fallback': 1, 'google-fallback': 1
   };
-  return [...sources].sort((a, b) => (speedMap[b.site] || 5) - (speedMap[a.site] || 5));
+  // Embaralha fontes com mesma prioridade para diversificar
+  const shuffled = [...sources].sort(() => Math.random() - 0.5);
+  return shuffled.sort((a, b) => (speedMap[b.site] || 5) - (speedMap[a.site] || 5));
 }
 
 async function resolveAndDownload(item, sources) {

@@ -51,8 +51,12 @@ function aria2Download(url, outputPath, options = {}) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(ARIA2C)) return reject(new Error('aria2c.exe nao encontrado'));
     const isArchiveOrg = url.includes('archive.org');
-    const connections = options.connections || (isArchiveOrg ? 64 : 16);
-    const split = options.split || (isArchiveOrg ? 64 : 16);
+    const isCoolrom = url.includes('coolrom');
+    // CoolROM: 32 conexoes para compensar lentidao por conexao
+    // archive.org: 64 conexoes (limite por IP baixo)
+    // outros: 16 (padrao)
+    const connections = options.connections || (isArchiveOrg ? 64 : isCoolrom ? 32 : 16);
+    const split = options.split || (isArchiveOrg ? 64 : isCoolrom ? 32 : 16);
     const minSpeed = options.minSpeed || (isArchiveOrg ? '100K' : '1M');
     const lowestSpeed = options.lowestSpeed || '1K';
     const args = [

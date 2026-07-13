@@ -389,11 +389,13 @@ process.on('uncaughtException', (e) => {
   console.error('uncaughtException', e.stack || e.message);
   log.error(`uncaught: ${e.message}`);
   persistQueue();
-  process.exit(1);
+  // NAO sai imediatamente - deixa o orchestrator reiniciar se necessario
+  // Mas persiste estado para nao perder dados
 });
 process.on('unhandledRejection', (e) => {
   console.error('unhandledRejection', e.stack || e.message);
   log.error(`rejection: ${e.message}`);
+  // NAO sai - rejections nao deveriam derrubar o processo
 });
 
 app.listen(PORTS.QUEUE, '127.0.0.1', () => {

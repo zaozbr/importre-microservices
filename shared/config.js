@@ -47,6 +47,18 @@ module.exports = {
     'archive.org-jp': 5,
     'archive_org': 5,
     'archive_org_jp': 5,
-    'coolrom': 10
+    'archive.org-extra': 5,
+    'archive_extra': 5,
+    'coolrom': 10,
+    'vimm': 5,
+    'retrostic': 5,
+    'romsdl': 5,
+    'retroiso': 5,
+    'romspedia': 5,
+    'romsgames': 5,
+    'blueroms': 5,
+    'hexrom': 5,
+    'homebrew': 5,
+    'myrient': 5
   }
 };
