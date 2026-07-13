@@ -30,12 +30,9 @@ function saveQueue(data) {
   fs.renameSync(tmp, QUEUE_PATH);
 }
 
-// Lock em memoria para evitar race condition entre workers concorrentes
-let queueLockPromise = Promise.resolve();
-function withQueueLock(fn) {
-  queueLockPromise = queueLockPromise.then(fn, fn);
-  return queueLockPromise;
-}
+// Reservas em memoria para evitar que workers peguem o mesmo item antes do saveQueue
+const reservedPending = new Set();
+const reservedReady = new Set();
 
 function isReady(item) {
   return item.status === 'ready' && (item.sources || []).some(s => s.url);
@@ -50,7 +47,7 @@ function canRetry(item) {
 }
 
 app.get('/status', (req, res) => {
-  const q = loadQueue();
+  const q = getQueue();
   res.json({
     pending: q.queue.filter(i => i.status === 'pending').length,
     searching: q.queue.filter(i => i.status === 'searching').length,
@@ -64,14 +61,14 @@ app.get('/status', (req, res) => {
   });
 });
 
-app.get('/queue', (req, res) => res.json(loadQueue()));
+app.get('/queue', (req, res) => res.json(getQueue()));
 app.use('/shared', express.static(path.join(__dirname, '..', '..', 'shared')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
 app.post('/queue/add', (req, res) => {
   const { serial, title, priority = 1 } = req.body;
   if (!serial) return res.status(400).json({ error: 'serial required' });
-  const q = loadQueue();
+  const q = getQueue();
   const existing = q.queue.find(i => i.serial === serial);
   if (existing) return res.json({ added: false, item: existing });
   const item = {
@@ -93,47 +90,69 @@ app.post('/queue/add', (req, res) => {
 app.post('/pause', (req, res) => { paused = true; log.info('Queue paused'); res.json({ paused }); });
 app.post('/resume', (req, res) => { paused = false; log.info('Queue resumed'); res.json({ paused }); });
 
+// Cache em memoria da fila para evitar leitura/escrita a cada requisicao
+let queueCache = null;
+let queueDirty = false;
+
+function getQueue() {
+  if (!queueCache) queueCache = loadQueue();
+  return queueCache;
+}
+
+function markDirty() {
+  queueDirty = true;
+}
+
+function persistQueue() {
+  if (queueDirty && queueCache) {
+    saveQueue(queueCache);
+    queueDirty = false;
+  }
+}
+
+setInterval(persistQueue, 30000);
+
 // Search service pega um item pending
 app.post('/queue/next-pending', (req, res) => {
   if (paused) return res.json({ item: null, paused: true });
-  withQueueLock(() => {
-    const q = loadQueue();
-    const pending = q.queue
-      .filter(i => i.status === 'pending' && !q.in_progress[i.serial] && !q.completed[i.serial] && canRetry(i))
-      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
-    if (!pending.length) return res.json({ item: null });
-    const item = pending[0];
-    item.status = 'searching';
-    item.search_started = new Date().toISOString();
-    q.in_progress[item.serial] = item;
-    saveQueue(q);
-    log.info(`Next pending: ${item.serial}`);
-    res.json({ item });
-  });
+  const q = getQueue();
+  const pending = q.queue
+    .filter(i => i.status === 'pending' && !reservedPending.has(i.serial) && !q.in_progress[i.serial] && !q.completed[i.serial] && canRetry(i))
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  if (!pending.length) return res.json({ item: null });
+  const item = pending[0];
+  reservedPending.add(item.serial);
+  item.status = 'searching';
+  item.search_started = new Date().toISOString();
+  q.in_progress[item.serial] = item;
+  markDirty();
+  reservedPending.delete(item.serial);
+  log.info(`Next pending: ${item.serial}`);
+  res.json({ item });
 });
 
 // Download service pega um item ready
 app.post('/queue/next-ready', (req, res) => {
   if (paused) return res.json({ item: null, paused: true });
-  withQueueLock(() => {
-    const q = loadQueue();
-    const ready = q.queue
-      .filter(i => i.status === 'ready' && isReady(i) && !q.in_progress[i.serial] && !q.completed[i.serial])
-      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
-    if (!ready.length) return res.json({ item: null });
-    const item = ready[0];
-    item.status = 'downloading';
-    item.download_started = new Date().toISOString();
-    q.in_progress[item.serial] = item;
-    saveQueue(q);
-    log.info(`Next ready: ${item.serial}`);
-    res.json({ item });
-  });
+  const q = getQueue();
+  const ready = q.queue
+    .filter(i => i.status === 'ready' && isReady(i) && !reservedReady.has(i.serial) && !q.in_progress[i.serial] && !q.completed[i.serial])
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  if (!ready.length) return res.json({ item: null });
+  const item = ready[0];
+  reservedReady.add(item.serial);
+  item.status = 'downloading';
+  item.download_started = new Date().toISOString();
+  q.in_progress[item.serial] = item;
+  markDirty();
+  reservedReady.delete(item.serial);
+  log.info(`Next ready: ${item.serial}`);
+  res.json({ item });
 });
 
 app.post('/queue/ready', (req, res) => {
   const { serial, sources } = req.body;
-  const q = loadQueue();
+  const q = getQueue();
   const item = q.queue.find(i => i.serial === serial);
   if (!item) return res.status(404).json({ error: 'not found' });
   item.status = 'ready';
@@ -147,18 +166,18 @@ app.post('/queue/ready', (req, res) => {
 
 app.post('/queue/update', (req, res) => {
   const { serial, updates } = req.body;
-  const q = loadQueue();
+  const q = getQueue();
   const item = q.queue.find(i => i.serial === serial);
   if (!item) return res.status(404).json({ error: 'not found' });
   Object.assign(item, updates);
   if (q.in_progress[serial]) Object.assign(q.in_progress[serial], updates);
-  saveQueue(q);
+  markDirty();
   res.json({ item });
 });
 
 app.post('/queue/complete', (req, res) => {
   const { serial } = req.body;
-  const q = loadQueue();
+  const q = getQueue();
   const item = q.queue.find(i => i.serial === serial);
   if (item) {
     item.status = 'completed';
@@ -175,7 +194,7 @@ app.post('/queue/complete', (req, res) => {
 
 app.post('/queue/fail', (req, res) => {
   const { serial, reason } = req.body;
-  const q = loadQueue();
+  const q = getQueue();
   const item = q.queue.find(i => i.serial === serial);
   if (item) {
     item.status = 'pending';
@@ -199,7 +218,7 @@ app.post('/queue/fail', (req, res) => {
 });
 
 app.post('/reprocess-failures', (req, res) => {
-  const q = loadQueue();
+  const q = getQueue();
   let moved = 0;
   // Itens na fila que ainda estao marcados como falha em q.failed
   for (const serial of Object.keys(q.failed || {})) {
@@ -246,35 +265,33 @@ function startQueueDrainWatchdog() {
   const STUCK_DOWNLOAD_MS = 20 * 60 * 1000;
   const STUCK_SEARCH_MS = 10 * 60 * 1000;
   setInterval(() => {
-    withQueueLock(() => {
-      const q = loadQueue();
-      let drained = 0;
-      const now = Date.now();
-      for (const item of q.queue) {
-        if (item.status === 'downloading' && item.download_started) {
-          const start = new Date(item.download_started).getTime();
-          if (now - start > STUCK_DOWNLOAD_MS) {
-            item.status = 'ready';
-            item.stuck_released = new Date().toISOString();
-            delete q.in_progress[item.serial];
-            drained++;
-          }
-        }
-        if (item.status === 'searching' && item.search_started) {
-          const start = new Date(item.search_started).getTime();
-          if (now - start > STUCK_SEARCH_MS) {
-            item.status = 'pending';
-            item.stuck_released = new Date().toISOString();
-            delete q.in_progress[item.serial];
-            drained++;
-          }
+    const q = getQueue();
+    let drained = 0;
+    const now = Date.now();
+    for (const item of q.queue) {
+      if (item.status === 'downloading' && item.download_started) {
+        const start = new Date(item.download_started).getTime();
+        if (now - start > STUCK_DOWNLOAD_MS) {
+          item.status = 'ready';
+          item.stuck_released = new Date().toISOString();
+          delete q.in_progress[item.serial];
+          drained++;
         }
       }
-      if (drained) {
-        saveQueue(q);
-        log.warn(`Queue drain: ${drained} itens presos liberados`);
+      if (item.status === 'searching' && item.search_started) {
+        const start = new Date(item.search_started).getTime();
+        if (now - start > STUCK_SEARCH_MS) {
+          item.status = 'pending';
+          item.stuck_released = new Date().toISOString();
+          delete q.in_progress[item.serial];
+          drained++;
+        }
       }
-    });
+    }
+    if (drained) {
+      saveQueue(q);
+      log.warn(`Queue drain: ${drained} itens presos liberados`);
+    }
   }, 60000);
 }
 
