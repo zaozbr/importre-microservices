@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Importre — PSX ROM Downloader v4 (Node.js)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;
+  --txt:#c9d1d9;--txt2:#8b949e;--red:#e94560;--green:#3fb950;--yellow:#d29922;
+  --blue:#58a6ff;--purple:#bc8cff;--orange:#f0883e;
+}
+body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--txt);padding:0;overflow-x:hidden}
+.hdr{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--bg2);border-bottom:2px solid var(--red);box-shadow:0 4px 20px rgba(0,0,0,.6)}
+.hdr-r1{display:flex;align-items:center;gap:10px;padding:6px 16px}
+.hdr-title{font-size:17px;font-weight:800;color:var(--red);white-space:nowrap;letter-spacing:1px}
+.hdr-spacer{flex:1}
+.hdr-update{font-size:10px;color:var(--blue);white-space:nowrap;font-variant-numeric:tabular-nums}
+.srv-status{padding:3px 10px;border-radius:5px;font-weight:700;font-size:10px;white-space:nowrap}
+.srv-on{background:#238636;color:#fff}
+.srv-off{background:#da3633;color:#fff}
+.ctrl-state{font-size:11px;font-weight:700;padding:4px 12px;border-radius:5px;white-space:nowrap}
+.st-running{background:var(--bg);border:1px solid var(--green);color:var(--green)}
+.btns{display:flex;gap:4px}
+.btn{padding:5px 12px;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.25)}
+.btn:disabled{opacity:.25;cursor:not-allowed}
+.btn-go{background:#238636;color:#fff}
+.btn-pause{background:var(--yellow);color:var(--bg)}
+.btn-restart{background:var(--blue);color:var(--bg)}
+.btn-stop{background:#da3633;color:#fff}
+.hdr-r2{display:flex;align-items:center;gap:10px;padding:4px 16px 6px;flex-wrap:wrap}
+.pbar{flex:1;min-width:180px;height:18px;background:var(--bg3);border-radius:9px;overflow:hidden;position:relative}
+.pfill{height:100%;background:linear-gradient(90deg,var(--red),#f0a500,var(--green));transition:width .4s ease;position:relative}
+.ptext{font-size:11px;color:var(--txt2);white-space:nowrap;font-weight:600}
+.stats{display:flex;gap:4px;flex-wrap:wrap}
+.stat{background:var(--bg2);padding:4px 12px;border-radius:6px;text-align:center;min-width:58px;border:1px solid var(--border)}
+.stat .n{font-size:20px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:8px;color:var(--txt2);text-transform:uppercase;margin-top:1px}
+.s-pending{border-color:var(--yellow)}.s-pending .n{color:var(--yellow)}
+.s-search .n{color:var(--blue)}
+.s-dl .n{color:var(--purple)}
+.s-ok{border-color:var(--green)}.s-ok .n{color:var(--green)}
+.s-fail{border-color:#da3633}.s-fail .n{color:#da3633}
+.content{padding:130px 16px 16px}
+.section{margin-top:10px}
+.section h2{color:var(--red);font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.section h2 .cnt{background:var(--bg3);color:var(--txt2);font-size:10px;padding:1px 7px;border-radius:8px;font-weight:600}
+.collapsed::before{content:'▶';display:inline-block;margin-right:4px;font-size:9px}
+.collapsible::before{content:'▼';display:inline-block;margin-right:4px;font-size:9px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:4px 10px;text-align:left;border-bottom:1px solid var(--bg3);font-size:11px}
+th{background:var(--bg2);color:var(--txt2);text-transform:uppercase;font-size:9px;position:sticky;top:0;z-index:2}
+tr:hover{background:var(--bg2)}
+.scroll{max-height:42vh;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+.ph-searching{color:var(--blue)}
+.ph-downloading{color:var(--purple)}
+.ph-success{color:var(--green)}
+.ph-failed{color:#da3633}
+.feed{max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:var(--bg2);padding:4px 8px}
+.feed-item{font-size:10px;padding:2px 0;border-bottom:1px solid var(--bg3)}
+.feed-time{color:var(--txt2);margin-right:6px}
+.feed-ok{color:var(--green)}
+.feed-fail{color:#da3633}
+.feed-info{color:var(--blue)}
+.footer{margin-top:16px;padding:10px 16px;background:var(--bg2);border-radius:6px;text-align:center;font-size:10px;color:var(--txt2)}
+.toast{position:fixed;top:65px;right:16px;padding:10px 20px;border-radius:6px;font-weight:700;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none;font-size:12px}
+.toast.show{opacity:1}
+.speed-fast{color:var(--green);font-weight:700}
+.speed-slow{color:#da3633;font-weight:700}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-r1">
+    <div class="hdr-title">IMPORTRE v4</div>
+    <div class="hdr-spacer"></div>
+    <div class="srv-status srv-on" id="srv-status">SERVICES ONLINE</div>
+    <div class="ctrl-state st-running" id="ctrl-state">RUNNING</div>
+    <div class="btns">
+      <button class="btn btn-go" onclick="sendControl('resume')">PLAY</button>
+      <button class="btn btn-pause" onclick="sendControl('pause')">PAUSE</button>
+      <button class="btn btn-restart" onclick="sendControl('restart')">RESTART</button>
+      <button class="btn btn-stop" onclick="sendControl('stop')">STOP</button>
+    </div>
+    <div class="hdr-update" id="hdr-update">atualizando...</div>
+  </div>
+  <div class="hdr-r2">
+    <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+    <div class="ptext" id="ptext">0%</div>
+    <div class="stats">
+      <div class="stat s-pending"><div class="n" id="s-pending">0</div><div class="l">Pendentes</div></div>
+      <div class="stat s-search"><div class="n" id="s-searching">0</div><div class="l">Buscando</div></div>
+      <div class="stat s-dl"><div class="n" id="s-downloading">0</div><div class="l">Downloads</div></div>
+      <div class="stat s-ok"><div class="n" id="s-completed">0</div><div class="l">OK</div></div>
+      <div class="stat s-fail"><div class="n" id="s-failed">0</div><div class="l">Falhas</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="section">
+    <h2 class="collapsible" onclick="toggle(this)">⬇️ Downloads Ativos <span class="cnt" id="cnt-dl">0</span></h2>
+    <div class="scroll" id="sec-dl"><table><thead><tr><th>Serial</th><th>Jogo</th><th>Progresso</th><th>Site</th></tr></thead><tbody id="dl-rows"><tr><td colspan="4" style="text-align:center;color:var(--txt2)">—</td></tr></tbody></table></div>
+  </div>
+
+  <div class="section">
+    <h2 class="collapsible" onclick="toggle(this)">📡 Atividade <span class="cnt" id="cnt-feed">0</span></h2>
+    <div class="feed" id="feed-box"><div class="feed-item" style="color:var(--txt2)">Aguardando eventos...</div></div>
+  </div>
+
+  <div class="section">
+    <h2 class="collapsible" onclick="toggle(this)">🔍 Buscando <span class="cnt" id="cnt-search">0</span></h2>
+    <div class="scroll" id="sec-search"><table><thead><tr><th>Serial</th><th>Jogo</th><th>Site</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" style="text-align:center;color:var(--txt2)">—</td></tr></tbody></table></div>
+  </div>
+
+  <div class="section">
+    <h2 class="collapsible collapsed" onclick="toggle(this)">✅ Concluídos <span class="cnt" id="cnt-ok">0</span></h2>
+    <div class="scroll" style="display:none" id="sec-ok"><table><thead><tr><th>Serial</th><th>Jogo</th><th>Site</th><th>Quando</th></tr></thead><tbody id="ok-rows"><tr><td colspan="4" style="text-align:center;color:var(--txt2)">—</td></tr></tbody></table></div>
+  </div>
+
+  <div class="section" id="fail-section" style="display:none">
+    <h2 class="collapsible collapsed" onclick="toggle(this)">❌ Falhas <span class="cnt" id="cnt-fail">0</span></h2>
+    <div class="scroll" style="display:none" id="sec-fail"><table><thead><tr><th>Serial</th><th>Jogo</th><th>Motivo</th><th>Quando</th></tr></thead><tbody id="fail-rows"></tbody></table></div>
+  </div>
+
+  <div class="section">
+    <h2 class="collapsible collapsed" onclick="toggle(this)">🌐 Sites <span class="cnt" id="cnt-sites">0</span></h2>
+    <div class="scroll" style="display:none" id="sec-sites"><table><thead><tr><th>Site</th><th>Fontes</th></tr></thead><tbody id="sites-rows"></tbody></table></div>
+  </div>
+
+  <div class="footer">
+    <p id="footer-info">Total: 0 | Processados: 0 | Restantes: 0</p>
+    <p style="margin-top:3px">importre-microservices | <a href="http://127.0.0.1:8767" style="color:var(--blue)">http://127.0.0.1:8767</a></p>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API = '';
+let feedItems = [];
+let prevCompleted = [];
+let prevFailed = [];
+
+function toggle(h){
+  h.classList.toggle('collapsed');
+  const scroll = h.nextElementSibling;
+  if(scroll) scroll.style.display = h.classList.contains('collapsed') ? 'none' : '';
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtAgo(ts){
+  if(!ts) return '';
+  const d = new Date(ts);
+  const sec = Math.max(0, Math.floor((Date.now()-d.getTime())/1000));
+  if(sec<60) return sec+'s';
+  if(sec<3600) return Math.floor(sec/60)+'m';
+  return Math.floor(sec/3600)+'h';
+}
+function addFeed(msg, type){
+  const ts = new Date().toLocaleTimeString('pt-BR',{hour12:false});
+  feedItems.unshift({ts,msg,type});
+  if(feedItems.length>30) feedItems.pop();
+  renderFeed();
+}
+function renderFeed(){
+  const box = document.getElementById('feed-box');
+  if(feedItems.length===0){ box.innerHTML='<div class="feed-item" style="color:var(--txt2)">Aguardando eventos...</div>'; return; }
+  let html='';
+  for(const f of feedItems){
+    const cls = f.type==='ok'?'feed-ok':f.type==='fail'?'feed-fail':'feed-info';
+    html += '<div class="feed-item"><span class="feed-time">'+esc(f.ts)+'</span><span class="'+cls+'">'+esc(f.msg)+'</span></div>';
+  }
+  box.innerHTML = html;
+  document.getElementById('cnt-feed').textContent = feedItems.length;
+}
+function showToast(msg, color){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=color||'#238636'; t.style.color='#fff';
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500);
+}
+function sendControl(action){
+  fetch(API+'/api/control/'+action)
+    .then(r=>r.json())
+    .then(()=>{ showToast('Comando "'+action+'" enviado!','#238636'); })
+    .catch(()=>showToast('Servidor offline!','#da3633'));
+}
+
+function render(){
+  fetch(API+'/api/status',{cache:'no-store'}).then(r=>r.json()).then(data=>{
+    const q = data.queue || {};
+    document.getElementById('s-pending').textContent = q.pending||0;
+    document.getElementById('s-searching').textContent = q.searching||0;
+    document.getElementById('s-downloading').textContent = q.downloading||0;
+    document.getElementById('s-completed').textContent = q.completed||0;
+    document.getElementById('s-failed').textContent = q.failed||0;
+    const total = q.total||1;
+    const done = (q.completed||0)+(q.failed||0);
+    const pct = Math.round(done/total*100);
+    document.getElementById('pfill').style.width = pct+'%';
+    document.getElementById('ptext').textContent = pct+'%';
+    document.getElementById('footer-info').textContent = 'Total: '+total+' | Processados: '+done+' | Restantes: '+(total-done);
+    const state = data.control || 'running';
+    document.getElementById('ctrl-state').textContent = state.toUpperCase();
+    document.getElementById('ctrl-state').className = 'ctrl-state st-'+(state==='running'?'running':state==='paused'?'paused':'stopped');
+    document.getElementById('srv-status').textContent = data.search.error||data.download.error?'SERVICES OFFLINE':'SERVICES ONLINE';
+    document.getElementById('srv-status').className = 'srv-status '+(data.search.error||data.download.error?'srv-off':'srv-on');
+    document.getElementById('hdr-update').textContent = 'atualizado '+new Date().toLocaleTimeString('pt-BR');
+  }).catch(e=>console.error(e));
+
+  fetch(API+'/api/queue',{cache:'no-store'}).then(r=>r.json()).then(data=>{
+    const queue = data.queue||[];
+    const inProgress = data.in_progress||{};
+    const completed = data.completed||{};
+    const failed = data.failed||{};
+
+    const searching = queue.filter(i=>i.status==='searching');
+    const ready = queue.filter(i=>i.status==='ready');
+    const downloading = queue.filter(i=>i.status==='downloading');
+    const done = queue.filter(i=>i.status==='completed');
+    const fails = queue.filter(i=>i.status==='pending' && i.retry_count>0 && i.last_error);
+
+    // downloads ativos
+    const dlRows = document.getElementById('dl-rows');
+    document.getElementById('cnt-dl').textContent = downloading.length;
+    if(downloading.length){
+      dlRows.innerHTML = downloading.map(i=>{
+        const src = (i.sources||[])[0]||{};
+        return '<tr><td>'+esc(i.serial)+'</td><td>'+esc(i.title||i.serial)+'</td><td class="ph-downloading">baixando</td><td>'+esc(src.site||'-')+'</td></tr>';
+      }).join('');
+    } else {
+      dlRows.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--txt2)">—</td></tr>';
+    }
+
+    // buscando
+    const searchRows = document.getElementById('search-rows');
+    document.getElementById('cnt-search').textContent = searching.length;
+    if(searching.length){
+      searchRows.innerHTML = searching.map(i=>{
+        const src = (i.sources||[])[0]||{};
+        return '<tr><td>'+esc(i.serial)+'</td><td>'+esc(i.title||i.serial)+'</td><td class="ph-searching">'+esc(src.site||'buscando')+'</td></tr>';
+      }).join('');
+    } else {
+      searchRows.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--txt2)">—</td></tr>';
+    }
+
+    // concluidos
+    const okRows = document.getElementById('ok-rows');
+    document.getElementById('cnt-ok').textContent = done.length;
+    if(done.length){
+      okRows.innerHTML = done.slice(0,50).map(i=>{
+        const src = (i.sources||[])[0]||{};
+        return '<tr><td>'+esc(i.serial)+'</td><td>'+esc(i.title||i.serial)+'</td><td class="ph-success">'+esc(src.site||'-')+'</td><td>'+fmtAgo(i.completed)+'</td></tr>';
+      }).join('');
+    } else {
+      okRows.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--txt2)">—</td></tr>';
+    }
+
+    // falhas
+    const failRows = document.getElementById('fail-rows');
+    const failSection = document.getElementById('fail-section');
+    document.getElementById('cnt-fail').textContent = fails.length;
+    if(fails.length){
+      failSection.style.display = '';
+      failRows.innerHTML = fails.slice(0,50).map(i=>{
+        return '<tr><td>'+esc(i.serial)+'</td><td>'+esc(i.title||i.serial)+'</td><td class="ph-failed">'+esc(i.last_error||'-')+'</td><td>'+fmtAgo(i.last_failed)+'</td></tr>';
+      }).join('');
+    } else {
+      failSection.style.display = 'none';
+    }
+
+    // detect new completed/failed for feed
+    for(const i of done){
+      if(!prevCompleted.includes(i.serial)){
+        addFeed('Concluído: '+i.serial+' ('+(i.title||i.serial)+')','ok');
+        prevCompleted.push(i.serial);
+      }
+    }
+    for(const i of fails){
+      if(!prevFailed.includes(i.serial)){
+        addFeed('Falha: '+i.serial+' — '+i.last_error,'fail');
+        prevFailed.push(i.serial);
+      }
+    }
+    if(prevCompleted.length>100) prevCompleted = prevCompleted.slice(-100);
+    if(prevFailed.length>100) prevFailed = prevFailed.slice(-100);
+
+    // sites summary
+    const sites = {};
+    for(const i of queue){
+      for(const s of (i.sources||[])){
+        sites[s.site] = (sites[s.site]||0)+1;
+      }
+    }
+    const sitesRows = document.getElementById('sites-rows');
+    document.getElementById('cnt-sites').textContent = Object.keys(sites).length;
+    sitesRows.innerHTML = Object.entries(sites).map(([site,n])=>{
+      return '<tr><td>'+esc(site)+'</td><td>'+n+'</td></tr>';
+    }).join('');
+  }).catch(e=>console.error(e));
+}
+
+render();
+setInterval(render,3000);
+</script>
+</body>
+</html>

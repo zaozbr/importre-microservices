@@ -10,6 +10,7 @@ app.use(express.json());
 
 const MAX_RETRY = 10;
 const RETRY_DELAY_MIN = 5 * 60 * 1000; // 5 min
+let paused = false;
 
 function loadQueue() {
   if (!fs.existsSync(QUEUE_PATH)) {
@@ -49,7 +50,8 @@ app.get('/status', (req, res) => {
     in_progress: Object.keys(q.in_progress || {}).length,
     completed: Object.keys(q.completed || {}).length,
     failed: Object.keys(q.failed || {}).length,
-    total: q.queue.length
+    total: q.queue.length,
+    paused
   });
 });
 
@@ -77,8 +79,12 @@ app.post('/queue/add', (req, res) => {
   res.json({ added: true, item });
 });
 
+app.post('/pause', (req, res) => { paused = true; log.info('Queue paused'); res.json({ paused }); });
+app.post('/resume', (req, res) => { paused = false; log.info('Queue resumed'); res.json({ paused }); });
+
 // Search service pega um item pending
 app.post('/queue/next-pending', (req, res) => {
+  if (paused) return res.json({ item: null, paused: true });
   const q = loadQueue();
   const pending = q.queue
     .filter(i => i.status === 'pending' && !q.in_progress[i.serial] && !q.completed[i.serial] && canRetry(i))
@@ -95,6 +101,7 @@ app.post('/queue/next-pending', (req, res) => {
 
 // Download service pega um item ready
 app.post('/queue/next-ready', (req, res) => {
+  if (paused) return res.json({ item: null, paused: true });
   const q = loadQueue();
   const ready = q.queue
     .filter(i => i.status === 'ready' && isReady(i) && !q.in_progress[i.serial] && !q.completed[i.serial])
