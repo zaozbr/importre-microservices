@@ -61,21 +61,49 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
 </div>
 <script>
 function control(action){
-  fetch('/api/control/'+action).then(r=>r.json()).then(d=>{
-    document.getElementById('ctrl-state').textContent = (d.state||'running').toUpperCase();
-    document.getElementById('ctrl-state').className = 'ctrl-state st-'+(d.state||'running');
-    if(d.result){
-      const r = d.result;
-      alert(`${action.toUpperCase()} OK\nServicos mortos: ${(r.killed||[]).join(', ')}\nIn_progress limpos: ${r.cleaned||0}\nPortas livres: ${r.portsFree?'sim':'nao'}`);
-    }
-  }).catch(()=>alert('Servidor offline'));
+  const timeout = action === 'stop' || action === 'restart' ? 60000 : 15000;
+  const controller = new AbortController();
+  const t = setTimeout(()=>controller.abort(), timeout);
+  fetch('/api/control/'+action, { signal: controller.signal })
+    .then(async r=>{
+      clearTimeout(t);
+      const text = await r.text();
+      let d = {};
+      try { d = text ? JSON.parse(text) : {}; } catch(e) { throw new Error('Resposta invalida do servidor: ' + text.slice(0,200)); }
+      if(!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+      document.getElementById('ctrl-state').textContent = (d.state||'running').toUpperCase();
+      document.getElementById('ctrl-state').className = 'ctrl-state st-'+(d.state||'running');
+      if(d.result){
+        const r = d.result;
+        alert(`${action.toUpperCase()} OK\nServicos mortos: ${(r.killed||[]).join(', ')||'nenhum'}\nIn_progress limpos: ${r.cleaned||0}\nPortas livres: ${r.portsFree?'sim':'nao'}`);
+      } else {
+        alert(`${action.toUpperCase()} OK`);
+      }
+      loadStatus();
+    })
+    .catch(e=>{
+      clearTimeout(t);
+      alert('Falha no comando ' + action.toUpperCase() + ': ' + (e.name==='AbortError' ? 'timeout' : e.message));
+    });
 }
 function reprocessFailures(){
   if(!confirm('Resetar falhas e colocar no fim da fila?')) return;
-  fetch('/api/reprocess-failures',{method:'POST'}).then(r=>r.json()).then(d=>{
-    alert(d.ok ? `${d.moved} falhas reprocessadas` : 'Erro: '+d.error);
-    loadStatus();
-  }).catch(()=>alert('Servidor offline'));
+  const controller = new AbortController();
+  const t = setTimeout(()=>controller.abort(), 15000);
+  fetch('/api/reprocess-failures',{method:'POST', signal: controller.signal})
+    .then(async r=>{
+      clearTimeout(t);
+      const text = await r.text();
+      let d = {};
+      try { d = text ? JSON.parse(text) : {}; } catch(e) { throw new Error('Resposta invalida do servidor: ' + text.slice(0,200)); }
+      if(!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+      alert(d.ok ? `${d.moved} falhas reprocessadas` : 'Erro: '+d.error);
+      loadStatus();
+    })
+    .catch(e=>{
+      clearTimeout(t);
+      alert('Falha ao reprocessar falhas: ' + (e.name==='AbortError' ? 'timeout' : e.message));
+    });
 }
 async function loadStatus(){
   try{

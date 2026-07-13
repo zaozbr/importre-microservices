@@ -182,29 +182,39 @@ app.post('/queue/fail', (req, res) => {
 app.post('/reprocess-failures', (req, res) => {
   const q = loadQueue();
   let moved = 0;
-  // Itens na fila marcados como falha
-  const failures = q.queue.filter(i => i.retry_count > 0 || i.last_error || (i.status === 'pending' && q.failed[i.serial]));
-  // resetar e mover para o fim
-  for (const item of failures) {
-    item.retry_count = 0;
-    item.last_error = null;
-    item.last_failed = null;
-    item.status = 'pending';
-    delete q.failed[item.serial];
-    moved++;
-  }
-  // Itens apenas em q.failed (nao estao na fila) voltam para o fim como pending
-  for (const [serial, item] of Object.entries(q.failed || {})) {
-    if (!item) continue;
-    item.retry_count = 0;
-    item.last_error = null;
-    item.last_failed = null;
-    item.status = 'pending';
-    q.queue.push(item);
+  // Itens na fila que ainda estao marcados como falha em q.failed
+  for (const serial of Object.keys(q.failed || {})) {
+    const item = q.queue.find(i => i.serial === serial);
+    if (item) {
+      item.retry_count = 0;
+      item.last_error = null;
+      item.last_failed = null;
+      item.status = 'pending';
+    } else {
+      // Item so existe em q.failed; recria na fila
+      const failedItem = q.failed[serial];
+      if (failedItem) {
+        failedItem.retry_count = 0;
+        failedItem.last_error = null;
+        failedItem.last_failed = null;
+        failedItem.status = 'pending';
+        q.queue.push(failedItem);
+      }
+    }
     delete q.failed[serial];
     moved++;
   }
-  // colocar todos os itens pendentes no fim da fila mantendo ordem relativa
+  // Tambem reseta itens na fila que ficaram pendurados com status inesperado
+  for (const item of q.queue) {
+    if (!['pending', 'completed', 'searching', 'downloading', 'ready'].includes(item.status)) {
+      item.status = 'pending';
+      item.retry_count = 0;
+      item.last_error = null;
+      item.last_failed = null;
+      moved++;
+    }
+  }
+  // Colocar todos os pendentes no fim da fila mantendo ordem relativa
   const nonPending = q.queue.filter(i => i.status !== 'pending');
   const pending = q.queue.filter(i => i.status === 'pending');
   q.queue = [...nonPending, ...pending];
