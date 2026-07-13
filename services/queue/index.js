@@ -182,13 +182,26 @@ app.post('/queue/fail', (req, res) => {
 app.post('/reprocess-failures', (req, res) => {
   const q = loadQueue();
   let moved = 0;
-  const failures = q.queue.filter(i => i.retry_count > 0 || i.last_error);
-  // resetar e mover para o fim, sem duplicar (sobrescreve posicao no array)
+  // Itens na fila marcados como falha
+  const failures = q.queue.filter(i => i.retry_count > 0 || i.last_error || (i.status === 'pending' && q.failed[i.serial]));
+  // resetar e mover para o fim
   for (const item of failures) {
     item.retry_count = 0;
     item.last_error = null;
     item.last_failed = null;
     item.status = 'pending';
+    delete q.failed[item.serial];
+    moved++;
+  }
+  // Itens apenas em q.failed (nao estao na fila) voltam para o fim como pending
+  for (const [serial, item] of Object.entries(q.failed || {})) {
+    if (!item) continue;
+    item.retry_count = 0;
+    item.last_error = null;
+    item.last_failed = null;
+    item.status = 'pending';
+    q.queue.push(item);
+    delete q.failed[serial];
     moved++;
   }
   // colocar todos os itens pendentes no fim da fila mantendo ordem relativa
