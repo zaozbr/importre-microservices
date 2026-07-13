@@ -401,6 +401,19 @@ async function processOneWithPreferredSource(preferredSite) {
     }
   }
 
+  // Verifica se pelo menos uma fonte tem slot disponivel
+  // (se nao tem preferida ou a preferida nao esta nas sources)
+  const hasAvailableSlot = item.sources.some(s => {
+    const st = getSlotState(s.site);
+    return st.current < st.max;
+  });
+  if (!hasAvailableSlot && preferredSite === 'any') {
+    // Devolve para a fila - todos slots cheios
+    await queueRequest('post', '/queue/requeue', { serial: item.serial });
+    log.info(`Item ${item.serial} devolvido - todos slots cheios`);
+    return true;
+  }
+
   status.active++;
   let success = false;
   let lastError = null;

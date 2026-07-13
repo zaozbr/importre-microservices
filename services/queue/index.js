@@ -222,6 +222,18 @@ app.post('/queue/next-ready', (req, res) => {
   res.json({ item });
 });
 
+// Requeue: devolve item para ready sem incrementar retry
+app.post('/queue/requeue', (req, res) => {
+  const { serial } = req.body;
+  const q = getQueue();
+  const item = q.queue.find(i => i.serial === serial);
+  if (!item) return res.status(404).json({ error: 'not found' });
+  item.status = 'ready';
+  delete q.in_progress[item.serial];
+  markDirty();
+  res.json({ ok: true });
+});
+
 app.post('/queue/ready', (req, res) => {
   const { serial, sources } = req.body;
   const q = getQueue();
