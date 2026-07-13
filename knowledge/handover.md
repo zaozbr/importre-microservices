@@ -38,9 +38,9 @@
 
 ## Notas
 
-- Remote configurado: `origin https://github.com/ZaozBR74/importre-microservices.git`
-- Push ainda nao realizado: repositorio remoto nao existe.
-- Tag local: `v1.0.0`.
+- Remote configurado: `origin https://github.com/zaozbr/importre-microservices.git`
+- Repositorio criado e push realizado: https://github.com/zaozbr/importre-microservices
+- Tag local: `v1.0.0` (enviada para o remoto).
 - VERSION.md criado com SemVer.
 - Sistema antigo Python em `D:\roms\library\roms\psx\` (importre.py) nao deve ser confundido com a nova versao Node.js em `F:\importre\`.
 - Regra critica: nunca usar `taskkill /F /IM chdman.exe` (usado pelo conversor CHD paralelo na porta 8766).
