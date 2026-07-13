@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/shared/dashboard.css">
+</head>
+<body>
+<div class="widget">
+  <div class="widget-header">Downloads <span id="h-cnt"></span></div>
+  <div class="widget-body">
+    <div class="stat-grid" id="stats"></div>
+    <h3 style="margin:10px 0 4px;color:var(--txt2);font-size:11px">Ativos</h3>
+    <div id="table"></div>
+  </div>
+</div>
+<script src="/shared/dashboard.js"></script>
+<script>
+async function render(){
+  const data = await Dashboard.fetchJSON('/status');
+  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.active||0);
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="n">${data.active||0}</div><div class="l">Ativos</div></div>
+    <div class="stat"><div class="n" style="color:var(--green)">${data.completed||0}</div><div class="l">OK</div></div>
+    <div class="stat"><div class="n" style="color:#f44336">${data.failed||0}</div><div class="l">Falhas</div></div>
+  `;
+
+  const q = await Dashboard.fetchJSON('/queue-proxy');
+  const items = (q.queue||[]).filter(i=>i.status==='downloading').slice(0,15);
+  const table = document.getElementById('table');
+  if(!items.length){ table.innerHTML='<p class="muted">nenhum download ativo</p>'; return; }
+  table.innerHTML = `<table><tr><th>Serial</th><th>Jogo</th><th>Site</th></tr>`+
+    items.map(i=>{
+      const src = (i.sources||[])[0]||{};
+      return `<tr><td>${Dashboard.esc(i.serial)}</td><td>${Dashboard.esc(i.title||'-')}</td><td><span class="status downloading">${Dashboard.esc(src.site||'-')}</span></td></tr>`;
+    }).join('')+
+    `</table>`;
+}
+render(); setInterval(render,3000);
+</script>
+</body>
+</html>

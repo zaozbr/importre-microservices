@@ -8,6 +8,7 @@ const Logger = require('../../shared/logger');
 const log = new Logger('chd-service');
 const app = express();
 app.use(express.json());
+app.use('/shared', express.static(path.join(__dirname, '..', '..', 'shared')));
 
 let status = { ready: 0, converting: [], completed: 0, failed: 0 };
 let running = false;
@@ -100,6 +101,8 @@ app.get('/status', (req, res) => res.json(status));
 
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
+
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
 app.listen(PORTS.CHD, '127.0.0.1', () => {
   log.info(`CHD service em http://127.0.0.1:${PORTS.CHD}`);

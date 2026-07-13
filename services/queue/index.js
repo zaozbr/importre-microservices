@@ -56,6 +56,8 @@ app.get('/status', (req, res) => {
 });
 
 app.get('/queue', (req, res) => res.json(loadQueue()));
+app.use('/shared', express.static(path.join(__dirname, '..', '..', 'shared')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
 app.post('/queue/add', (req, res) => {
   const { serial, title, priority = 1 } = req.body;

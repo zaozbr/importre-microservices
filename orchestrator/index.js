@@ -106,6 +106,9 @@ app.get('/api/control/:action', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'shell.html'));
+});
+app.get('/legacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 

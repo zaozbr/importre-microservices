@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/shared/dashboard.css">
+</head>
+<body>
+<div class="widget">
+  <div class="widget-header">Busca <span id="h-cnt"></span></div>
+  <div class="widget-body">
+    <div id="status" class="muted"></div>
+    <h3 style="margin:10px 0 4px;color:var(--txt2);font-size:11px">Buscando agora</h3>
+    <div id="table"></div>
+  </div>
+</div>
+<script src="/shared/dashboard.js"></script>
+<script>
+async function render(){
+  const data = await Dashboard.fetchJSON('/status');
+  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.active||0);
+  document.getElementById('status').textContent = data.ok===false ? 'offline' : 'online';
+
+  const q = await Dashboard.fetchJSON('/queue-proxy');
+  const items = (q.queue||[]).filter(i=>i.status==='searching').slice(0,15);
+  const table = document.getElementById('table');
+  if(!items.length){ table.innerHTML='<p class="muted">nenhuma busca ativa</p>'; return; }
+  table.innerHTML = `<table><tr><th>Serial</th><th>Título</th><th>Site</th></tr>`+
+    items.map(i=>{
+      const src = (i.sources||[])[0]||{};
+      return `<tr><td>${Dashboard.esc(i.serial)}</td><td>${Dashboard.esc(i.title||'-')}</td><td class="muted">${Dashboard.esc(src.site||'scanning')}</td></tr>`;
+    }).join('')+
+    `</table>`;
+}
+render(); setInterval(render,3000);
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const path = require('path');
 const { PORTS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
 const { searchAll } = require('./sites');
@@ -7,6 +8,7 @@ const { searchAll } = require('./sites');
 const log = new Logger('search-service');
 const app = express();
 app.use(express.json());
+app.use('/shared', express.static(path.join(__dirname, '..', '..', 'shared')));
 
 const QUEUE_URL = `http://127.0.0.1:${PORTS.QUEUE}`;
 
@@ -43,6 +45,14 @@ app.get('/status', (req, res) => res.json({ ok: true }));
 
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
+
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/queue-proxy', async (req, res) => {
+  try {
+    const r = await axios.get(`http://127.0.0.1:${PORTS.QUEUE}/queue`, { timeout: 3000 });
+    res.json(r.data);
+  } catch (e) { res.json({ error: e.message }); }
+});
 
 app.listen(PORTS.SEARCH, '127.0.0.1', () => {
   log.info(`Search service em http://127.0.0.1:${PORTS.SEARCH}`);

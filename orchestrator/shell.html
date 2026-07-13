@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importre v4 — Micro-frontend Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;
+  --txt:#c9d1d9;--txt2:#8b949e;--red:#e94560;--green:#3fb950;--yellow:#d29922;
+  --blue:#58a6ff;--purple:#bc8cff;--orange:#f0883e;
+}
+body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+.hdr{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--bg2);border-bottom:2px solid var(--red);box-shadow:0 4px 20px rgba(0,0,0,.6);padding:8px 16px}
+.hdr-r1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hdr-title{font-size:17px;font-weight:800;color:var(--red);letter-spacing:1px}
+.hdr-spacer{flex:1}
+.srv-status{padding:3px 10px;border-radius:5px;font-weight:700;font-size:10px}
+.srv-on{background:#238636;color:#fff}
+.srv-off{background:#da3633;color:#fff}
+.ctrl-state{font-size:11px;font-weight:700;padding:4px 12px;border-radius:5px}
+.st-running{border:1px solid var(--green);color:var(--green)}
+.st-paused{border:1px solid var(--yellow);color:var(--yellow)}
+.st-stopped{border:1px solid #da3633;color:#da3633}
+.btn{padding:5px 12px;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.25)}
+.btn-go{background:#238636;color:#fff}
+.btn-pause{background:var(--yellow);color:var(--bg)}
+.btn-restart{background:var(--blue);color:var(--bg)}
+.btn-stop{background:#da3633;color:#fff}
+.hdr-update{font-size:10px;color:var(--txt2);margin-left:auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:90px 16px 16px}
+.widget-frame{width:100%;height:340px;border:none;border-radius:8px}
+.log{grid-column:1/-1;height:180px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:Consolas,monospace;font-size:11px;overflow:auto;white-space:pre-wrap}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-r1">
+    <div class="hdr-title">IMPORTRE v4 — Micro-frontends</div>
+    <div class="srv-status srv-on" id="srv-status">SERVICES ONLINE</div>
+    <div class="ctrl-state st-running" id="ctrl-state">RUNNING</div>
+    <button class="btn btn-go" onclick="control('resume')">PLAY</button>
+    <button class="btn btn-pause" onclick="control('pause')">PAUSE</button>
+    <button class="btn btn-restart" onclick="control('restart')">RESTART</button>
+    <button class="btn btn-stop" onclick="control('stop')">STOP</button>
+    <div class="hdr-update" id="hdr-update">atualizando...</div>
+  </div>
+</div>
+<div class="grid">
+  <iframe class="widget-frame" id="wf-queue" src="http://127.0.0.1:9001/dashboard"></iframe>
+  <iframe class="widget-frame" id="wf-search" src="http://127.0.0.1:9002/dashboard"></iframe>
+  <iframe class="widget-frame" id="wf-download" src="http://127.0.0.1:9003/dashboard"></iframe>
+  <iframe class="widget-frame" id="wf-chd" src="http://127.0.0.1:9004/dashboard"></iframe>
+  <div class="log" id="log"></div>
+</div>
+<script>
+function control(action){
+  fetch('/api/control/'+action).then(r=>r.json()).then(d=>{
+    document.getElementById('ctrl-state').textContent = (d.state||'running').toUpperCase();
+    document.getElementById('ctrl-state').className = 'ctrl-state st-'+(d.state||'running');
+  }).catch(()=>alert('Servidor offline'));
+}
+async function loadStatus(){
+  try{
+    const data = await fetch('/api/status').then(r=>r.json());
+    const ok = !data.queue.error && !data.search.error && !data.download.error && !data.chd.error;
+    document.getElementById('srv-status').textContent = ok?'SERVICES ONLINE':'SERVICES OFFLINE';
+    document.getElementById('srv-status').className = 'srv-status '+(ok?'srv-on':'srv-off');
+    document.getElementById('ctrl-state').textContent = (data.control||'running').toUpperCase();
+    document.getElementById('ctrl-state').className = 'ctrl-state st-'+(data.control||'running');
+    document.getElementById('hdr-update').textContent = 'atualizado '+new Date().toLocaleTimeString('pt-BR');
+  }catch(e){ console.error(e); }
+}
+async function loadLog(){
+  try{
+    const data = await fetch('/api/log').then(r=>r.json());
+    document.getElementById('log').textContent = (data.lines||[]).join('\n');
+  }catch(e){ console.error(e); }
+}
+loadStatus(); loadLog();
+setInterval(loadStatus,3000);
+setInterval(loadLog,5000);
+</script>
+</body>
+</html>
