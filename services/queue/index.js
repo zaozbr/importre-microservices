@@ -295,8 +295,8 @@ function startQueueDrainWatchdog() {
   }, 60000);
 }
 
-process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
-process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
+process.on('uncaughtException', (e) => { console.error('uncaughtException', e.stack || e.message); log.error(`uncaught: ${e.message}`); process.exit(1); });
+process.on('unhandledRejection', (e) => { console.error('unhandledRejection', e.stack || e.message); log.error(`rejection: ${e.message}`); });
 
 app.listen(PORTS.QUEUE, '127.0.0.1', () => {
   log.info(`Queue service em http://127.0.0.1:${PORTS.QUEUE}`);

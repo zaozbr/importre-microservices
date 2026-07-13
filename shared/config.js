@@ -47,6 +47,6 @@ module.exports = {
     'archive.org-jp': 5,
     'archive_org': 5,
     'archive_org_jp': 5,
-    'coolrom': 5
+    'coolrom': 10
   }
 };
