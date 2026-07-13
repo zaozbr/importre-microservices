@@ -197,13 +197,16 @@ app.post('/queue/next-ready', (req, res) => {
     return (b.priority || 0) - (a.priority || 0); // depois prioridade
   }
   
-  // Se tem fonte preferida, filtra por ela primeiro
+  // Se tem fonte preferida, filtra por ela PRIMEIRO
+  // Se nao tem itens da fonte preferida, retorna null (worker espera)
   if (preferredSite && preferredSite !== 'any') {
     const withPref = ready.filter(i => (i.sources || []).some(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_')));
     if (withPref.length > 0) {
       ready = withPref.sort(sortByProgress);
     } else {
-      ready = ready.sort(sortByProgress);
+      // Sem itens da fonte preferida - retorna null
+      // Worker RR espera ate ter item da sua fonte
+      return res.json({ item: null });
     }
   } else {
     ready = ready.sort(sortByProgress);
