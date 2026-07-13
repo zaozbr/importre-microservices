@@ -8,29 +8,98 @@ const log = new Logger('queue-service');
 const app = express();
 app.use(express.json());
 
-const MAX_RETRY = 10;
-const RETRY_DELAY_MIN = 5 * 60 * 1000; // 5 min
+// === Configuracao de retry ===
+// Backoff: 30s, 60s, 2min, 5min, 10min, 20min, 30min (cap)
+const MAX_RETRY = 15;
+const RETRY_DELAYS = [30000, 60000, 120000, 300000, 600000, 1200000, 1800000];
+const RETRY_DELAY_CAP = 1800000; // 30min
+
 let paused = false;
 
+// === Persistencia com backup automatico ===
 function loadQueue() {
   if (!fs.existsSync(QUEUE_PATH)) {
     return { queue: [], in_progress: {}, completed: {}, failed: {} };
   }
   try {
-    return JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf-8'));
+    const data = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf-8'));
+    if (!data.queue || !Array.isArray(data.queue)) throw new Error('queue invalida');
+    return data;
   } catch (e) {
-    log.error(`Erro lendo queue: ${e.message}`);
+    log.error(`Erro lendo queue: ${e.message}. Tentando backup...`);
+    const bak = QUEUE_PATH + '.bak';
+    if (fs.existsSync(bak)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(bak, 'utf-8'));
+        log.info(`Backup restaurado com ${data.queue.length} itens`);
+        return data;
+      } catch (e2) {
+        log.error(`Backup tambem corrompido: ${e2.message}`);
+      }
+    }
     return { queue: [], in_progress: {}, completed: {}, failed: {} };
   }
 }
 
 function saveQueue(data) {
   const tmp = QUEUE_PATH + '.tmp';
+  // Backup do arquivo atual antes de sobrescrever
+  try {
+    if (fs.existsSync(QUEUE_PATH)) {
+      fs.copyFileSync(QUEUE_PATH, QUEUE_PATH + '.bak');
+    }
+  } catch (e) { /* nao critico */ }
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
   fs.renameSync(tmp, QUEUE_PATH);
 }
 
-// Reservas em memoria para evitar que workers peguem o mesmo item antes do saveQueue
+// === Cache em memoria com validacao ===
+let queueCache = null;
+let queueDirty = false;
+let lastExternalCheck = 0;
+let lastMtime = 0;
+
+function getQueue() {
+  if (!queueCache) {
+    queueCache = loadQueue();
+    try { lastMtime = fs.statSync(QUEUE_PATH).mtimeMs; } catch (e) {}
+    return queueCache;
+  }
+  // Verifica se o arquivo foi modificado externamente a cada 30s
+  const now = Date.now();
+  if (now - lastExternalCheck > 30000 && !queueDirty) {
+    lastExternalCheck = now;
+    try {
+      const mtime = fs.statSync(QUEUE_PATH).mtimeMs;
+      if (mtime !== lastMtime) {
+        log.info('Queue.json modificado externamente, recarregando cache...');
+        queueCache = loadQueue();
+        lastMtime = mtime;
+      }
+    } catch (e) {}
+  }
+  return queueCache;
+}
+
+function markDirty() {
+  queueDirty = true;
+}
+
+function persistQueue() {
+  if (queueDirty && queueCache) {
+    saveQueue(queueCache);
+    queueDirty = false;
+    try { lastMtime = fs.statSync(QUEUE_PATH).mtimeMs; } catch (e) {}
+  }
+}
+
+// Persiste a cada 10s (mais frequente para nao perder estado)
+setInterval(persistQueue, 10000);
+// Persiste no shutdown
+process.on('SIGTERM', () => { persistQueue(); process.exit(0); });
+process.on('SIGINT', () => { persistQueue(); process.exit(0); });
+
+// === Reservas em memoria ===
 const reservedPending = new Set();
 const reservedReady = new Set();
 
@@ -42,9 +111,12 @@ function canRetry(item) {
   const retries = item.retry_count || 0;
   if (retries >= MAX_RETRY) return false;
   const lastFail = item.last_failed ? new Date(item.last_failed).getTime() : 0;
-  const delay = Math.min(RETRY_DELAY_MIN * Math.pow(2, retries), 24 * 60 * 60 * 1000);
+  if (!lastFail) return true; // nunca falhou
+  const delay = RETRY_DELAYS[Math.min(retries, RETRY_DELAYS.length - 1)] || RETRY_DELAY_CAP;
   return Date.now() - lastFail >= delay;
 }
+
+// === Endpoints ===
 
 app.get('/status', (req, res) => {
   const q = getQueue();
@@ -82,35 +154,13 @@ app.post('/queue/add', (req, res) => {
     sources: []
   };
   q.queue.push(item);
-  saveQueue(q);
+  markDirty();
   log.info(`Adicionado: ${serial}`);
   res.json({ added: true, item });
 });
 
 app.post('/pause', (req, res) => { paused = true; log.info('Queue paused'); res.json({ paused }); });
 app.post('/resume', (req, res) => { paused = false; log.info('Queue resumed'); res.json({ paused }); });
-
-// Cache em memoria da fila para evitar leitura/escrita a cada requisicao
-let queueCache = null;
-let queueDirty = false;
-
-function getQueue() {
-  if (!queueCache) queueCache = loadQueue();
-  return queueCache;
-}
-
-function markDirty() {
-  queueDirty = true;
-}
-
-function persistQueue() {
-  if (queueDirty && queueCache) {
-    saveQueue(queueCache);
-    queueDirty = false;
-  }
-}
-
-setInterval(persistQueue, 30000);
 
 // Search service pega um item pending
 app.post('/queue/next-pending', (req, res) => {
@@ -159,7 +209,7 @@ app.post('/queue/ready', (req, res) => {
   item.sources = sources || [];
   item.search_ended = new Date().toISOString();
   delete q.in_progress[serial];
-  saveQueue(q);
+  markDirty();
   log.info(`Ready: ${serial} (${item.sources.length} fontes)`);
   res.json({ item });
 });
@@ -187,7 +237,9 @@ app.post('/queue/complete', (req, res) => {
     q.completed[serial] = q.in_progress[serial];
     delete q.in_progress[serial];
   }
-  saveQueue(q);
+  // Remove de failed se estava la
+  if (q.failed && q.failed[serial]) delete q.failed[serial];
+  markDirty();
   log.info(`Completado: ${serial}`);
   res.json({ ok: true });
 });
@@ -203,7 +255,11 @@ app.post('/queue/fail', (req, res) => {
     item.last_failed = new Date().toISOString();
   }
   if (q.in_progress[serial]) {
-    q.failed[serial] = q.in_progress[serial];
+    // So move para failed se excedeu MAX_RETRY
+    if (item && item.retry_count >= MAX_RETRY) {
+      q.failed[serial] = q.in_progress[serial];
+      log.warn(`Falhou definitivamente: ${serial} (${item.retry_count} retries) - ${reason}`);
+    }
     delete q.in_progress[serial];
   }
   // Move item para o fim da fila para nao bloquear outros
@@ -212,15 +268,14 @@ app.post('/queue/fail', (req, res) => {
     const [failedItem] = q.queue.splice(idx, 1);
     q.queue.push(failedItem);
   }
-  saveQueue(q);
-  log.warn(`Falhou: ${serial} - ${reason} (retry ${item?.retry_count || 0}) -> movido para o fim da fila`);
+  markDirty();
+  log.warn(`Falhou: ${serial} - ${reason} (retry ${item?.retry_count || 0}) -> fim da fila`);
   res.json({ ok: true });
 });
 
 app.post('/reprocess-failures', (req, res) => {
   const q = getQueue();
   let moved = 0;
-  // Itens na fila que ainda estao marcados como falha em q.failed
   for (const serial of Object.keys(q.failed || {})) {
     const item = q.queue.find(i => i.serial === serial);
     if (item) {
@@ -229,7 +284,6 @@ app.post('/reprocess-failures', (req, res) => {
       item.last_failed = null;
       item.status = 'pending';
     } else {
-      // Item so existe em q.failed; recria na fila
       const failedItem = q.failed[serial];
       if (failedItem) {
         failedItem.retry_count = 0;
@@ -242,7 +296,7 @@ app.post('/reprocess-failures', (req, res) => {
     delete q.failed[serial];
     moved++;
   }
-  // Tambem reseta itens na fila que ficaram pendurados com status inesperado
+  // Reseta itens com status invalido
   for (const item of q.queue) {
     if (!['pending', 'completed', 'searching', 'downloading', 'ready'].includes(item.status)) {
       item.status = 'pending';
@@ -252,14 +306,16 @@ app.post('/reprocess-failures', (req, res) => {
       moved++;
     }
   }
-  // Colocar todos os pendentes no fim da fila mantendo ordem relativa
+  // Pendentes no fim
   const nonPending = q.queue.filter(i => i.status !== 'pending');
   const pending = q.queue.filter(i => i.status === 'pending');
   q.queue = [...nonPending, ...pending];
-  saveQueue(q);
-  log.info(`Reprocessar falhas: ${moved} itens resetados e movidos para o fim da fila`);
+  markDirty();
+  log.info(`Reprocessar falhas: ${moved} itens resetados`);
   res.json({ ok: true, moved });
 });
+
+// === Watchdogs ===
 
 function startQueueDrainWatchdog() {
   const STUCK_DOWNLOAD_MS = 20 * 60 * 1000;
@@ -274,6 +330,7 @@ function startQueueDrainWatchdog() {
         if (now - start > STUCK_DOWNLOAD_MS) {
           item.status = 'ready';
           item.stuck_released = new Date().toISOString();
+          item.retry_count = (item.retry_count || 0) + 1;
           delete q.in_progress[item.serial];
           drained++;
         }
@@ -283,22 +340,64 @@ function startQueueDrainWatchdog() {
         if (now - start > STUCK_SEARCH_MS) {
           item.status = 'pending';
           item.stuck_released = new Date().toISOString();
+          item.retry_count = (item.retry_count || 0) + 1;
           delete q.in_progress[item.serial];
           drained++;
         }
       }
     }
     if (drained) {
-      saveQueue(q);
+      markDirty();
       log.warn(`Queue drain: ${drained} itens presos liberados`);
     }
   }, 60000);
 }
 
-process.on('uncaughtException', (e) => { console.error('uncaughtException', e.stack || e.message); log.error(`uncaught: ${e.message}`); process.exit(1); });
-process.on('unhandledRejection', (e) => { console.error('unhandledRejection', e.stack || e.message); log.error(`rejection: ${e.message}`); });
+// Auto-reprocess de falhas a cada 10min
+function startAutoReprocess() {
+  setInterval(() => {
+    if (paused) return;
+    const q = getQueue();
+    const failedCount = Object.keys(q.failed || {}).length;
+    if (failedCount > 0) {
+      log.info(`Auto-reprocess: ${failedCount} falhas serao reprocessadas`);
+      for (const serial of Object.keys(q.failed || {})) {
+        const item = q.queue.find(i => i.serial === serial);
+        if (item) {
+          item.retry_count = 0;
+          item.last_error = null;
+          item.last_failed = null;
+          item.status = 'pending';
+        } else {
+          const failedItem = q.failed[serial];
+          if (failedItem) {
+            failedItem.retry_count = 0;
+            failedItem.last_error = null;
+            failedItem.last_failed = null;
+            failedItem.status = 'pending';
+            q.queue.push(failedItem);
+          }
+        }
+        delete q.failed[serial];
+      }
+      markDirty();
+    }
+  }, 10 * 60 * 1000);
+}
+
+process.on('uncaughtException', (e) => {
+  console.error('uncaughtException', e.stack || e.message);
+  log.error(`uncaught: ${e.message}`);
+  persistQueue();
+  process.exit(1);
+});
+process.on('unhandledRejection', (e) => {
+  console.error('unhandledRejection', e.stack || e.message);
+  log.error(`rejection: ${e.message}`);
+});
 
 app.listen(PORTS.QUEUE, '127.0.0.1', () => {
   log.info(`Queue service em http://127.0.0.1:${PORTS.QUEUE}`);
   startQueueDrainWatchdog();
+  startAutoReprocess();
 });

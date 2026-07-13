@@ -29,7 +29,8 @@ function getSlotState(site) {
   return sourceSlots.get(site);
 }
 
-function acquireSourceSlot(site, timeoutMs = 60000) {
+function acquireSourceSlot(site, timeoutMs = 300000) {
+  // Timeout de 5min: dá tempo para slots liberarem sem falhar o item
   return new Promise((resolve, reject) => {
     const state = getSlotState(site);
     if (state.current < state.max) {
@@ -203,19 +204,26 @@ async function downloadFile(item, source, url, sourceIndex = 0) {
   } catch (e) {
     log.warn(`aria2 falhou ${item.serial}: ${e.message}. Tentando fallback axios.`);
     const writer = fs.createWriteStream(tmpPath);
-    const response = await axios({
-      method: 'get',
-      url,
-      responseType: 'stream',
-      timeout: 600000,
-      maxRedirects: 5,
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-    });
-    response.data.pipe(writer);
-    await new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
-    });
+    try {
+      const response = await axios({
+        method: 'get',
+        url,
+        responseType: 'stream',
+        timeout: 600000,
+        maxRedirects: 5,
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+      });
+      response.data.pipe(writer);
+      await new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+        // Timeout de 10min no stream
+        setTimeout(() => reject(new Error('axios stream timeout')), 600000);
+      });
+    } catch (axiosErr) {
+      try { fs.unlinkSync(tmpPath); } catch (e2) {}
+      throw new Error(`aria2 + axios falharam: ${e.message} | ${axiosErr.message}`);
+    }
   } finally {
     endDownloadTracking(item.serial);
     releaseSourceSlot(source.site);
@@ -303,14 +311,29 @@ async function processOne() {
   }
 
   status.active++;
-  try {
-    log.info(`Download ${item.serial}: ${item.sources.length} fontes disponiveis`);
-    await resolveAndDownload(item, item.sources);
-    await queueRequest('post', '/queue/complete', { serial: item.serial });
-    status.completed++;
-  } catch (e) {
-    log.error(`Download falhou ${item.serial}: ${e.message}`);
-    await queueRequest('post', '/queue/fail', { serial: item.serial, reason: e.message });
+  let success = false;
+  let lastError = null;
+  // Retry interno: tenta 3x antes de falhar o item
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (attempt > 0) {
+        log.info(`Retry ${attempt}/3 para ${item.serial}...`);
+        await new Promise(r => setTimeout(r, 5000 * attempt));
+      }
+      log.info(`Download ${item.serial}: ${item.sources.length} fontes (tentativa ${attempt + 1})`);
+      await resolveAndDownload(item, item.sources);
+      await queueRequest('post', '/queue/complete', { serial: item.serial });
+      status.completed++;
+      success = true;
+      break;
+    } catch (e) {
+      lastError = e;
+      log.warn(`Tentativa ${attempt + 1}/3 falhou para ${item.serial}: ${e.message}`);
+    }
+  }
+  if (!success) {
+    log.error(`Download falhou definitivo ${item.serial}: ${lastError?.message}`);
+    await queueRequest('post', '/queue/fail', { serial: item.serial, reason: lastError?.message || 'erro desconhecido' });
     status.failed++;
   }
   status.active--;
