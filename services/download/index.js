@@ -207,6 +207,7 @@ async function resolveAndDownload(item, sources) {
     const source = sources[i];
     if (!source.url) continue;
     if (!sourceSlotsAvailable(source.site)) {
+      log.info(`Fonte ${source.site} para ${item.serial} adiada: limite de downloads simultaneos atingido (${countActiveBySource(source.site)} ativos)`);
       errors.push(`${source.site}: limite de downloads simultaneos atingido`);
       continue;
     }

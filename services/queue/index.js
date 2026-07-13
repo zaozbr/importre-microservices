@@ -25,7 +25,9 @@ function loadQueue() {
 }
 
 function saveQueue(data) {
-  fs.writeFileSync(QUEUE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  const tmp = QUEUE_PATH + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
+  fs.renameSync(tmp, QUEUE_PATH);
 }
 
 function isReady(item) {
