@@ -30,8 +30,16 @@ function titleScore(a, b) {
   if (na === nb) return 1;
   const wa = na.split(' ').filter(Boolean);
   const wb = nb.split(' ').filter(Boolean);
+  if (!wa.length || !wb.length) return 0;
   const common = wa.filter(w => wb.includes(w)).length;
-  return common / Math.max(wa.length, wb.length);
+  const baseScore = common / Math.max(wa.length, wb.length);
+  // Bonus: se todas as palavras do menor estao no maior (subset)
+  const minLen = Math.min(wa.length, wb.length);
+  if (common === minLen) {
+    // Subset completo - bonus proporcional
+    return Math.min(1, baseScore + 0.25);
+  }
+  return baseScore;
 }
 
 function buildSource(site, url, title, extra = {}) {
