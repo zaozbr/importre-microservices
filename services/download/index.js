@@ -316,7 +316,6 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
       }
       // Headers extras do resolver (vimm cookies, etc)
       if (extraHeaders) Object.assign(headers, extraHeaders);
-      }
       const response = await axios({
         method: 'get',
         url,
