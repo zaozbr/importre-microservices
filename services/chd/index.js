@@ -45,11 +45,9 @@ function buildChdName(cuePath) {
 // Extrai .7z/.zip/.rar para PSX_DIR
 function extractArchive(archPath) {
   return new Promise((resolve, reject) => {
-    const ext = path.extname(archPath).toLowerCase();
-    const args = ext === '.zip' 
-      ? ['x', '-y', `-o${PSX_DIR}`, archPath]
-      : ['x', '-y', `-o${PSX_DIR}`, archPath];
-    const proc = spawn('7z.exe', args, { windowsHide: true });
+    const sevenZip = process.env.SEVEN_ZIP_PATH || 'C:\\Program Files\\7-Zip\\7z.exe';
+    const args = ['x', '-y', `-o${PSX_DIR}`, archPath];
+    const proc = spawn(sevenZip, args, { windowsHide: true });
     let stderr = '';
     proc.stderr.on('data', d => stderr += d.toString());
     proc.on('exit', (code) => {
