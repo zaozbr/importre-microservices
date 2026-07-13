@@ -29,14 +29,26 @@ function getSlotState(site) {
   return sourceSlots.get(site);
 }
 
-function acquireSourceSlot(site) {
-  return new Promise(resolve => {
+function acquireSourceSlot(site, timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
     const state = getSlotState(site);
     if (state.current < state.max) {
       state.current++;
       resolve();
-    } else {
-      state.waiters.push(resolve);
+      return;
+    }
+    let timer = null;
+    const waiter = () => {
+      if (timer) clearTimeout(timer);
+      resolve();
+    };
+    state.waiters.push(waiter);
+    if (timeoutMs !== Infinity) {
+      timer = setTimeout(() => {
+        const idx = state.waiters.indexOf(waiter);
+        if (idx !== -1) state.waiters.splice(idx, 1);
+        reject(new Error(`timeout aguardando slot de ${site}`));
+      }, timeoutMs);
     }
   });
 }
