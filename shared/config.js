@@ -30,7 +30,7 @@ module.exports = {
     ORCHESTRATOR: 8767
   },
   WORKERS: {
-    SEARCH: 10,
+    SEARCH: 15,
     DOWNLOAD: 20,
     CHD: 2
   },

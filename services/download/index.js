@@ -18,6 +18,39 @@ const QUEUE_URL = `http://127.0.0.1:${PORTS.QUEUE}`;
 let status = { active: 0, completed: 0, failed: 0 };
 let activeDownloads = new Map(); // serial -> { progress, speed, source, startedAt }
 
+// Controle de slots concorrentes por fonte (evita race condition entre workers)
+const sourceSlots = new Map(); // site -> { current, max, waiters }
+
+function getSlotState(site) {
+  if (!sourceSlots.has(site)) {
+    const limit = SOURCE_LIMITS[site] || Infinity;
+    sourceSlots.set(site, { current: 0, max: limit, waiters: [] });
+  }
+  return sourceSlots.get(site);
+}
+
+function acquireSourceSlot(site) {
+  return new Promise(resolve => {
+    const state = getSlotState(site);
+    if (state.current < state.max) {
+      state.current++;
+      resolve();
+    } else {
+      state.waiters.push(resolve);
+    }
+  });
+}
+
+function releaseSourceSlot(site) {
+  const state = getSlotState(site);
+  state.current = Math.max(0, state.current - 1);
+  if (state.waiters.length > 0) {
+    const next = state.waiters.shift();
+    state.current++;
+    next();
+  }
+}
+
 async function queueRequest(method, endpoint, body) {
   const res = await axios({ method, url: `${QUEUE_URL}${endpoint}`, data: body, timeout: 5000 });
   return res.data;
@@ -114,20 +147,6 @@ function endDownloadTracking(serial) {
   activeDownloads.delete(serial);
 }
 
-function countActiveBySource(site) {
-  let count = 0;
-  for (const d of activeDownloads.values()) {
-    if (d.source === site) count++;
-  }
-  return count;
-}
-
-function sourceSlotsAvailable(site) {
-  const limit = SOURCE_LIMITS[site];
-  if (!limit) return true; // ilimitado
-  return countActiveBySource(site) < limit;
-}
-
 async function performanceWatchdog() {
   while (true) {
     await new Promise(r => setTimeout(r, ARIA2.SPEED_CHECK_INTERVAL_MS));
@@ -152,11 +171,12 @@ async function performanceWatchdog() {
   }
 }
 
-async function downloadFile(item, url, sourceIndex = 0) {
+async function downloadFile(item, source, url, sourceIndex = 0) {
   const ext = path.extname(new URL(url).pathname) || '.7z';
   const tmpPath = path.join(PSX_DIR, `${item.serial}${ext}`);
+  await acquireSourceSlot(source.site);
   try {
-    log.info(`aria2 start ${item.serial} fonte #${sourceIndex + 1}: ${url}`);
+    log.info(`aria2 start ${item.serial} fonte #${sourceIndex + 1} (${source.site}): ${url}`);
     await aria2Download(url, tmpPath, {
       connections: ARIA2.CONNECTIONS,
       split: ARIA2.SPLIT,
@@ -181,6 +201,8 @@ async function downloadFile(item, url, sourceIndex = 0) {
       writer.on('finish', resolve);
       writer.on('error', reject);
     });
+  } finally {
+    releaseSourceSlot(source.site);
   }
   return tmpPath;
 }
@@ -206,11 +228,6 @@ async function resolveAndDownload(item, sources) {
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i];
     if (!source.url) continue;
-    if (!sourceSlotsAvailable(source.site)) {
-      log.info(`Fonte ${source.site} para ${item.serial} adiada: limite de downloads simultaneos atingido (${countActiveBySource(source.site)} ativos)`);
-      errors.push(`${source.site}: limite de downloads simultaneos atingido`);
-      continue;
-    }
     let url = source.url;
     const isDirect = directExts.some(e => source.url.toLowerCase().endsWith(e));
     if (!isDirect || ['coolrom', 'vimm', 'retrostic', 'romsdl', 'retroiso'].includes(source.site)) {
@@ -224,7 +241,7 @@ async function resolveAndDownload(item, sources) {
     }
     try {
       startDownloadTracking(item.serial, source.site);
-      const tmpPath = await downloadFile(item, url, i);
+      const tmpPath = await downloadFile(item, source, url, i);
       // aguarda handles serem liberados
       await new Promise(r => setTimeout(r, 2000));
       if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
