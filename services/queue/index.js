@@ -30,6 +30,13 @@ function saveQueue(data) {
   fs.renameSync(tmp, QUEUE_PATH);
 }
 
+// Lock em memoria para evitar race condition entre workers concorrentes
+let queueLockPromise = Promise.resolve();
+function withQueueLock(fn) {
+  queueLockPromise = queueLockPromise.then(fn, fn);
+  return queueLockPromise;
+}
+
 function isReady(item) {
   return item.status === 'ready' && (item.sources || []).some(s => s.url);
 }
@@ -89,35 +96,39 @@ app.post('/resume', (req, res) => { paused = false; log.info('Queue resumed'); r
 // Search service pega um item pending
 app.post('/queue/next-pending', (req, res) => {
   if (paused) return res.json({ item: null, paused: true });
-  const q = loadQueue();
-  const pending = q.queue
-    .filter(i => i.status === 'pending' && !q.in_progress[i.serial] && !q.completed[i.serial] && canRetry(i))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
-  if (!pending.length) return res.json({ item: null });
-  const item = pending[0];
-  item.status = 'searching';
-  item.search_started = new Date().toISOString();
-  q.in_progress[item.serial] = item;
-  saveQueue(q);
-  log.info(`Next pending: ${item.serial}`);
-  res.json({ item });
+  withQueueLock(() => {
+    const q = loadQueue();
+    const pending = q.queue
+      .filter(i => i.status === 'pending' && !q.in_progress[i.serial] && !q.completed[i.serial] && canRetry(i))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    if (!pending.length) return res.json({ item: null });
+    const item = pending[0];
+    item.status = 'searching';
+    item.search_started = new Date().toISOString();
+    q.in_progress[item.serial] = item;
+    saveQueue(q);
+    log.info(`Next pending: ${item.serial}`);
+    res.json({ item });
+  });
 });
 
 // Download service pega um item ready
 app.post('/queue/next-ready', (req, res) => {
   if (paused) return res.json({ item: null, paused: true });
-  const q = loadQueue();
-  const ready = q.queue
-    .filter(i => i.status === 'ready' && isReady(i) && !q.in_progress[i.serial] && !q.completed[i.serial])
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
-  if (!ready.length) return res.json({ item: null });
-  const item = ready[0];
-  item.status = 'downloading';
-  item.download_started = new Date().toISOString();
-  q.in_progress[item.serial] = item;
-  saveQueue(q);
-  log.info(`Next ready: ${item.serial}`);
-  res.json({ item });
+  withQueueLock(() => {
+    const q = loadQueue();
+    const ready = q.queue
+      .filter(i => i.status === 'ready' && isReady(i) && !q.in_progress[i.serial] && !q.completed[i.serial])
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    if (!ready.length) return res.json({ item: null });
+    const item = ready[0];
+    item.status = 'downloading';
+    item.download_started = new Date().toISOString();
+    q.in_progress[item.serial] = item;
+    saveQueue(q);
+    log.info(`Next ready: ${item.serial}`);
+    res.json({ item });
+  });
 });
 
 app.post('/queue/ready', (req, res) => {
