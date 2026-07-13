@@ -46,11 +46,21 @@ function extractWith7z(archivePath, destDir) {
   });
 }
 
+async function updateProgress(serial, progress) {
+  try {
+    await axios.post(`http://127.0.0.1:${PORTS.QUEUE}/queue/update`, { serial, updates: { progress } }, { timeout: 3000 });
+  } catch (e) {}
+}
+
 async function downloadFile(item, url) {
   const ext = path.extname(new URL(url).pathname) || '.7z';
   const tmpPath = path.join(PSX_DIR, `${item.serial}${ext}`);
   try {
-    await aria2Download(url, tmpPath, { connections: 16, split: 16 });
+    log.info(`aria2 start ${item.serial}: ${url}`);
+    await aria2Download(url, tmpPath, {
+      connections: 16, split: 16,
+      onProgress: (p) => { log.info(`aria2 progress ${item.serial}: ${JSON.stringify(p)}`); updateProgress(item.serial, p); }
+    });
   } catch (e) {
     // fallback axios
     const writer = fs.createWriteStream(tmpPath);

@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="/shared/dashboard.css">
+<style>
+.bar-wrap{position:relative;background:var(--bg3);border-radius:4px;height:22px;overflow:hidden;min-width:120px}
+.bar-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--purple),var(--blue));transition:width .3s ease;opacity:.35}
+.bar-text{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;height:100%;font-size:10px;font-weight:700;color:var(--txt);text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.pct{font-weight:800;color:var(--blue)}
+.speed{color:var(--purple);font-weight:700}
+</style>
 </head>
 <body>
 <div class="widget">
@@ -15,6 +22,15 @@
 </div>
 <script src="/shared/dashboard.js"></script>
 <script>
+function statusBar(i){
+  const p = i.progress || {};
+  const pct = p.percent || 0;
+  const speed = p.speed || '';
+  if(i.status==='downloading'){
+    return `<div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div><div class="bar-text">${i.status} ${pct}%</div></div>`;
+  }
+  return `<span class="status ${i.status}">${i.status}</span>`;
+}
 async function render(){
   const data = await Dashboard.fetchJSON('/status');
   const stats = document.getElementById('stats');
@@ -33,8 +49,11 @@ async function render(){
   const items = (q.queue||[]).filter(i=>['pending','searching','ready','downloading'].includes(i.status)).slice(0,15);
   const table = document.getElementById('table');
   if(!items.length){ table.innerHTML='<p class="muted">vazio</p>'; return; }
-  table.innerHTML = `<table><tr><th>Serial</th><th>Título</th><th>Status</th><th>Retry</th></tr>`+
-    items.map(i=>`<tr><td>${Dashboard.esc(i.serial)}</td><td>${Dashboard.esc(i.title||'-')}</td><td><span class="status ${i.status}">${i.status}</span></td><td>${i.retry_count||0}</td></tr>`).join('')+
+  table.innerHTML = `<table><tr><th>Serial</th><th>Título</th><th>Status</th><th>%</th><th>Velocidade</th><th>Retry</th></tr>`+
+    items.map(i=>{
+      const p = i.progress || {};
+      return `<tr><td>${Dashboard.esc(i.serial)}</td><td>${Dashboard.esc(i.title||i.serial)}</td><td>${statusBar(i)}</td><td class="pct">${i.status==='downloading'?(p.percent||0)+'%':'-'}</td><td class="speed">${Dashboard.esc(p.speed||'-')}</td><td>${i.retry_count||0}</td></tr>`;
+    }).join('')+
     `</table>`;
 }
 render(); setInterval(render,3000);
