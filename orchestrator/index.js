@@ -116,6 +116,23 @@ app.get('/legacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
+async function checkAutoReprocess() {
+  if (controlState === 'stopped' || controlState === 'paused') return;
+  try {
+    const q = await serviceGet(PORTS.QUEUE, '/status');
+    const active = (q.pending || 0) + (q.searching || 0) + (q.ready || 0) + (q.downloading || 0);
+    const failed = q.failed || 0;
+    if (active === 0 && failed > 0) {
+      log.info(`Fila ativa vazia (${failed} falhas). Reprocessando falhas automaticamente...`);
+      await servicePost(PORTS.QUEUE, '/reprocess-failures', {});
+    }
+  } catch (e) {
+    log.error(`Auto-reprocess check failed: ${e.message}`);
+  }
+}
+
+setInterval(checkAutoReprocess, 30000);
+
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
