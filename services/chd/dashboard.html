@@ -1,37 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="/shared/dashboard.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversão CHD</title>
+<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/reset.css">
+<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/antd.min.css">
+<style>
+  body { background: #0d1117; color: #c9d1d9; padding: 12px; }
+  .site-card { background: #161b22; border-color: #30363d; }
+  .site-card .ant-card-head { background: #161b22; border-color: #30363d; color: #e94560; }
+  .site-card .ant-card-body { background: #161b22; }
+</style>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/antd@5.20.0/dist/antd.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-<div class="widget">
-  <div class="widget-header">Conversão CHD <span id="h-cnt"></span></div>
-  <div class="widget-body">
-    <div class="stat-grid" id="stats"></div>
-    <h3 style="margin:10px 0 4px;color:var(--txt2);font-size:11px">Convertendo</h3>
-    <div id="table"></div>
-  </div>
-</div>
-<script src="/shared/dashboard.js"></script>
-<script>
-async function render(){
-  const data = await Dashboard.fetchJSON('/status');
-  document.getElementById('h-cnt').innerHTML = Dashboard.badge((data.converting||[]).length);
-  document.getElementById('stats').innerHTML = `
-    <div class="stat"><div class="n">${data.ready||0}</div><div class="l">Prontos</div></div>
-    <div class="stat"><div class="n" style="color:var(--purple)">${(data.converting||[]).length}</div><div class="l">Ativos</div></div>
-    <div class="stat"><div class="n" style="color:var(--green)">${data.completed||0}</div><div class="l">OK</div></div>
-    <div class="stat"><div class="n" style="color:#f44336">${data.failed||0}</div><div class="l">Falhas</div></div>
-  `;
-  const conv = data.converting||[];
-  const table = document.getElementById('table');
-  if(!conv.length){ table.innerHTML='<p class="muted">nenhuma conversão ativa</p>'; return; }
-  table.innerHTML = `<table><tr><th>Serial</th><th>Arquivo</th></tr>`+
-    conv.map(c=>`<tr><td>${Dashboard.esc(c.serial||'-')}</td><td class="muted">${Dashboard.esc(c.file||'-')}</td></tr>`).join('')+
-    `</table>`;
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const { Card, Table, Tag, Statistic, Row, Col } = antd;
+
+async function fetchJSON(url) {
+  try { const r = await fetch(url); return await r.json(); } catch (e) { return {}; }
 }
-render(); setInterval(render,3000);
+
+function App() {
+  const [status, setStatus] = useState({ ready: 0, converting: [], completed: 0, failed: 0 });
+
+  useEffect(() => {
+    async function load() {
+      const s = await fetchJSON('/status');
+      setStatus(s);
+    }
+    load();
+    const i = setInterval(load, 3000);
+    return () => clearInterval(i);
+  }, []);
+
+  const columns = [
+    { title: 'Serial', dataIndex: 'serial', key: 'serial', render: s => <Tag color="blue">{s || '-'}</Tag> },
+    { title: 'Arquivo', dataIndex: 'file', key: 'file', ellipsis: true },
+  ];
+
+  return (
+    <Card title={`Conversão CHD: ${(status.converting || []).length} ativas`} className="site-card" bordered>
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col><Statistic title="Prontos" value={status.ready || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
+        <Col><Statistic title="Ativos" value={(status.converting || []).length} valueStyle={{ color: '#bc8cff' }} /></Col>
+        <Col><Statistic title="OK" value={status.completed || 0} valueStyle={{ color: '#3fb950' }} /></Col>
+        <Col><Statistic title="Falhas" value={status.failed || 0} valueStyle={{ color: '#e94560' }} /></Col>
+      </Row>
+      <Table
+        dataSource={status.converting || []}
+        columns={columns}
+        rowKey="serial"
+        size="small"
+        pagination={false}
+        scroll={{ y: 320 }}
+        locale={{ emptyText: 'nenhuma conversão ativa' }}
+      />
+    </Card>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>

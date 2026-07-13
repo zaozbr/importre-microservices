@@ -1,51 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="/shared/dashboard.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fila</title>
+<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/reset.css">
+<link rel="stylesheet" href="https://unpkg.com/antd@5.20.0/dist/antd.min.css">
 <style>
-.bar-wrap{position:relative;background:var(--bg3);border-radius:4px;height:22px;overflow:hidden;min-width:120px}
-.bar-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--purple),var(--blue));transition:width .3s ease;opacity:.35}
-.bar-text{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;height:100%;font-size:10px;font-weight:700;color:var(--txt);text-shadow:0 1px 2px rgba(0,0,0,.8)}
-.pct{font-weight:800;color:var(--blue)}
-.speed{color:var(--purple);font-weight:700}
+  body { background: #0d1117; color: #c9d1d9; padding: 12px; }
+  .site-card { background: #161b22; border-color: #30363d; }
+  .site-card .ant-card-head { background: #161b22; border-color: #30363d; color: #e94560; }
+  .site-card .ant-card-body { background: #161b22; }
 </style>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/antd@5.20.0/dist/antd.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-<div class="widget">
-  <div class="widget-header">Fila <span id="h-cnt"></span></div>
-  <div class="widget-body">
-    <div id="table"></div>
-  </div>
-</div>
-<script src="/shared/dashboard.js"></script>
-<script>
-function statusBar(i){
-  const p = i.progress || {};
-  const pct = p.percent || 0;
-  const speed = p.speed || '';
-  if(i.status==='downloading'){
-    return `<div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div><div class="bar-text">${i.status} ${pct}%</div></div>`;
-  }
-  return `<span class="status ${i.status}">${i.status}</span>`;
-}
-async function render(){
-  const data = await Dashboard.fetchJSON('/status');
-  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.total);
-  if(data.paused) document.getElementById('h-cnt').innerHTML += ' <span style="color:var(--yellow)">PAUSED</span>';
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const { Card, Table, Tag, Statistic, Row, Col, Progress } = antd;
 
-  const q = await Dashboard.fetchJSON('/queue');
-  const items = (q.queue||[]).filter(i=>['pending','searching','ready','downloading'].includes(i.status)).slice(0,15);
-  const table = document.getElementById('table');
-  if(!items.length){ table.innerHTML='<p class="muted">vazio</p>'; return; }
-  table.innerHTML = `<table><tr><th>Serial</th><th>Título</th><th>Status</th><th>%</th><th>Velocidade</th><th>Retry</th></tr>`+
-    items.map(i=>{
-      const p = i.progress || {};
-      return `<tr><td>${Dashboard.esc(i.serial)}</td><td>${Dashboard.esc(i.title||i.serial)}</td><td>${statusBar(i)}</td><td class="pct">${i.status==='downloading'?(p.percent||0)+'%':'-'}</td><td class="speed">${Dashboard.esc(p.speed||'-')}</td><td>${i.retry_count||0}</td></tr>`;
-    }).join('')+
-    `</table>`;
+async function fetchJSON(url) {
+  try { const r = await fetch(url); return await r.json(); } catch (e) { return {}; }
 }
-render(); setInterval(render,3000);
+
+const statusColors = {
+  pending: 'default',
+  searching: 'processing',
+  ready: 'warning',
+  downloading: 'success',
+  completed: 'success',
+  failed: 'error'
+};
+
+function App() {
+  const [status, setStatus] = useState({});
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    async function load() {
+      const s = await fetchJSON('/status');
+      setStatus(s);
+      const q = await fetchJSON('/queue');
+      const active = (q.queue || []).filter(i => ['pending', 'searching', 'ready', 'downloading'].includes(i.status)).slice(0, 50);
+      setItems(active);
+    }
+    load();
+    const i = setInterval(load, 3000);
+    return () => clearInterval(i);
+  }, []);
+
+  const columns = [
+    { title: 'Serial', dataIndex: 'serial', key: 'serial', render: s => <Tag color="blue">{s}</Tag> },
+    { title: 'Jogo', dataIndex: 'title', key: 'title', ellipsis: true },
+    { title: 'Status', dataIndex: 'status', key: 'status', render: s => <Tag color={statusColors[s] || 'default'}>{s}</Tag> },
+    { title: 'Progresso', key: 'progress', render: (_, item) => {
+      const p = item.progress || {};
+      return item.status === 'downloading' ? <Progress percent={p.percent || 0} size="small" /> : '-';
+    }},
+    { title: 'Velocidade', key: 'speed', render: (_, item) => item.progress?.speed || '-' },
+    { title: 'Retry', dataIndex: 'retry_count', key: 'retry', render: r => r || 0 },
+  ];
+
+  return (
+    <Card title={`Fila: ${status.total || 0} itens`} className="site-card" bordered>
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col><Statistic title="Pendentes" value={status.pending || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
+        <Col><Statistic title="Buscando" value={status.searching || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
+        <Col><Statistic title="Prontos" value={status.ready || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
+        <Col><Statistic title="Downloads" value={status.downloading || 0} valueStyle={{ color: '#58a6ff' }} /></Col>
+        <Col><Statistic title="OK" value={status.completed || 0} valueStyle={{ color: '#3fb950' }} /></Col>
+        <Col><Statistic title="Falhas" value={status.failed || 0} valueStyle={{ color: '#e94560' }} /></Col>
+      </Row>
+      <Table
+        dataSource={items}
+        columns={columns}
+        rowKey="serial"
+        size="small"
+        pagination={false}
+        scroll={{ y: 280 }}
+        locale={{ emptyText: 'fila vazia' }}
+      />
+    </Card>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
