@@ -277,6 +277,19 @@ function endDownloadTracking(serial) {
   activeDownloads.delete(serial);
 }
 
+// === Metricas de resiliencia ===
+let requeueCount = 0;
+let requeueRecent = []; // timestamps dos requeues recentes
+let lastWatchdogStats = null;
+
+function trackRequeue() {
+  requeueCount++;
+  const now = Date.now();
+  requeueRecent.push(now);
+  // Mantem apenas ultimos 60s
+  requeueRecent = requeueRecent.filter(t => now - t < 60000);
+}
+
 async function performanceWatchdog() {
   while (true) {
     await new Promise(r => setTimeout(r, ARIA2.SPEED_CHECK_INTERVAL_MS));
@@ -290,16 +303,43 @@ async function performanceWatchdog() {
       bySource[d.source] = (bySource[d.source] || 0) + 1;
     }
     const active = activeDownloads.size;
-    log.info(`[WATCHDOG] downloads=${active} total=${totalMbps.toFixed(2)}MB/s alvo=${ARIA2.TOTAL_SPEED_MBPS}MB/s lentos=${slowCount} bySource=${JSON.stringify(bySource)}`);
+    const fontesUnicas = Object.keys(bySource).length;
+    
+    log.info(`[WATCHDOG] downloads=${active} total=${totalMbps.toFixed(2)}MB/s alvo=${ARIA2.TOTAL_SPEED_MBPS}MB/s lentos=${slowCount} fontes=${fontesUnicas} bySource=${JSON.stringify(bySource)}`);
+    
+    // Alerta: velocidade abaixo do alvo
     if (active > 0 && totalMbps < ARIA2.TOTAL_SPEED_MBPS) {
       log.warn(`[WATCHDOG] velocidade total abaixo do alvo: ${totalMbps.toFixed(2)} < ${ARIA2.TOTAL_SPEED_MBPS} MB/s`);
       if (active < WORKERS.DOWNLOAD) {
         log.warn(`[WATCHDOG] poucos downloads ativos (${active}/${WORKERS.DOWNLOAD}). Verificar se search service esta alimentando a fila.`);
       }
     }
+    
+    // Alerta: poucas fontes unicas (meta: 10+)
+    if (active > 0 && fontesUnicas < 5) {
+      log.warn(`[WATCHDOG] CRITICO: so ${fontesUnicas} fontes ativas (meta 10+). Workers RR podem estar sem itens.`);
+    }
+    
+    // Alerta: muitos downloads lentos
     if (slowCount > 0 && slowCount >= active / 2) {
       log.warn(`[WATCHDOG] ${slowCount}/${active} downloads abaixo de ${ARIA2.MIN_SPEED_MBPS}MB/s. Considerar aumentar conexoes ou trocar fontes.`);
     }
+    
+    // === DETECCAO DE SPIN LOCK ===
+    // Se mais de 30 requeues em 60s = spin lock
+    const requeueRate = requeueRecent.length;
+    if (requeueRate > 30) {
+      log.error(`[WATCHDOG] CRITICO: SPIN LOCK detectado! ${requeueRate} requeues em 60s. Pausando workers por 30s.`);
+      // Forca cooldown de todos itens ready
+      try {
+        await queueRequest('post', '/queue/cooldown-all', { duration: 30000 });
+      } catch (e) {}
+      requeueRecent = []; // reseta
+    } else if (requeueRate > 10) {
+      log.warn(`[WATCHDOG] ALERTA: ${requeueRate} requeues em 60s. Possivel spin lock iminente.`);
+    }
+    
+    lastWatchdogStats = { active, totalMbps, slowCount, fontesUnicas, bySource, requeueRate };
   }
 }
 
@@ -516,6 +556,7 @@ async function processOneWithPreferredSource(preferredSite) {
   });
   if (!hasAvailableSlot) {
     // Devolve para a fila com cooldown - todos slots cheios
+    trackRequeue();
     await queueRequest('post', '/queue/requeue', { serial: item.serial });
     log.info(`Item ${item.serial} devolvido (cooldown 15s) - todos slots cheios`);
     // Espera 5s antes de pegar proximo item (evita spin)

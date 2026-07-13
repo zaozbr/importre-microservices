@@ -239,6 +239,24 @@ app.post('/queue/requeue', (req, res) => {
   res.json({ ok: true });
 });
 
+// Cooldown-all: poe todos itens ready em cooldown (anti spin lock)
+app.post('/queue/cooldown-all', (req, res) => {
+  const { duration } = req.body;
+  const q = getQueue();
+  const until = Date.now() + (duration || 30000);
+  let count = 0;
+  for (const item of q.queue) {
+    if (item.status === 'ready') {
+      item.status = 'cooldown';
+      item.cooldown_until = until;
+      count++;
+    }
+  }
+  markDirty();
+  log.warn(`Cooldown-all: ${count} itens em cooldown por ${duration || 30000}ms`);
+  res.json({ ok: true, count });
+});
+
 app.post('/queue/ready', (req, res) => {
   const { serial, sources } = req.body;
   const q = getQueue();
