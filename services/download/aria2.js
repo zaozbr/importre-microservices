@@ -7,12 +7,15 @@ const ARIA2C = path.join(__dirname, '..', '..', 'aria2c.exe');
 function aria2Download(url, outputPath, options = {}) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(ARIA2C)) return reject(new Error('aria2c.exe nao encontrado'));
+    const isArchive = url.includes('archive.org');
+    const connections = isArchive ? 32 : (options.connections || 16);
+    const split = isArchive ? 32 : (options.split || 16);
     const args = [
       url,
       '--dir=' + path.dirname(outputPath),
       '--out=' + path.basename(outputPath),
-      '--max-connection-per-server=' + (options.connections || 16),
-      '--split=' + (options.split || 16),
+      '--max-connection-per-server=' + connections,
+      '--split=' + split,
       '--min-split-size=1M',
       '--max-tries=5',
       '--retry-wait=5',

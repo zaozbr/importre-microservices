@@ -86,18 +86,9 @@ async function vimmSearch(serial, title) {
 
 async function searchAll(serial, title) {
   const results = [];
-  const cfg = sites.archive_org_jp;
-  if (cfg && cfg.enabled !== false) {
-    const jp = archiveJpSearch(serial);
-    if (jp.length) results.push(...jp);
-  }
-  if (results.length) return results; // JP index tem alta confiabilidade
-
   const enabled = Object.entries(sites).filter(([_, v]) => v.enabled !== false).map(([k]) => k);
-  if (enabled.includes('archive_org')) {
-    const a = await archiveOrgSearch(serial, title, sites.archive_org);
-    if (a.length) results.push(...a);
-  }
+
+  // 1. Fontes diretas primeiro (coolrom, vimm, etc)
   if (enabled.includes('coolrom')) {
     const c = coolromSearch(serial, title);
     if (c.length) results.push(...c);
@@ -105,6 +96,20 @@ async function searchAll(serial, title) {
   if (enabled.includes('vimm')) {
     const v = await vimmSearch(serial, title);
     if (v.length) results.push(...v);
+  }
+  if (results.length) return results;
+
+  // 2. Fallback archive.org JP index
+  if (enabled.includes('archive_org_jp')) {
+    const jp = archiveJpSearch(serial);
+    if (jp.length) results.push(...jp);
+  }
+  if (results.length) return results;
+
+  // 3. Fallback archive.org metadata search
+  if (enabled.includes('archive_org')) {
+    const a = await archiveOrgSearch(serial, title, sites.archive_org);
+    if (a.length) results.push(...a);
   }
   return results;
 }
