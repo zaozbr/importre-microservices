@@ -16,7 +16,7 @@ const IMPORTRE_PORT = 8765;
 const CHD_PORT = 8766;
 
 const procs = {};
-const logs = { importre: [], chd: [] };
+const logs = { importre: [], chd: [], system: [] };
 
 function log(name, msg) {
   const line = `[${new Date().toISOString()}] [${name}] ${msg}`;

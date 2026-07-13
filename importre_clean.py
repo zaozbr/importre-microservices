@@ -1,0 +1,3881 @@
+#!/usr/bin/env python3
+# pylint: disable=broad-except,bare-except,logging-fstring-interpolation,unused-argument,unused-variable,protected-access,subprocess-run-check,unspecified-encoding,f-string-without-interpolation,missing-function-docstring,too-many-statements,too-many-locals,too-many-branches,too-many-arguments,too-many-instance-attributes,too-few-public-methods,too-many-public-methods,import-outside-toplevel,too-many-return-statements,invalid-name,missing-class-docstring,too-many-nested-blocks,consider-using-with,consider-using-f-string,line-too-long,missing-module-docstring,no-else-return,consider-using-dict-comprehension,duplicate-code,too-many-lines,too-many-positional-arguments,superfluous-parens,unnecessary-lambda-assignment,consider-using-generator
+"""
+importre.py — Sistema automatizado de busca e download de ROMs PSX/PS1
+
+Arquitetura:
+  - Servidor HTTP sempre rodando (dashboard + API + controle)
+  - Workers como subprocessos independentes (cada um com seu Playwright)
+  - Estado compartilhado via queue.json (lock atomico cross-process)
+  - Dashboard com AJAX live (poll da API a cada 3s, sem reload)
+  - Inteligencia adaptativa (aprende quais sites funcionam melhor)
+
+Uso:
+    python importre.py                    # roda tudo (4 workers)
+    python importre.py --status           # so gera dashboard e serve
+    python importre.py --workers 4 --rounds 4 --limit 4  # teste
+    python importre.py --no-headless      # browser visivel
+"""
+
+import os
+import re
+import sys
+import json
+import time
+import shutil
+import zipfile
+import logging
+import argparse
+import subprocess
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from pathlib import Path
+from urllib.parse import urljoin, urlparse, quote_plus, quote
+from http.server import HTTPServer, BaseHTTPRequestHandler, ThreadingHTTPServer
+import urllib.parse
+
+import requests
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+
+# ============================================================
+# CONFIG
+# ============================================================
+
+PSX_DIR = Path(r"D:\roms\library\roms\psx")
+ROMS_DIR = Path(r"D:\roms\library\roms")
+MD_PATH = ROMS_DIR / "PSX_Colecao_Faltantes.md"
+STATE_DIR = ROMS_DIR / "_importre_state"
+BLACKLIST_PATH = STATE_DIR / "blacklist.json"
+SITES_PATH = STATE_DIR / "sites.json"
+QUEUE_PATH = STATE_DIR / "queue.json"
+DASHBOARD_PATH = STATE_DIR / "dashboard.html"
+DOWNLOADS_TMP = STATE_DIR / "downloads"
+DOWNLOAD_DIR = DOWNLOADS_TMP
+LOG_PATH = STATE_DIR / "importre.log"
+CONTROL_PATH = STATE_DIR / "control.json"
+LOCK_PATH = STATE_DIR / "queue.lock"
+LEARN_PATH = STATE_DIR / "learning.json"
+COVERS_DIR = Path(os.path.expanduser("~/Documents/DuckStation/covers"))
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 8765
+
+SEVEN_ZIP = r"C:\Program Files\7-Zip\7z.exe"
+DEFAULT_WORKERS = 8
+TASK_TIMEOUT = 600  # 10 min — task travada eh morta
+SCRIPT_PATH = Path(__file__).resolve()
+
+ROM_EXTS = {".bin", ".cue", ".img", ".ccd", ".sub", ".ecm", ".chd", ".mdf", ".mds", ".iso", ".pbp"}
+ARCHIVE_EXTS = {".zip", ".rar", ".7z", ".gz", ".bz2", ".tar"}
+
+INITIAL_SITES = {
+    "cdromance": {
+        "url": "https://cdromance.org",
+        "search_url": "https://cdromance.org/?s={query}",
+        "type": "direct_search",
+        "enabled": True,
+        "fail_count": 0,
+        "max_fails": 50,
+    },
+    "vimm": {
+        "url": "https://vimm.net",
+        "search_url": "https://vimm.net/vault/?p=detail&search={query}",
+        "type": "direct_search",
+        "enabled": True,
+        "fail_count": 0,
+        "max_fails": 50,
+    },
+    "archive_org": {
+        "url": "https://archive.org",
+        "search_url": "https://archive.org/advancedsearch.php?q={query}+AND+mediatype%3Asoftware&fl[]=identifier&fl[]=title&fl[]=downloads&rows=20&page=1&output=json",
+        "type": "api_search",
+        "enabled": True,
+        "fail_count": 0,
+        "max_fails": 50,
+    },
+}
+
+STATE_DIR.mkdir(parents=True, exist_ok=True)
+DOWNLOADS_TMP.mkdir(parents=True, exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_PATH, encoding="utf-8"),
+        logging.StreamHandler(sys.stdout),
+    ],
+)
+log = logging.getLogger("importre")
+
+# ============================================================
+# FILE LOCK CROSS-PROCESS (atomic create)
+# ============================================================
+
+# Lock global para threads (muito mais rapido que file lock)
+_THREAD_LOCK = threading.Lock()
+
+# === Lock de sites: cada site so baixa 1 item por vez ===
+_BUSY_SITES = {}  # site_key -> serial que esta baixando
+_BUSY_SITES_LOCK = threading.Lock()
+
+# === Progresso de downloads (compartilhado com servidor/dashboard) ===
+_DL_PROGRESS = {}
+_DL_PROGRESS_LOCK = threading.Lock()
+DL_PROGRESS_PATH = STATE_DIR / "dl_progress.json"
+
+# === CHD conversion ===
+CHDMAN = str(PSX_DIR / "chdman.exe")
+INVALID_CHARS = '<>:"/\\|?*'
+
+# === Pre-search buffer (workers de busca alimentam workers de download) ===
+PRESEARCH_BUFFER = {}  # serial -> (result_type, url, site, detail)
+PRESEARCH_LOCK = threading.Lock()
+PRESEARCH_MAX = 20  # maximo de URLs pre-buscadas no buffer
+
+# === Search misses (seriais ja buscados e nao encontrados) ===
+SEARCH_MISSES = set()
+SEARCH_MISSES_LOCK = threading.Lock()
+MISSES_PATH = STATE_DIR / "search_misses.json"
+BUFFER_PATH = STATE_DIR / "search_buffer.json"
+
+def acquire_site(site_key, serial):
+    """Tenta reservar um site para download. Retorna True se conseguiu."""
+    with _BUSY_SITES_LOCK:
+        if site_key in _BUSY_SITES:
+            return False  # site ocupado
+        _BUSY_SITES[site_key] = serial
+        return True
+
+
+def release_site(site_key):
+    """Libera um site apos download terminar."""
+    with _BUSY_SITES_LOCK:
+        _BUSY_SITES.pop(site_key, None)
+
+
+def get_busy_sites():
+    """Retorna dict de sites ocupados (copia)."""
+    with _BUSY_SITES_LOCK:
+        return dict(_BUSY_SITES)
+
+
+def file_lock(timeout=15):
+    """Lock hibrido: threading.Lock para threads + file lock para subprocessos."""
+    # Primeiro adquirir thread lock (rapido, intra-processo)
+    _THREAD_LOCK.acquire(timeout=timeout)
+    # Depois file lock (para subprocesso do servidor HTTP nao ler arquivo parcial)
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            fd = os.open(str(LOCK_PATH), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, str(os.getpid()).encode())
+            os.close(fd)
+            return True
+        except FileExistsError:
+            try:
+                with open(LOCK_PATH, "r") as f:
+                    pid = int(f.read().strip())
+                try:
+                    os.kill(pid, 0)
+                except (ProcessLookupError, PermissionError, OSError):
+                    os.remove(LOCK_PATH)
+                    continue
+            except:
+                pass
+            time.sleep(0.05)
+    try:
+        os.remove(LOCK_PATH)
+    except:
+        pass
+    try:
+        fd = os.open(str(LOCK_PATH), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+        return True
+    except:
+        return False
+
+
+def file_unlock(acquired):
+    if acquired:
+        try:
+            os.remove(LOCK_PATH)
+        except:
+            pass
+        try:
+            _THREAD_LOCK.release()
+        except:
+            pass
+
+
+def load_json(path, default):
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return default
+
+
+def save_json(path, data):
+    tmp = str(path) + ".tmp"
+    for attempt in range(5):
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp, str(path))  # atomico
+            return
+        except (OSError, PermissionError) as e:
+            if attempt < 4:
+                time.sleep(0.1 * (attempt + 1))  # backoff
+            else:
+                log.error(f"save_json falhou apos 5 tentativas: {e}")
+                try:
+                    os.unlink(tmp)
+                except Exception:
+                    pass
+
+
+def load_sites():
+    sites = load_json(SITES_PATH, None)
+    if sites is None:
+        sites = INITIAL_SITES.copy()
+        save_json(SITES_PATH, sites)
+    return sites
+
+
+def save_sites(sites):
+    save_json(SITES_PATH, sites)
+
+
+def load_blacklist():
+    return load_json(BLACKLIST_PATH, {"sites": [], "urls": [], "archive_ids": [], "reasons": {}})
+
+
+def save_blacklist(bl):
+    # Garantir que archive_ids existe
+    if "archive_ids" not in bl:
+        bl["archive_ids"] = []
+    save_json(BLACKLIST_PATH, bl)
+
+
+def add_to_blacklist(bl, site_key=None, url=None, reason=""):
+    if site_key and site_key not in bl.get("sites", []):
+        bl.setdefault("sites", []).append(site_key)
+        bl.setdefault("reasons", {})[site_key] = reason
+    if url:
+        # Se parece um identifier do archive.org (sem / nem :), adicionar em archive_ids
+        if "/" not in url and ":" not in url and "." not in url:
+            if url not in bl.get("archive_ids", []):
+                bl.setdefault("archive_ids", []).append(url)
+        elif url not in bl.get("urls", []):
+            bl.setdefault("urls", []).append(url)
+    save_blacklist(bl)
+    log.warning(f"BLACKLIST: {site_key or url} — {reason}")
+
+
+def load_control():
+    return load_json(CONTROL_PATH, {"action": "none", "paused": False})
+
+
+def save_control(action="none", paused=None):
+    ctrl = load_control()
+    if action:
+        ctrl["action"] = action
+    if paused is not None:
+        ctrl["paused"] = paused
+    ctrl["timestamp"] = datetime.now().isoformat()
+    save_json(CONTROL_PATH, ctrl)
+
+
+def check_control():
+    ctrl = load_control()
+    return ctrl.get("action", "none"), ctrl.get("paused", False)
+
+
+def clear_control():
+    save_control(action="none", paused=False)
+
+
+def load_learning():
+    return load_json(LEARN_PATH, {
+        "site_stats": {},
+        "query_strategies": {},
+        "best_sites": [],
+    })
+
+
+def save_learning(learn):
+    save_json(LEARN_PATH, learn)
+
+
+def record_site_result(site, success, strategy="default", speed=0):
+    try:
+        learn = load_learning()
+        stats = learn["site_stats"].setdefault(site, {
+            "attempts": 0, "successes": 0, "failures": 0, "last_success": None,
+            "speeds": [], "avg_speed": 0,
+        })
+        stats["attempts"] += 1
+        if success:
+            stats["successes"] += 1
+            stats["last_success"] = datetime.now().isoformat()
+            if speed > 0:
+                speeds = stats.get("speeds", [])
+                speeds.append(speed)
+                stats["speeds"] = speeds[-20:]  # manter ultimas 20
+                stats["avg_speed"] = sum(speeds) / len(speeds)
+        else:
+            stats["failures"] += 1
+        strat = learn["query_strategies"].setdefault(site, {})
+        s = strat.setdefault(strategy, {"attempts": 0, "successes": 0})
+        s["attempts"] += 1
+        if success:
+            s["successes"] += 1
+        # Ordenar por velocidade media (desc) — sites mais rapidos primeiro
+        # Sites sem velocidade usam taxa de sucesso como fallback
+        site_scores = []
+        for s_name, s_data in learn["site_stats"].items():
+            if s_data["attempts"] > 0:
+                rate = s_data["successes"] / s_data["attempts"]
+                avg_speed = s_data.get("avg_speed", 0)
+                # Score: velocidade em KB/s * taxa de sucesso
+                # Sem velocidade: usa taxa * 100 (prioridade baixa)
+                score = avg_speed * rate if avg_speed > 0 else rate * 100
+                site_scores.append((s_name, score, avg_speed, rate, s_data["attempts"]))
+        site_scores.sort(key=lambda x: (-x[1], -x[4]))
+        learn["best_sites"] = [{"site": s, "score": sc, "avg_speed": sp, "rate": r, "attempts": a}
+                               for s, sc, sp, r, a in site_scores]
+        save_learning(learn)
+    except Exception as e:
+        log.error(f"Erro ao salvar aprendizado: {e}")
+
+
+def get_optimized_site_order(sites, blacklist):
+    learn = load_learning()
+    best = learn.get("best_sites", [])
+    ordered = []
+    # archive_org sempre primeiro (tem indice JP + busca por serial)
+    if "archive_org" in sites and sites["archive_org"].get("enabled") and "archive_org" not in blacklist.get("sites", []):
+        ordered.append("archive_org")
+    for entry in best:
+        s = entry["site"]
+        if s in sites and s not in blacklist.get("sites", []) and sites[s].get("enabled") and s not in ordered:
+            ordered.append(s)
+    for s in sites:
+        if s not in ordered and s not in blacklist.get("sites", []) and sites[s].get("enabled"):
+            ordered.append(s)
+    return ordered
+
+
+def parse_missing_list():
+    if not MD_PATH.exists():
+        log.error(f"Lista nao encontrada: {MD_PATH}")
+        return []
+    with open(MD_PATH, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    items = []
+    current_section = ""
+    for line in lines:
+        l = line.strip()
+        if l.startswith("##"):
+            current_section = l
+            continue
+        if not l.startswith("|") or l.startswith("|---") or l.startswith("| #"):
+            continue
+        parts = [p.strip() for p in l.split("|")]
+        if len(parts) < 4:
+            continue
+        serial = parts[2].strip()
+        name = parts[3].strip()
+        if re.match(r"^[A-Z]{3,5}-\d{4,5}$", serial):
+            region = "US" if serial.startswith(("SLUS", "SCUS")) else \
+                     "EU" if serial.startswith(("SLES", "SCES", "SCED")) else \
+                     "JP" if serial.startswith(("SLPS", "SLPM", "SCPS")) else \
+                     "KR" if serial.startswith("SLKA") else "??"
+            items.append({
+                "serial": serial, "name": name, "region": region,
+                "section": current_section, "type": "commercial",
+            })
+        elif "Homebrew" in current_section and len(parts) >= 6:
+            cat = parts[2].strip()
+            game_name = parts[3].strip()
+            dev = parts[4].strip()
+            year = parts[5].strip()
+            items.append({
+                "serial": f"HOMEBREW-{len(items)+1:04d}",
+                "name": game_name, "region": "HB",
+                "section": current_section, "type": "homebrew",
+                "dev": dev, "year": year,
+            })
+    return items
+
+
+def check_in_collection(serial, name=None):
+    """Verifica se um serial (ou nome normalizado) ja existe na colecao.
+    Faz dedup por serial E por nome (multi-region)."""
+    try:
+        serial_norm = serial.replace("-", "").lower()
+        name_norm = normalize_name(name) if name else ""
+        for f in os.listdir(PSX_DIR):
+            f_lower = f.lower()
+            if not any(f_lower.endswith(ext) for ext in ROM_EXTS):
+                continue
+            # Match por serial
+            if serial_norm and serial_norm in f.replace("-", "").lower():
+                return True
+            # Match por nome normalizado (multi-region dedup)
+            if name_norm and len(name_norm) > 5:
+                # Extrair nome do arquivo (sem serial, sem extensao)
+                base = re.sub(r"[\-_]?(SLUS|SCUS|SLES|SCES|SLPS|SLPM|SCPS)[\-_]?\d{4,5}", "", Path(f).stem)
+                base = re.sub(r"[\-_]?(Disc|Disk)\s*\d+", "", base, flags=re.IGNORECASE)
+                base_norm = normalize_name(base)
+                if base_norm == name_norm:
+                    return True
+    except:
+        pass
+    return False
+
+
+def cleanup_stale_items(max_age_seconds=600):
+    """Devolve itens presos em in_progress de volta para a fila.
+    Itens que estao em in_progress ha mais de max_age_seconds sao considerados presos
+    (worker morreu ou travou). Tambem remove itens sem _worker ou com _worker morto.
+    """
+    fl = file_lock()
+    try:
+        data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}, "failed": {}, "retry_count": {}})
+        in_prog = data.get("in_progress", {})
+        if not in_prog:
+            return 0
+        now = datetime.now()
+        returned = 0
+        for serial in list(in_prog.keys()):
+            item = in_prog[serial]
+            # Verificar idade do item
+            item_time = item.get("_started_at")
+            if item_time:
+                try:
+                    dt = datetime.fromisoformat(item_time)
+                    age = (now - dt).total_seconds()
+                    if age > max_age_seconds:
+                        log.warning(f"Item preso {serial} ha {int(age)}s — devolvendo para fila")
+                        item.pop("_phase", None)
+                        item.pop("_current_site", None)
+                        item.pop("_detail", None)
+                        item.pop("_worker", None)
+                        item.pop("_started_at", None)
+                        data["queue"].append(item)
+                        del in_prog[serial]
+                        returned += 1
+                except Exception:
+                    pass
+            else:
+                # Sem timestamp — devolver (e provavelmente de uma versao antiga)
+                log.warning(f"Item preso {serial} sem timestamp — devolvendo para fila")
+                item.pop("_phase", None)
+                item.pop("_current_site", None)
+                item.pop("_detail", None)
+                item.pop("_worker", None)
+                data["queue"].append(item)
+                del in_prog[serial]
+                returned += 1
+        if returned > 0:
+            save_json(QUEUE_PATH, data)
+            log.info(f"Cleanup: {returned} itens devolvidos para fila")
+        return returned
+    except Exception as e:
+        log.error(f"cleanup_stale_items erro: {e}")
+        return 0
+    finally:
+        file_unlock(fl)
+
+
+def init_queue():
+    """Cria queue.json se nao existir. Retorna True se criou."""
+    if QUEUE_PATH.exists():
+        return False
+    fl = file_lock()
+    try:
+        if QUEUE_PATH.exists():
+            return False
+        items = parse_missing_list()
+        queue = []
+        skipped = 0
+        for item in items:
+            if item["type"] == "commercial":
+                if check_in_collection(item["serial"], item.get("name", "")):
+                    skipped += 1
+                    continue
+            queue.append(item)
+        data = {
+            "queue": queue,
+            "in_progress": {},
+            "completed": {},
+            "failed": {},
+            "retry_count": {},
+            "total": len(queue) + skipped,
+            "skipped": skipped,
+        }
+        save_json(QUEUE_PATH, data)
+        log.info(f"Fila criada: {len(queue)} itens, {skipped} ja na colecao")
+        return True
+    finally:
+        file_unlock(fl)
+
+
+def queue_next_item():
+    """Pega proximo item da fila (atomico). Retorna item ou None."""
+    fl = file_lock()
+    try:
+        data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}, "failed": {}, "retry_count": {}})
+        qlen = len(data.get("queue", []))
+        if qlen == 0:
+            log.debug(f"queue_next_item: fila vazia (queue={qlen})")
+            return None
+        # Pular itens ja completados ou em progresso (limpeza de fila)
+        completed = data.get("completed", {})
+        in_progress = data.get("in_progress", {})
+        skipped = 0
+        while qlen > 0:
+            item = data["queue"].pop(0)
+            qlen -= 1
+            serial = item["serial"]
+            if serial in completed:
+                skipped += 1
+                continue
+            if serial in in_progress:
+                skipped += 1
+                continue
+            break
+        else:
+            if skipped > 0:
+                log.debug(f"queue_next_item: {skipped} itens ja completados/em progresso pulados")
+            return None
+        if skipped > 0:
+            log.debug(f"queue_next_item: {skipped} itens ja completados/em progresso pulados")
+        item["_phase"] = "searching"
+        item["_current_site"] = ""
+        item["_detail"] = "iniciando..."
+        item["_worker"] = os.getpid()
+        item["_started_at"] = datetime.now().isoformat()
+        data["in_progress"][item["serial"]] = item
+        save_json(QUEUE_PATH, data)
+        log.debug(f"queue_next_item: pego {item['serial']} (restam {qlen})")
+        return item
+    except Exception as e:
+        log.error(f"queue_next_item erro: {e}")
+        return None
+    finally:
+        file_unlock(fl)
+
+
+def download_cover(serial, name):
+    """Baixa cover do jogo para a pasta covers do DuckStation.
+    Fontes (em ordem de preferencia):
+    1. xlenore/psx-covers (GitHub) — covers 2D por serial, ~92-97% cobertura
+    2. xlenore/psx-covers 3D — covers 3D por serial (.png)
+    3. psxdatacenter.com — estrutura por prefixo/primeira-letra
+    """
+    if not COVERS_DIR.exists():
+        COVERS_DIR.mkdir(parents=True, exist_ok=True)
+    cover_path = COVERS_DIR / f"{serial}.jpg"
+    if cover_path.exists() and cover_path.stat().st_size > 5000:
+        return  # ja existe
+    serial_upper = serial.upper()
+    # Fonte 1: xlenore/psx-covers (default 2D .jpg)
+    cover_urls = [
+        f"https://raw.githubusercontent.com/xlenore/psx-covers/main/covers/default/{serial_upper}.jpg",
+    ]
+    for url in cover_urls:
+        try:
+            resp = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"},
+                              allow_redirects=True, stream=True)
+            if resp.status_code == 200 and "image" in resp.headers.get("content-type", ""):
+                with open(cover_path, "wb") as f:
+                    for chunk in resp.iter_content(1024 * 64):
+                        f.write(chunk)
+                if cover_path.stat().st_size > 5000:
+                    log.info(f"Cover baixado: {serial} -> {cover_path.name}")
+                    return
+                cover_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+    log.debug(f"Cover nao encontrado: {serial}")
+
+
+def queue_mark_success(serial, filepath, site):
+    queue_clear_progress(serial)
+    fl = file_lock()
+    try:
+        data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}, "failed": {}, "retry_count": {}})
+        item = data["in_progress"].pop(serial, None)
+        data["completed"][serial] = {
+            "status": "success",
+            "file": str(filepath),
+            "site": site,
+            "timestamp": datetime.now().isoformat(),
+            "name": item["name"] if item else "",
+        }
+        save_json(QUEUE_PATH, data)
+        log.info(f"SUCESSO: {serial} via {site}")
+    finally:
+        file_unlock(fl)
+
+
+def queue_mark_failed(serial, reason):
+    queue_clear_progress(serial)
+    fl = file_lock()
+    try:
+        data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}, "failed": {}, "retry_count": {}})
+        # NAO marcar como falho se ja foi completado com sucesso
+        if serial in data.get("completed", {}):
+            log.debug(f"queue_mark_failed: {serial} ja completado — ignorando")
+            return
+        item = data["in_progress"].pop(serial, None)
+        rc = data.get("retry_count", {})
+        rc[serial] = rc.get(serial, 0) + 1
+        data["retry_count"] = rc
+        if rc[serial] < 3:
+            if item:
+                data["queue"].append(item)
+            log.warning(f"FALHOU ({rc[serial]}/3): {serial} — {reason}")
+        else:
+            data["failed"][serial] = {
+                "reason": reason,
+                "attempts": rc[serial],
+                "last_attempt": datetime.now().isoformat(),
+                "name": item["name"] if item else "",
+            }
+            log.error(f"FALHOU DEFINITIVO: {serial} — {reason}")
+        save_json(QUEUE_PATH, data)
+    finally:
+        file_unlock(fl)
+
+
+def queue_update_phase(serial, phase, site, detail):
+    """Atualiza fase de item em processamento (nao precisa de lock pesado)."""
+    fl = file_lock()
+    try:
+        data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}, "failed": {}, "retry_count": {}})
+        if serial in data["in_progress"]:
+            data["in_progress"][serial]["_phase"] = phase
+            data["in_progress"][serial]["_current_site"] = site
+            data["in_progress"][serial]["_detail"] = detail
+            save_json(QUEUE_PATH, data)
+    finally:
+        file_unlock(fl)
+
+
+def queue_update_progress(serial, downloaded, total, speed):
+    """Atualiza progresso de download em memoria + arquivo (compartilhado com servidor)."""
+    with _DL_PROGRESS_LOCK:
+        _DL_PROGRESS[serial] = {
+            "downloaded": downloaded,
+            "total": total,
+            "speed": speed,
+            "ts": time.time(),
+        }
+    # Escrever no arquivo (throttled — so a cada ~1s)
+    now = time.time()
+    last_write = queue_update_progress._last_write or 0
+    if now - last_write > 0.8:
+        queue_update_progress._last_write = now
+        try:
+            with _DL_PROGRESS_LOCK:
+                data = dict(_DL_PROGRESS)
+            save_json(DL_PROGRESS_PATH, data)
+        except Exception:
+            pass
+
+
+def queue_clear_progress(serial):
+    """Limpa progresso de download do cache."""
+    with _DL_PROGRESS_LOCK:
+        _DL_PROGRESS.pop(serial, None)
+    try:
+        data = load_json(DL_PROGRESS_PATH, {})
+        data.pop(serial, None)
+        save_json(DL_PROGRESS_PATH, data)
+    except Exception:
+        pass
+
+
+def get_dl_progress():
+    """Retorna dict com progresso de todos os downloads ativos."""
+    with _DL_PROGRESS_LOCK:
+        return dict(_DL_PROGRESS)
+
+
+def queue_return_item(item):
+    """Devolve item a fila (quando worker atinge limite)."""
+    fl = file_lock()
+    try:
+        data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}, "failed": {}, "retry_count": {}})
+        data["queue"].insert(0, item)
+        data["in_progress"].pop(item["serial"], None)
+        save_json(QUEUE_PATH, data)
+    finally:
+        file_unlock(fl)
+
+
+def queue_has_pending():
+    data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}})
+    return len(data.get("queue", [])) > 0 or len(data.get("in_progress", {})) > 0
+
+
+def normalize_name(name):
+    """Normaliza nome do jogo para comparacao (remove regiao, versao, etc)."""
+    n = re.sub(r"\(.*?\)", "", name).strip()
+    n = re.sub(r"\[.*?\]", "", n).strip()
+    n = n.lower()
+    n = re.sub(r"[^a-z0-9]", "", n)
+    return n
+
+
+def find_duplicates(directory):
+    """Encontra ROMs duplicadas no diretorio. Retorna lista de (manter, remover)."""
+    directory = Path(directory)
+    roms = []
+    for f in directory.iterdir():
+        if not f.is_file():
+            continue
+        ext = f.suffix.lower()
+        if ext not in ROM_EXTS and ext not in ARCHIVE_EXTS and ext != ".cue":
+            continue
+        # Extrair serial do nome
+        m = re.search(r"(SLUS|SCUS|SLES|SCES|SLPS|SLPM|SCPS)-\d{4,5}", f.name)
+        serial = m.group(0) if m else ""
+        # Normalizar nome base (sem serial, sem extensao, sem track)
+        base = re.sub(r"\(Track\s+\d+\)", "", f.stem)
+        base = re.sub(r"[\-_]?(SLUS|SCUS|SLES|SCES|SLPS|SLPM|SCPS)[\-_]?\d{4,5}", "", base)
+        base = re.sub(r"[\-_]?(Disc|Disk)\s*\d+", "", base, flags=re.IGNORECASE)
+        base_norm = normalize_name(base)
+        # Prioridade: CHD > BIN > ISO > PBP > archives
+        priority = {".chd": 1, ".bin": 2, ".iso": 3, ".pbp": 4, ".img": 5,
+                   ".zip": 6, ".7z": 7, ".rar": 8, ".cue": 9, ".ecm": 10}
+        prio = priority.get(ext, 99)
+        roms.append({
+            "path": f, "serial": serial, "base": base_norm,
+            "ext": ext, "size": f.stat().st_size, "priority": prio,
+        })
+    # Agrupar por serial (se tiver) ou por nome base
+    groups = {}
+    for rom in roms:
+        key = rom["serial"] if rom["serial"] else rom["base"]
+        if len(key) < 3:
+            continue
+        groups.setdefault(key, []).append(rom)
+    # Para cada grupo, ordenar por prioridade e tamanho
+    duplicates = []
+    for key, group in groups.items():
+        if len(group) < 2:
+            continue
+        # Ordenar: CHD primeiro, depois maior tamanho
+        group.sort(key=lambda x: (x["priority"], -x["size"]))
+        keeper = group[0]
+        for dup in group[1:]:
+            # Nao remover .cue se o .bin correspondente existe
+            if dup["ext"] == ".cue" and any(r["ext"] == ".bin" and r["serial"] == dup["serial"] for r in group):
+                continue
+            duplicates.append((keeper, dup))
+    return duplicates
+
+
+def cleanup_duplicates(directory, dry_run=False):
+    """Remove ROMs duplicadas, mantendo a melhor versao."""
+    dups = find_duplicates(directory)
+    if not dups:
+        log.info("Dedup: nenhuma duplicata encontrada")
+        return 0
+    removed = 0
+    for keeper, dup in dups:
+        if dry_run:
+            log.info(f"Dedup [dry-run]: remover {dup['path'].name} (manter {keeper['path'].name})")
+        else:
+            try:
+                dup["path"].unlink()
+                log.info(f"Dedup: removido {dup['path'].name} (manteve {keeper['path'].name})")
+                removed += 1
+            except Exception as e:
+                log.warning(f"Dedup: erro ao remover {dup['path'].name}: {e}")
+    return removed
+
+
+def queue_get_status():
+    """Retorna status completo para dashboard/API."""
+    data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}, "failed": {}, "retry_count": {}, "total": 0, "skipped": 0})
+    queue = data.get("queue", [])
+    in_prog = data.get("in_progress", {})
+    completed = data.get("completed", {})
+    failed = data.get("failed", {})
+    # Aceitar completed/failed como list ou dict
+    if isinstance(completed, list):
+        completed_count = len(completed)
+        completed_items = {}
+    else:
+        completed_count = len(completed)
+        completed_items = dict(list(sorted(completed.items(), key=lambda x: str(x[1].get("timestamp", "")), reverse=True)[:20])) if isinstance(next(iter(completed.values()), None), dict) else {}
+    failed_count = len(failed) if isinstance(failed, (list, dict)) else 0
+    total = data.get("total", len(queue) + len(in_prog) + completed_count + failed_count)
+    skipped = data.get("skipped", 0)
+    # Contar itens em busca no buffer (modelo ephemeral: searchers nao usam in_progress)
+    buf = buffer_load()
+    buf_searching = sum(1 for v in buf.values() if v.get("type") == "searching")
+    buf_ready = sum(1 for v in buf.values() if v.get("type") != "searching" and v.get("url"))
+    # Construir lista de itens em busca para o dashboard
+    searching_items = {}
+    for serial, v in buf.items():
+        if v.get("type") == "searching":
+            # Tentar obter nome da queue
+            item_name = ""
+            for q in queue:
+                if q.get("serial") == serial:
+                    item_name = q.get("name", "")
+                    break
+            searching_items[serial] = {
+                "name": item_name,
+                "_phase": "searching",
+                "_current_site": v.get("site", ""),
+                "_detail": v.get("detail", ""),
+            }
+    return {
+        "total": total,
+        "skipped": skipped,
+        "pending": len(queue),
+        "in_progress": len(in_prog) + buf_searching,
+        "completed": completed_count,
+        "failed": failed_count,
+        "searching": sum(1 for v in in_prog.values() if v.get("_phase") == "searching") + buf_searching,
+        "downloading": sum(1 for v in in_prog.values() if v.get("_phase") == "downloading"),
+        "verifying": sum(1 for v in in_prog.values() if v.get("_phase") == "verifying"),
+        "buffer_ready": buf_ready,
+        "queue": queue[:20],
+        "in_progress_items": {**searching_items, **in_prog},
+        "completed_items": completed_items,
+        "failed_items": failed,
+        "busy_sites": get_busy_sites(),
+        "dl_progress": get_dl_progress(),
+    }
+
+
+def verify_download(filepath):
+    filepath = Path(filepath)
+    if not filepath.exists():
+        return False, "arquivo nao existe"
+    size = filepath.stat().st_size
+    if size < 1024:
+        return False, f"muito pequeno ({size} bytes)"
+    ext = filepath.suffix.lower()
+    if ext in ROM_EXTS and size > 102400:
+        return True, "ROM valido"
+    if ext in ARCHIVE_EXTS or ext == ".7z":
+        try:
+            if ext == ".zip":
+                with zipfile.ZipFile(filepath, "r") as zf:
+                    names = zf.namelist()
+                    rom_files = [n for n in names if Path(n).suffix.lower() in ROM_EXTS]
+                    if rom_files:
+                        return True, f"ZIP com {len(rom_files)} ROM(s)"
+                    return False, f"ZIP sem ROMs"
+            else:
+                result = subprocess.run([SEVEN_ZIP, "l", str(filepath)], capture_output=True, text=True, timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                output = result.stdout + result.stderr
+                rom_files = [l for l in output.split("\n") if any(e in l.lower() for e in ROM_EXTS)]
+                if rom_files:
+                    return True, f"arquivo com ROM"
+                return False, "sem ROMs"
+        except zipfile.BadZipFile:
+            return False, "ZIP corrompido"
+        except Exception as e:
+            return False, f"erro: {e}"
+    if ext == ".pbp" and size > 102400:
+        return True, "PBP valido"
+    return False, f"extensao nao reconhecida: {ext}"
+
+
+def extract_rom(filepath, dest_dir, serial=None, name=None):
+    """Extrai ROM de arquivo. Se serial/name fornecidos, procura match dentro de archives genericos."""
+    filepath = Path(filepath)
+    ext = filepath.suffix.lower()
+    dest_dir = Path(dest_dir)
+    if ext in ROM_EXTS or ext == ".pbp":
+        dest = dest_dir / filepath.name
+        shutil.move(str(filepath), str(dest))
+        return dest
+    if ext in ARCHIVE_EXTS or ext == ".7z":
+        # Listar conteudo primeiro para procurar match por serial/nome
+        serial_lower = (serial or "").lower().replace("-", "")
+        name_lower = re.sub(r"\(.*?\)", "", (name or "")).strip().lower()
+        name_words = [w for w in re.sub(r"[^a-z0-9\s]", "", name_lower).split() if len(w) > 2]
+        try:
+            # Listar arquivos dentro do archive
+            list_result = subprocess.run([SEVEN_ZIP, "l", str(filepath)], capture_output=True, text=True, timeout=60, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            archive_files = []
+            for line in list_result.stdout.split("\n"):
+                line_lower = line.lower()
+                for rext in ROM_EXTS:
+                    if line_lower.endswith(rext):
+                        # Extrair nome do arquivo da linha do 7z
+                        parts = line.split()
+                        if parts:
+                            fname = " ".join(parts[5:]) if len(parts) > 5 else parts[-1]
+                            archive_files.append((fname, line_lower))
+                        break
+            # Procurar match por serial primeiro
+            best_match = None
+            if serial_lower:
+                for fname, flow in archive_files:
+                    fname_no_dash = flow.replace("-", "").replace("_", "").replace(" ", "")
+                    if serial_lower in fname_no_dash:
+                        best_match = fname
+                        log.info(f"Match por serial {serial}: {fname}")
+                        break
+            # Procurar match por palavras do nome
+            if not best_match and name_words:
+                for fname, flow in archive_files:
+                    matches = sum(1 for w in name_words if w in flow)
+                    if matches >= max(2, len(name_words) // 2):
+                        best_match = fname
+                        log.info(f"Match por nome ({matches}/{len(name_words)} palavras): {fname}")
+                        break
+            # Extrair tudo e procurar
+            result = subprocess.run([SEVEN_ZIP, "x", str(filepath), f"-o{dest_dir}", "-y"], capture_output=True, text=True, timeout=300, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            if result.returncode == 0:
+                # Se encontramos match, retornar esse arquivo especifico
+                if best_match:
+                    for root, dirs, files in os.walk(dest_dir):
+                        for f in files:
+                            if f == best_match or Path(f).name == Path(best_match).name:
+                                return Path(root) / f
+                # Senao, retornar primeira ROM encontrada
+                for f in dest_dir.iterdir():
+                    if f.suffix.lower() in ROM_EXTS:
+                        return f
+                for root, dirs, files in os.walk(dest_dir):
+                    for f in files:
+                        if Path(f).suffix.lower() in ROM_EXTS:
+                            return Path(root) / f
+        except Exception as e:
+            log.error(f"Erro ao extrair: {e}")
+    return None
+
+
+def sanitize_filename(name):
+    """Remove caracteres invalidos de nomes de arquivo."""
+    for c in INVALID_CHARS:
+        name = name.replace(c, "")
+    # Limitar tamanho (Windows: 260 chars para path completo)
+    if len(name) > 180:
+        name = name[:180]
+    return name.strip().rstrip(".")
+
+
+def build_chd_name(serial, name):
+    """Construir nome padrao: Nome-do-jogo-SERIAL.chd"""
+    # Limpar nome: remover (Disc X), (Japan), etc entre parenteses
+    clean_name = re.sub(r"\s*\(Disc \d+\)\s*", " ", name, flags=re.IGNORECASE)
+    clean_name = re.sub(r"\s*\(Japan\)\s*", " ", clean_name, flags=re.IGNORECASE)
+    clean_name = re.sub(r"\s*\(Europe\)\s*", " ", clean_name, flags=re.IGNORECASE)
+    clean_name = re.sub(r"\s*\(USA\)\s*", " ", clean_name, flags=re.IGNORECASE)
+    clean_name = re.sub(r"\s*\(En,Fr,De,Es,It.*?\)\s*", " ", clean_name, flags=re.IGNORECASE)
+    clean_name = re.sub(r"\s*\(Rev \d+\)\s*", " ", clean_name, flags=re.IGNORECASE)
+    clean_name = re.sub(r"\s+", " ", clean_name).strip()
+    if serial:
+        base = f"{clean_name}-{serial}"
+    else:
+        base = clean_name
+    base = sanitize_filename(base)
+    return base + ".chd"
+
+
+def find_cue_for_bin(bin_path):
+    """Encontrar arquivo .cue correspondente a um .bin."""
+    bin_path = Path(bin_path)
+    # Tentar mesmo nome com .cue
+    cue = bin_path.with_suffix(".cue")
+    if cue.exists():
+        return cue
+    # Tentar sem (Track XX) no nome
+    name_no_track = re.sub(r"\s*\(Track \d+\)\s*", "", bin_path.stem)
+    cue = bin_path.parent / (name_no_track + ".cue")
+    if cue.exists():
+        return cue
+    # Tentar CUE generico na mesma pasta
+    cues = list(bin_path.parent.glob("*.cue"))
+    if len(cues) == 1:
+        return cues[0]
+    # Procurar CUE que referencia este BIN
+    for c in cues:
+        try:
+            content = c.read_text(encoding="utf-8", errors="replace")
+            if bin_path.name in content:
+                return c
+        except:
+            pass
+    return None
+
+
+def convert_to_chd(filepath, serial=None, name=None, dest_dir=None):
+    """Converte ROM (bin/cue, iso, img, ccd, mdf, ecm, pbp) para CHD.
+    Retorna Path do CHD criado ou None se falhar.
+    O arquivo original NAO eh deletado — caller deve deletar apos verificar.
+    """
+    filepath = Path(filepath)
+    if not filepath.exists():
+        log.error(f"convert_to_chd: arquivo nao existe: {filepath}")
+        return None
+
+    if dest_dir is None:
+        dest_dir = filepath.parent
+    else:
+        dest_dir = Path(dest_dir)
+
+    ext = filepath.suffix.lower()
+    chd_name = build_chd_name(serial, name) if serial or name else sanitize_filename(filepath.stem) + ".chd"
+    chd_path = dest_dir / chd_name
+
+    # Se CHD ja existe, pular
+    if chd_path.exists():
+        log.info(f"CHD ja existe: {chd_path.name} — pulando")
+        return chd_path
+
+    NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+    def run_chdman(args, timeout=600):
+        """Executa chdman e retorna (ok, output)."""
+        cmd = [CHDMAN] + args
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                                    creationflags=NO_WINDOW)
+            return result.returncode == 0, result.stdout + result.stderr
+        except subprocess.TimeoutExpired:
+            return False, "timeout"
+        except Exception as e:
+            return False, str(e)
+
+    def verify_chd(chd_file):
+        """Verifica integridade do CHD criado."""
+        ok, output = run_chdman(["verify", "--input", str(chd_file)], timeout=120)
+        return ok
+
+    temp_dir = None
+
+    try:
+        if ext == ".chd":
+            # Ja eh CHD — apenas renomear se necessario
+            if filepath != chd_path:
+                shutil.move(str(filepath), str(chd_path))
+            return chd_path
+
+        elif ext == ".cue":
+            # .cue eh a entrada para createcd
+            log.info(f"CHD convert: {filepath.name} -> {chd_path.name}")
+            ok, output = run_chdman(["createcd", "--input", str(filepath), "--output", str(chd_path), "--force"], timeout=900)
+            if not ok:
+                log.error(f"chdman createcd falhou (cue): {output[:200]}")
+                if chd_path.exists():
+                    chd_path.unlink()
+                return None
+            if not verify_chd(chd_path):
+                log.error(f"CHD verify falhou: {chd_path.name}")
+                if chd_path.exists():
+                    chd_path.unlink()
+                return None
+            log.info(f"CHD OK: {chd_path.name} ({chd_path.stat().st_size // 1048576}MB)")
+            return chd_path
+
+        elif ext == ".bin":
+            # .bin precisa do .cue correspondente
+            cue = find_cue_for_bin(filepath)
+            if cue:
+                log.info(f"CHD convert: {cue.name} -> {chd_path.name}")
+                ok, output = run_chdman(["createcd", "--input", str(cue), "--output", str(chd_path), "--force"], timeout=900)
+            else:
+                # Sem .cue — converter .bin diretamente como raw
+                log.info(f"CHD convert (sem cue): {filepath.name} -> {chd_path.name}")
+                ok, output = run_chdman(["createcd", "--input", str(filepath), "--output", str(chd_path), "--force"], timeout=900)
+            if not ok:
+                log.error(f"chdman createcd falhou (bin): {output[:200]}")
+                if chd_path.exists():
+                    chd_path.unlink()
+                return None
+            if not verify_chd(chd_path):
+                log.error(f"CHD verify falhou: {chd_path.name}")
+                if chd_path.exists():
+                    chd_path.unlink()
+                return None
+            log.info(f"CHD OK: {chd_path.name} ({chd_path.stat().st_size // 1048576}MB)")
+            return chd_path
+
+        elif ext == ".iso":
+            # .iso pode ser convertido diretamente
+            log.info(f"CHD convert: {filepath.name} -> {chd_path.name}")
+            ok, output = run_chdman(["createcd", "--input", str(filepath), "--output", str(chd_path), "--force"], timeout=900)
+            if not ok:
+                log.error(f"chdman createcd falhou (iso): {output[:200]}")
+                if chd_path.exists():
+                    chd_path.unlink()
+                return None
+            if not verify_chd(chd_path):
+                log.error(f"CHD verify falhou: {chd_path.name}")
+                return None
+            return chd_path
+
+        elif ext == ".img":
+            # .img pode ter .ccd (CloneCD) ou .cue
+            ccd = filepath.with_suffix(".ccd")
+            cue = filepath.with_suffix(".cue")
+            if ccd.exists():
+                source = ccd
+            elif cue.exists():
+                source = cue
+            else:
+                source = filepath
+            log.info(f"CHD convert: {source.name} -> {chd_path.name}")
+            ok, output = run_chdman(["createcd", "--input", str(source), "--output", str(chd_path), "--force"], timeout=900)
+            if not ok:
+                log.error(f"chdman falhou (img): {output[:200]}")
+                if chd_path.exists():
+                    chd_path.unlink()
+                return None
+            if not verify_chd(chd_path):
+                return None
+            return chd_path
+
+        elif ext == ".ccd":
+            # CloneCD: .ccd eh o indice
+            log.info(f"CHD convert: {filepath.name} -> {chd_path.name}")
+            ok, output = run_chdman(["createcd", "--input", str(filepath), "--output", str(chd_path), "--force"], timeout=900)
+            if not ok:
+                log.error(f"chdman falhou (ccd): {output[:200]}")
+                if chd_path.exists():
+                    chd_path.unlink()
+                return None
+            if not verify_chd(chd_path):
+                return None
+            return chd_path
+
+        elif ext == ".mdf":
+            # Alcohol 120%: .mdf eh a imagem
+            log.info(f"CHD convert: {filepath.name} -> {chd_path.name}")
+            ok, output = run_chdman(["createcd", "--input", str(filepath), "--output", str(chd_path), "--force"], timeout=900)
+            if not ok:
+                log.error(f"chdman falhou (mdf): {output[:200]}")
+                if chd_path.exists():
+                    chd_path.unlink()
+                return None
+            if not verify_chd(chd_path):
+                return None
+            return chd_path
+
+        elif ext == ".ecm":
+            # ECM: precisa descomprimir primeiro
+            temp_dir = dest_dir / "_ecm_temp"
+            temp_dir.mkdir(exist_ok=True)
+            bin_out = temp_dir / (filepath.stem + ".bin")
+            log.info(f"ECM decode: {filepath.name} -> {bin_out.name}")
+            # Usar unecm se disponivel, senao usar 7z
+            unecm = PSX_DIR / "unecm.exe"
+            if unecm.exists():
+                result = subprocess.run([str(unecm), str(filepath), str(bin_out)],
+                                        capture_output=True, text=True, timeout=300, creationflags=NO_WINDOW)
+                ok = result.returncode == 0
+            else:
+                # Tentar com 7z (algumas versoes suportam ECM)
+                result = subprocess.run([SEVEN_ZIP, "x", str(filepath), f"-o{temp_dir}", "-y"],
+                                        capture_output=True, text=True, timeout=300, creationflags=NO_WINDOW)
+                ok = result.returncode == 0
+            if not ok or not bin_out.exists():
+                log.error(f"ECM decode falhou: {filepath.name}")
+                return None
+            # Agora converter o .bin para CHD
+            result = convert_to_chd(bin_out, serial, name, dest_dir)
+            # Limpar temp
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except:
+                pass
+            return result
+
+        elif ext == ".pbp":
+            # PBP: precisa extrair com PBP tools (psxtract ou similar)
+            # Por enquanto, apenas mover o PBP (ja eh formato PSP/PSX comprimido)
+            log.info(f"PBP: movendo {filepath.name} -> {chd_path.name}")
+            # PBP nao converte para CHD diretamente — manter como PBP
+            pbp_dest = dest_dir / sanitize_filename(filepath.name)
+            if filepath != pbp_dest:
+                shutil.move(str(filepath), str(pbp_dest))
+            return pbp_dest
+
+        else:
+            log.warning(f"Formato nao suportado para CHD: {ext}")
+            return None
+
+    except Exception as e:
+        log.error(f"convert_to_chd erro: {e}")
+        if chd_path.exists():
+            try:
+                chd_path.unlink()
+            except:
+                pass
+        return None
+    finally:
+        if temp_dir and temp_dir.exists():
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except:
+                pass
+
+
+def cleanup_rom_originals(chd_path, original_path):
+    """Deleta arquivos originais apos conversao CHD bem-sucedida.
+    Deleta o arquivo original e seus companions (.cue, .ccd, .sub, .mds, etc).
+    """
+    chd_path = Path(chd_path)
+    original_path = Path(original_path)
+    if not chd_path.exists():
+        return
+    # Deletar arquivo original
+    try:
+        original_path.unlink()
+    except:
+        pass
+    # Deletar companions do mesmo nome base
+    stem = original_path.stem
+    parent = original_path.parent
+    for ext in [".cue", ".ccd", ".sub", ".mds", ".ecm"]:
+        companion = parent / (stem + ext)
+        if companion.exists():
+            try:
+                companion.unlink()
+            except:
+                pass
+
+
+class SiteNavigator:
+    def __init__(self, playwright):
+        self.pw = playwright
+        self.browser = playwright.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--disable-site-isolation-trials",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--disable-web-security",
+                "--allow-running-insecure-content",
+                "--disable-extensions",
+                "--disable-popup-blocking",
+                "--disable-notifications",
+                "--disable-default-apps",
+                "--disable-component-extensions-with-background-pages",
+                "--disable-background-networking",
+                "--disable-sync",
+                "--metrics-recording-only",
+                "--disable-component-update",
+                "--password-store=basic",
+                "--use-mock-keychain",
+            ]
+        )
+        self.context = self.browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080},
+            accept_downloads=True,
+            # Preferences de admin: autorizar downloads automaticos sem prompt
+            java_script_enabled=True,
+            ignore_https_errors=True,
+            bypass_csp=True,
+        )
+        self.page = self.context.new_page()
+        # Stealth: disfarcar automacao para passar Cloudflare e similares
+        try:
+            self.context.add_init_script("""
+                // Remover webdriver
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                // Remover chrome runtime
+                window.chrome = { runtime: {} };
+                // Permissoes falsas
+                const originalQuery = window.navigator.permissions.query;
+                window.navigator.permissions.query = (parameters) =>
+                    parameters.name === 'notifications'
+                        ? Promise.resolve({ state: Notification.permission })
+                        : originalQuery(parameters);
+                // Plugins falsos
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5],
+                });
+                // Languages
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-US', 'en'],
+                });
+            """)
+        except Exception:
+            pass
+        # Autorizar todos os downloads automaticamente via CDP (admin prefs)
+        try:
+            cdp = self.context.new_cdp_session(self.page)
+            cdp.send("Browser.setDownloadBehavior", {
+                "behavior": "allow",
+                "downloadPath": str(DOWNLOAD_DIR),
+            })
+            cdp.send("Page.setDownloadBehavior", {
+                "behavior": "allow",
+                "downloadPath": str(DOWNLOAD_DIR),
+            })
+        except Exception as e:
+            log.debug(f"CDP download behavior: {e}")
+
+    def close(self):
+        try:
+            self.context.close()
+            self.browser.close()
+        except:
+            pass
+
+    def _safe_goto(self, url, timeout=30000):
+        try:
+            resp = self.page.goto(url, timeout=timeout, wait_until="domcontentloaded")
+            if resp and resp.status >= 400:
+                # Cloudflare/403: esperar e tentar de novo (Playwright executa JS)
+                if resp.status == 403:
+                    time.sleep(5)  # esperar Cloudflare resolver
+                    try:
+                        self.page.wait_for_load_state("networkidle", timeout=10000)
+                    except Exception:
+                        pass
+                    # Verificar se a pagina carregou apos espera
+                    content = self.page.content()[:3000].lower()
+                    if "cloudflare" in content or "checking your browser" in content:
+                        # Tentar esperar mais (3 rounds de 5s)
+                        for _ in range(3):
+                            time.sleep(5)
+                            try:
+                                self.page.wait_for_load_state("networkidle", timeout=8000)
+                            except Exception:
+                                pass
+                            content = self.page.content()[:3000].lower()
+                            if "cloudflare" not in content and "checking your browser" not in content:
+                                break
+                    if "cloudflare" not in content and "checking your browser" not in content:
+                        return True, "ok (apos cloudflare)"
+                return False, f"HTTP {resp.status}"
+            current_url = self.page.url
+            # Detecao de bloqueio/captcha/paywall/malware
+            # NOTA: "cloudflare" removido da lista — Cloudflare pode ser legitimo
+            block_signals = ["captcha", "paywall", "blocked", "access denied",
+                           "suspended", "dmca", "removed"]
+            if any(x in current_url.lower() for x in block_signals):
+                return False, f"bloqueado: {current_url[:80]}"
+            # Verificar conteudo da pagina por sinais de paywall/bloqueio
+            try:
+                content = self.page.content()[:5000].lower()
+                paywall_signals = ["please disable your ad blocker", "subscribe to download",
+                                 "premium account required", "payment required", "buy premium",
+                                 "you have been blocked", "enable javascript and cookies"]
+                if any(x in content for x in paywall_signals):
+                    return False, "paywall/bloqueio detectado"
+                # Detecao de malware/redirecionamento suspeito
+                malware_signals = [".exe download", "install our downloader", "install helper",
+                                 "your pc is infected", "update your flash", "update your browser"]
+                if any(x in content for x in malware_signals):
+                    return False, "malware suspeito detectado"
+            except Exception:
+                pass
+            return True, "ok"
+        except PWTimeout:
+            return False, "timeout"
+        except Exception as e:
+            return False, str(e)[:200]
+
+    def search_cdromance(self, query, serial, name):
+        """Busca no cdromance — navega como humano: busca -> clica no resultado -> acha download.
+        Cdromance usa Cloudflare — pode dar 403 na primeira visita, mas Playwright executa JS
+        e resolve o desafio. _safe_goto ja trata isso esperando apos 403.
+        """
+        # Estrategia 1: busca direta no site
+        search_url = f"https://cdromance.org/?s={quote_plus(query)}"
+        ok, err = self._safe_goto(search_url)
+        if not ok:
+            # Estrategia 2: tentar pagina inicial primeiro (para resolver Cloudflare)
+            ok2, err2 = self._safe_goto("https://cdromance.org/")
+            if ok2:
+                time.sleep(3)
+                ok, err = self._safe_goto(search_url)
+            if not ok:
+                return None, f"cdromance: {err}"
+        # Esperar conteudo carregar (humano espera)
+        time.sleep(3)
+        try:
+            self.page.wait_for_selector("article, .post, .entry, .search-results", timeout=15000)
+        except Exception:
+            return None, "cdromance: sem resultados (timeout)"
+
+        soup = BeautifulSoup(self.page.content(), "lxml")
+        # Procurar links para paginas de jogos (psx-iso no URL)
+        links = []
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            text = a.get_text(strip=True)
+            if "cdromance.org/psx-iso/" in href or "cdromance.org/psx2psp/" in href:
+                links.append((href, text))
+        if not links:
+            # Fallback: qualquer article com link
+            for article in soup.find_all("article"):
+                a = article.find("a", href=True)
+                if a:
+                    links.append((a["href"], a.get_text(strip=True)))
+
+        if not links:
+            return None, "cdromance: nenhum link encontrado"
+
+        # Visitar ate 3 resultados
+        for link_url, link_text in links[:3]:
+            ok, err = self._safe_goto(link_url)
+            if not ok:
+                continue
+            time.sleep(2)  # humano espera pagina carregar
+            soup = BeautifulSoup(self.page.content(), "lxml")
+            # Procurar link de download direto (.zip, .7z, etc)
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                if any(href.endswith(ext) for ext in ARCHIVE_EXTS):
+                    return ("direct_url", href), f"cdromance: {link_text}"
+            # Procurar botao/link de download
+            for a in soup.find_all("a", href=True):
+                text = a.get_text(strip=True).lower()
+                href = a["href"]
+                if "download" in text and "cdromance" in href:
+                    return ("page_url", href), f"cdromance: {link_text}"
+            # Procurar form de download
+            for form in soup.find_all("form"):
+                action = form.get("action", "")
+                if "download" in action.lower():
+                    return ("page_url", action), f"cdromance: {link_text}"
+        return None, "cdromance: sem link de download"
+
+    def search_vimm_cache(self, serial, name):
+        """Busca no vimm usando cache serial->mediaId (sem Playwright, via requests).
+        Estrategia: lista por letra (funciona via requests) -> pagina de detalhe -> extrai serial + mediaId.
+        Download direto via archival.cat/PS1/{mediaId}.7z
+        """
+        import json as _json
+        cache_path = STATE_DIR / "vimm_cache.json"
+        # Carregar cache
+        cache = {}
+        if cache_path.exists():
+            try:
+                cache = _json.loads(cache_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        # Se ja temos o serial no cache, usar
+        if serial in cache:
+            media_id = cache[serial]
+            mirror_url = f"https://archival.cat/PS1/{media_id}.7z"
+            return ("direct_url", mirror_url), f"vimm-cache: {serial} -> {media_id}"
+        # Se nao tem no cache, raspar lista por letra via requests
+        name_clean = re.sub(r"\(.*?\)", "", name).strip()
+        first_letter = name_clean[0].upper() if name_clean else "A"
+        if first_letter not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            first_letter = "A"
+        name_lower = name_clean.lower()
+        name_words = [w for w in re.sub(r"[^a-z0-9\s]", "", name_lower).split() if len(w) > 2]
+        try:
+            # Rasparr lista por letra (funciona via requests!)
+            letter_url = f"https://vimm.net/vault/PS1/{first_letter}"
+            resp = requests.get(letter_url, timeout=20, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+            if resp.status_code != 200:
+                return None, f"vimm-cache: HTTP {resp.status_code}"
+            soup = BeautifulSoup(resp.text, "lxml")
+            # Procurar links /vault/NNNN com match por nome
+            game_links = []
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                text = a.get_text(strip=True)
+                m = re.match(r"^/vault/(\d+)$", href)
+                if m and text:
+                    text_lower = text.lower()
+                    score = sum(1 for w in name_words if w in text_lower)
+                    if score > 0 or name_lower[:10] in text_lower:
+                        game_links.append((href, text, score))
+            game_links.sort(key=lambda x: x[2], reverse=True)
+            # Visitar pagina de detalhe via requests para pegar serial e mediaId
+            for link_url, link_text, _ in game_links[:5]:
+                detail_url = f"https://vimm.net{link_url}"
+                resp2 = requests.get(detail_url, timeout=15, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+                if resp2.status_code != 200:
+                    continue
+                soup2 = BeautifulSoup(resp2.text, "lxml")
+                page_text = soup2.get_text()
+                # Validar serial
+                serial_match = re.search(r"Serial\s*#?\s*[:\s]*([A-Z]{4}-\d{3,6})", page_text)
+                if serial_match:
+                    serial_found = serial_match.group(1)
+                    if serial.upper() == serial_found.upper():
+                        # Encontrou! Pegar mediaId
+                        form = soup2.find("form", {"id": "dl_form"})
+                        if form:
+                            media_id_input = form.find("input", {"name": "mediaId"})
+                            if media_id_input:
+                                media_id = media_id_input.get("value", "")
+                                if media_id:
+                                    # Salvar no cache
+                                    cache[serial] = media_id
+                                    try:
+                                        cache_path.write_text(_json.dumps(cache, indent=2), encoding="utf-8")
+                                    except Exception:
+                                        pass
+                                    mirror_url = f"https://archival.cat/PS1/{media_id}.7z"
+                                    return ("direct_url", mirror_url), f"vimm: {link_text} (serial:{serial_found})"
+        except Exception as e:
+            log.debug(f"vimm_cache erro: {e}")
+        return None, "vimm-cache: nao encontrado"
+
+    def search_vimm(self, query, serial, name):
+        """Busca no vimm.net — navega por letra, acha jogo por nome, entra na pagina, baixa.
+        Estrutura real do vimm:
+        - Lista por letra: vimm.net/vault/PS1/{letra} — links dos jogos sao /vault/{id}
+        - Pagina de detalhe: vimm.net/vault/{id} — tem serial e form de download
+        - Form: POST para dl3.vimm.net/ com mediaId
+        - Mirror: archival.cat/PS1/{mediaId}.7z
+        """
+        name_clean = re.sub(r"\(.*?\)", "", name).strip()
+        first_letter = name_clean[0].upper() if name_clean else "A"
+        if first_letter not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            first_letter = "A"
+
+        name_lower = name_clean.lower()
+        name_words = [w for w in re.sub(r"[^a-z0-9\s]", "", name_lower).split() if len(w) > 2]
+
+        # Estrategia 1: pagina por letra
+        letter_url = f"https://vimm.net/vault/PS1/{first_letter}"
+        ok, err = self._safe_goto(letter_url)
+        if not ok:
+            return None, f"vimm: {err}"
+        time.sleep(2)
+        try:
+            self.page.wait_for_selector("table a", timeout=15000)
+        except Exception:
+            return None, "vimm: sem resultados (timeout)"
+
+        soup = BeautifulSoup(self.page.content(), "lxml")
+        # Links dos jogos: /vault/{numero} (sem p=, sem system=, sem section=)
+        game_links = []
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            text = a.get_text(strip=True)
+            if not text:
+                continue
+            # Padrao: /vault/NNNN (apenas digitos)
+            m = re.match(r"^/vault/(\d+)$", href)
+            if m:
+                text_lower = text.lower()
+                score = sum(1 for w in name_words if w in text_lower)
+                if score > 0 or name_lower[:10] in text_lower:
+                    game_links.append((href, text, score))
+
+        game_links.sort(key=lambda x: x[2], reverse=True)
+
+        if not game_links:
+            # Estrategia 2: buscar pela pagina de busca do vimm
+            search_url = f"https://vimm.net/vault/?p=search&system=PS1&q={quote_plus(name_clean)}"
+            ok, err = self._safe_goto(search_url)
+            if ok:
+                time.sleep(2)
+                soup = BeautifulSoup(self.page.content(), "lxml")
+                for a in soup.find_all("a", href=True):
+                    href = a["href"]
+                    text = a.get_text(strip=True)
+                    m = re.match(r"^/vault/(\d+)$", href)
+                    if m and text:
+                        game_links.append((href, text, 0))
+
+        if not game_links:
+            return None, "vimm: jogo nao encontrado"
+
+        # Visitar pagina do jogo e validar serial
+        for link_url, link_text, _ in game_links[:3]:
+            full_url = f"https://vimm.net{link_url}"
+            ok, err = self._safe_goto(full_url)
+            if not ok:
+                continue
+            time.sleep(1)
+            soup = BeautifulSoup(self.page.content(), "lxml")
+            page_text = soup.get_text()
+            # Validar serial na pagina
+            serial_found = None
+            serial_match = re.search(r"Serial\s*#?\s*[:\s]*([A-Z]{4}-\d{3,6})", page_text)
+            if serial_match:
+                serial_found = serial_match.group(1)
+            if serial and serial_found and serial.upper() != serial_found.upper():
+                log_msg(f"vimm: serial mismatch ({serial_found} != {serial}), pulando")
+                continue
+            # Procurar form de download (dl_form)
+            form = soup.find("form", {"id": "dl_form"})
+            if form:
+                action = form.get("action", "")
+                media_id_input = form.find("input", {"name": "mediaId"})
+                media_id = media_id_input.get("value") if media_id_input else ""
+                if action and media_id:
+                    # Usar mirror (download direto .7z) — mais confiavel
+                    mirror_url = f"https://archival.cat/PS1/{media_id}.7z"
+                    return ("direct_url", mirror_url), f"vimm: {link_text} (serial:{serial_found})"
+                if action:
+                    return ("page_url", action), f"vimm: {link_text}"
+            # Fallback: procurar mirror button
+            for btn in soup.find_all("button"):
+                mirror = btn.get("data-mirror", "")
+                if mirror:
+                    onclick = btn.get("onclick", "")
+                    # archival.cat/PS1/{mediaId}.7z
+                    m = re.search(r"archival\.cat/[^'\"]+\.7z", onclick)
+                    if m:
+                        return ("direct_url", f"https://{m.group(0)}"), f"vimm: {link_text}"
+        return None, "vimm: sem link de download"
+
+    def search_coolrom(self, query, serial, name):
+        """Busca no CoolROM via indice local + requests (sem Playwright).
+        Estrategia: indice pre-construido por palavra -> match fuzzy -> pagina de detalhe -> link dl.coolrom.com.
+        Tem jogos JP e EUR com seriais visiveis na URL.
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+
+        # Carregar indice CoolROM
+        index_path = STATE_DIR / "coolrom_index.json"
+        if not index_path.exists():
+            return None, "coolrom: indice nao encontrado"
+        try:
+            idx = json.loads(index_path.read_text(encoding="utf-8"))
+        except Exception:
+            return None, "coolrom: erro ao carregar indice"
+        word_index = idx.get("word_index", {})
+        cr_data = idx.get("cr_data", {})
+
+        # Normalizar nome do jogo
+        name_clean = re.sub(r"\(.*?\)", "", name).strip()
+        name_lower = name_clean.lower()
+        name_words = set(w for w in re.sub(r"[^a-z0-9\s]", "", name_lower).split() if len(w) > 2)
+        if not name_words:
+            return None, "coolrom: nome muito curto"
+
+        # Encontrar candidatos via indice invertido
+        candidates = set()
+        for w in name_words:
+            candidates.update(word_index.get(w, []))
+        if not candidates:
+            return None, "coolrom: sem candidatos no indice"
+
+        # Score cada candidato
+        scored = []
+        for ck in candidates:
+            entry = cr_data.get(ck)
+            if not entry:
+                continue
+            cr_norm = entry.get("norm", "")
+            cr_words = set(w for w in cr_norm.split() if len(w) > 2)
+            overlap = len(name_words & cr_words)
+            score = overlap / max(len(name_words), 1)
+            if score >= 0.5:
+                # Bonus por regiao JP
+                if entry.get("jp"):
+                    score += 0.1
+                scored.append((score, entry))
+        scored.sort(key=lambda x: x[0], reverse=True)
+
+        # Visitar pagina de detalhe dos top 3
+        for score, entry in scored[:3]:
+            link_url = entry["url"]
+            link_text = entry["name"]
+            detail_url = f"https://coolrom.com{link_url}"
+            try:
+                resp2 = requests.get(detail_url, timeout=15, headers=req_headers)
+                if resp2.status_code != 200:
+                    continue
+                soup2 = BeautifulSoup(resp2.text, "lxml")
+                # Procurar link dl.coolrom.com
+                for a in soup2.find_all("a", href=True):
+                    href = a["href"]
+                    if "dl.coolrom.com" in href:
+                        return ("direct_url", href), f"coolrom: {link_text} ({score:.0%})"
+            except Exception:
+                continue
+        return None, "coolrom: nao encontrado"
+
+    def search_retrostic(self, query, serial, name):
+        """Busca no Retrostic via cache serial->URL (sem Playwright).
+        Cache pre-construido varrendo todas as paginas. Download via POST -> redirect JS.
+        Tem jogos JP e EUR com seriais visiveis na URL.
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        # Carregar cache
+        cache_path = STATE_DIR / "retrostic_cache.json"
+        cache = {}
+        if cache_path.exists():
+            try:
+                cache = json.loads(cache_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        # Buscar por serial no cache
+        if serial and serial in cache:
+            link_url = cache[serial]
+            return self._retrostic_get_download(link_url, serial, req_headers)
+        return None, "retrostic: nao encontrado no cache"
+
+    def _retrostic_get_download(self, link_url, link_text, req_headers):
+        """Extrai link de download do Retrostic: GET -> pegar session -> POST -> extrair URL do JS."""
+        try:
+            detail_url = f"https://www.retrostic.com{link_url}"
+            resp1 = requests.get(detail_url, timeout=15, headers=req_headers)
+            if resp1.status_code != 200:
+                return None, f"retrostic: HTTP {resp1.status_code}"
+            soup1 = BeautifulSoup(resp1.text, "lxml")
+            # Pegar session do form
+            session_val = ""
+            rom_url_val = ""
+            console_url_val = ""
+            for form in soup1.find_all("form"):
+                if "download" in form.get("action", "").lower():
+                    for inp in form.find_all("input"):
+                        name = inp.get("name", "")
+                        val = inp.get("value", "")
+                        if name == "session":
+                            session_val = val
+                        elif name == "rom_url":
+                            rom_url_val = val
+                        elif name == "console_url":
+                            console_url_val = val
+            if not session_val:
+                return None, "retrostic: sem session"
+            # POST para download
+            post_url = f"https://www.retrostic.com{link_url}/download"
+            resp2 = requests.post(post_url, data={
+                "rom_url": rom_url_val,
+                "console_url": console_url_val,
+                "session": session_val,
+            }, timeout=15, headers=req_headers)
+            if resp2.status_code != 200:
+                return None, f"retrostic: POST HTTP {resp2.status_code}"
+            # Extrair URL de redirect do JS
+            match = re.search(r'window\.location\.href\s*=\s*"([^"]+)"', resp2.text)
+            if match:
+                dl_url = match.group(1)
+                if dl_url.startswith("http"):
+                    return ("direct_url", dl_url), f"retrostic: {link_text}"
+            return None, "retrostic: sem URL de download"
+        except Exception as e:
+            return None, f"retrostic: erro {e}"
+
+    def search_romsdl(self, query, serial, name):
+        """Busca no RomsDL via cache serial->URL (sem Playwright).
+        Cache pre-construido varrendo todas as paginas. Download via POST.
+        Tem jogos JP e EUR com seriais visiveis na URL.
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        # Carregar cache
+        cache_path = STATE_DIR / "romsdl_cache.json"
+        cache = {}
+        if cache_path.exists():
+            try:
+                cache = json.loads(cache_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        # Buscar por serial no cache
+        if serial and serial in cache:
+            link_url = cache[serial]
+            return self._romsdl_get_download(link_url, serial, req_headers)
+        return None, "romsdl: nao encontrado no cache"
+
+    def _romsdl_get_download(self, link_url, link_text, req_headers):
+        """Extrai link de download do RomsDL: GET -> POST /download -> extrair URL."""
+        try:
+            detail_url = f"https://romsdl.com{link_url}"
+            resp1 = requests.get(detail_url, timeout=15, headers=req_headers)
+            if resp1.status_code != 200:
+                return None, f"romsdl: HTTP {resp1.status_code}"
+            # POST para download
+            post_url = f"https://romsdl.com{link_url}/download"
+            resp2 = requests.post(post_url, timeout=15, headers=req_headers)
+            if resp2.status_code != 200:
+                return None, f"romsdl: POST HTTP {resp2.status_code}"
+            soup2 = BeautifulSoup(resp2.text, "lxml")
+            # Procurar link de download direto
+            for a in soup2.find_all("a", href=True):
+                href = a["href"]
+                text = a.get_text(strip=True).lower()
+                if ".zip" in href or ".7z" in href or ".iso" in href or ".bin" in href:
+                    full_url = href if href.startswith("http") else f"https://romsdl.com{href}"
+                    return ("direct_url", full_url), f"romsdl: {link_text}"
+            # Procurar redirect JS
+            match = re.search(r'window\.location\.href\s*=\s*"([^"]+)"', resp2.text)
+            if match:
+                dl_url = match.group(1)
+                if dl_url.startswith("http"):
+                    return ("direct_url", dl_url), f"romsdl: {link_text}"
+            # Procurar meta refresh
+            for meta in soup2.find_all("meta"):
+                if meta.get("http-equiv") == "refresh":
+                    content = meta.get("content", "")
+                    m = re.search(r"url=(.+)", content, re.I)
+                    if m:
+                        dl_url = m.group(1).strip()
+                        full_url = dl_url if dl_url.startswith("http") else f"https://romsdl.com{dl_url}"
+                        return ("direct_url", full_url), f"romsdl: {link_text}"
+            return None, "romsdl: sem URL de download"
+        except Exception as e:
+            return None, f"romsdl: erro {e}"
+
+    def search_romspedia(self, query, serial, name):
+        """Busca no Romspedia — seriais nos titulos e URLs.
+        Busca via search.php?search_term_string={serial} — funciona perfeitamente!
+        URL pattern: /roms/playstation-1/{slug}-{serial}
+        Download: /roms/playstation-1/{slug}/download?speed=fast
+        Tem jogos USA e EUR com seriais visveis. ~121k downloads.
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        if not serial:
+            return None, "romspedia: sem serial"
+        try:
+            # Busca via search.php com search_term_string
+            search_url = f"https://www.romspedia.com/search.php?search_term_string={serial}"
+            resp = requests.get(search_url, timeout=15, headers=req_headers)
+            if resp.status_code != 200:
+                return None, f"romspedia: HTTP {resp.status_code}"
+            soup = BeautifulSoup(resp.text, "lxml")
+            # Procurar link que contenha o serial
+            serial_clean = serial.replace("-", "").lower()
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                text = a.get_text(strip=True).lower()
+                href_lower = href.lower()
+                if serial.lower() in href_lower or serial_clean in href_lower or serial.lower() in text:
+                    if "/roms/playstation-1/" in href:
+                        # Achou! Construir URL de download
+                        game_url = href if href.startswith("http") else f"https://www.romspedia.com{href}"
+                        dl_url = game_url.rstrip("/") + "/download?speed=fast"
+                        return ("direct_url", dl_url), f"romspedia: {serial}"
+            return None, "romspedia: nao encontrado"
+        except Exception as e:
+            return None, f"romspedia: erro {e}"
+
+    def search_romsgames(self, query, serial, name):
+        """Busca no RomsGames — 2534 PSX ROMs com seriais nos titulos.
+        Busca WordPress ?s= nao funciona para ROMs. Tentar via Google ou varrer paginas.
+        URL pattern: /playstation-rom-{slug}-{serial}/
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        if not serial:
+            return None, "romsgames: sem serial"
+        try:
+            # Tentar buscar via Google: site:romsgames.net {serial}
+            google_url = f"https://www.google.com/search?q=site:romsgames.net+{serial}+playstation-rom&num=5"
+            resp = requests.get(google_url, timeout=15, headers=req_headers)
+            if resp.status_code == 200:
+                # Procurar URLs do romsgames.net no resultado do Google
+                for match in re.finditer(r'https?://www\.romsgames\.net/playstation-rom-[^"\'<>\s]+', resp.text):
+                    url = match.group(0)
+                    if serial.lower() in url.lower():
+                        # Visitar a pagina para pegar link de download
+                        resp2 = requests.get(url, timeout=15, headers=req_headers)
+                        if resp2.status_code == 200:
+                            soup2 = BeautifulSoup(resp2.text, "lxml")
+                            for a2 in soup2.find_all("a", href=True):
+                                href2 = a2["href"]
+                                if "download" in href2.lower():
+                                    dl_url = href2 if href2.startswith("http") else f"https://www.romsgames.net{href2}"
+                                    return ("direct_url", dl_url), f"romsgames: {serial}"
+            return None, "romsgames: nao encontrado"
+        except Exception as e:
+            return None, f"romsgames: erro {e}"
+
+    def search_retromania(self, query, serial, name):
+        """Busca no RetroMania — seriais nas URLs.
+        Busca /games/search?q= nao funciona para ROMs.
+        URL pattern: /roms/playstation/{slug}-{serial}-{id}
+        Tentar via Google.
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        if not serial:
+            return None, "retromania: sem serial"
+        try:
+            # Tentar buscar via Google: site:retromania.gg {serial}
+            google_url = f"https://www.google.com/search?q=site:retromania.gg+{serial}+roms/playstation&num=5"
+            resp = requests.get(google_url, timeout=15, headers=req_headers)
+            if resp.status_code == 200:
+                for match in re.finditer(r'https?://retromania\.gg/roms/playstation/[^"\'<>\s]+', resp.text):
+                    url = match.group(0)
+                    if serial.lower() in url.lower():
+                        resp2 = requests.get(url, timeout=15, headers=req_headers)
+                        if resp2.status_code == 200:
+                            soup2 = BeautifulSoup(resp2.text, "lxml")
+                            for a2 in soup2.find_all("a", href=True):
+                                href2 = a2["href"]
+                                if "download" in href2.lower():
+                                    dl_url = href2 if href2.startswith("http") else f"https://retromania.gg{href2}"
+                                    return ("direct_url", dl_url), f"retromania: {serial}"
+            return None, "retromania: nao encontrado"
+        except Exception as e:
+            return None, f"retromania: erro {e}"
+
+    def search_romsfun(self, query, serial, name):
+        """Busca no RomsFun — 5238 PSX ROMs com regiao JP e Fan Translations.
+        URL pattern: /roms/playstation/{slug}.html
+        Download: /download/{slug}-{id} (com token, espera 60s)
+        Tem jogos JP com fan translations!
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        if not serial:
+            return None, "romsfun: sem serial"
+        try:
+            # Buscar por nome (nao tem busca por serial direto)
+            # Tentar buscar pelo nome limpo
+            short_name = re.sub(r"\(.*?\)", "", name).strip()
+            short_name = re.sub(r"\[.*?\]", "", short_name).strip()
+            search_url = f"https://romsfun.com/?s={requests.utils.quote(short_name)}"
+            resp = requests.get(search_url, timeout=15, headers=req_headers)
+            if resp.status_code != 200:
+                return None, f"romsfun: HTTP {resp.status_code}"
+            soup = BeautifulSoup(resp.text, "lxml")
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                text = a.get_text(strip=True).lower()
+                # Verificar se o nome bate (pelo menos 2 palavras)
+                name_lower = short_name.lower()
+                words_match = sum(1 for w in name_lower.split() if w in text)
+                if words_match >= 2 and "/roms/playstation/" in href:
+                    # Achou! Visitar pagina para pegar link de download
+                    game_url = href if href.startswith("http") else f"https://romsfun.com{href}"
+                    resp2 = requests.get(game_url, timeout=15, headers=req_headers)
+                    if resp2.status_code == 200:
+                        soup2 = BeautifulSoup(resp2.text, "lxml")
+                        for a2 in soup2.find_all("a", href=True):
+                            href2 = a2["href"]
+                            if "/download/" in href2:
+                                dl_url = href2 if href2.startswith("http") else f"https://romsfun.com{href2}"
+                                return ("direct_url", dl_url), f"romsfun: {short_name}"
+                    return None, "romsfun: pagina sem link de download"
+            return None, "romsfun: nao encontrado"
+        except Exception as e:
+            return None, f"romsfun: erro {e}"
+
+    def search_romhustler(self, query, serial, name):
+        """Busca no Rom Hustler — tem filtro de regiao Japan.
+        URL pattern: /rom/psx/{slug}
+        Tem FTP em ftp.romhustler.net/roms/psx
+        Matching preciso: exigir que TODAS as palavras do nome estejam no titulo.
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        if not serial:
+            return None, "romhustler: sem serial"
+        try:
+            # Buscar por nome
+            short_name = re.sub(r"\(.*?\)", "", name).strip()
+            short_name = re.sub(r"\[.*?\]", "", short_name).strip()
+            search_url = f"https://romhustler.org/roms/psx?search={requests.utils.quote(short_name)}"
+            resp = requests.get(search_url, timeout=15, headers=req_headers)
+            if resp.status_code != 200:
+                return None, f"romhustler: HTTP {resp.status_code}"
+            soup = BeautifulSoup(resp.text, "lxml")
+            name_lower = short_name.lower()
+            name_words = [w for w in name_lower.split() if len(w) > 2]  # ignorar palavras curtas
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                text = a.get_text(strip=True).lower()
+                # Exigir que TODAS as palavras significativas estejam no titulo
+                if name_words and all(w in text for w in name_words) and "/rom/psx/" in href:
+                    game_url = href if href.startswith("http") else f"https://romhustler.org{href}"
+                    resp2 = requests.get(game_url, timeout=15, headers=req_headers)
+                    if resp2.status_code == 200:
+                        soup2 = BeautifulSoup(resp2.text, "lxml")
+                        for a2 in soup2.find_all("a", href=True):
+                            href2 = a2["href"]
+                            if "download" in href2.lower():
+                                dl_url = href2 if href2.startswith("http") else f"https://romhustler.org{href2}"
+                                return ("direct_url", dl_url), f"romhustler: {short_name}"
+                    return None, "romhustler: pagina sem link de download"
+            return None, "romhustler: nao encontrado"
+        except Exception as e:
+            return None, f"romhustler: erro {e}"
+
+    def search_psxdatacenter_jp(self, query, serial, name):
+        """Busca no PSXDataCenter por serial para obter titulo japones.
+        Depois usa o titulo JP para buscar no archive.org (muitos ROMs JP estao
+        arquivados com titulo em japones, nao com serial).
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        if not serial:
+            return None, "psxdc: sem serial"
+
+        # So tentar para seriais japoneses
+        if not serial.startswith(("SLPS", "SLPM", "SCPS", "SLKA")):
+            return None, "psxdc: nao-JP"
+
+        try:
+            # PSXDataCenter URL pattern: /games/J/{first_letter_of_title}/{first_letter}/{SERIAL}.html
+            # Mas nao sabemos a primeira letra do titulo. Tentar buscar pelo site.
+            # Estrategia: usar a busca do site via Google
+            google_query = f"site:psxdatacenter.com {serial}"
+            google_url = f"https://www.google.com/search?q={quote_plus(google_query)}&num=5"
+            resp = requests.get(google_url, timeout=15, headers=req_headers)
+            if resp.status_code != 200:
+                return None, f"psxdc: google HTTP {resp.status_code}"
+
+            # Extrair URL do psxdatacenter do resultado do Google
+            psxdc_url = None
+            for match in re.finditer(r'https?://(?:www\.)?psxdatacenter\.com/games/J/[^"\'<>\s]+\.html', resp.text):
+                psxdc_url = match.group(0)
+                break
+
+            if not psxdc_url:
+                # Tentar URL direta com padrao conhecido
+                # SLPS-02000 -> /games/J/F/SLPS-02000.html (F = Final Fantasy)
+                # Precisamos tentar varias letras
+                for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789":
+                    test_url = f"https://psxdatacenter.com/games/J/{letter}/{serial}.html"
+                    try:
+                        resp2 = requests.get(test_url, timeout=10, headers=req_headers, allow_redirects=False)
+                        if resp2.status_code == 200:
+                            psxdc_url = test_url
+                            break
+                    except:
+                        continue
+
+            if not psxdc_url:
+                return None, "psxdc: pagina nao encontrada"
+
+            # Visitar a pagina do PSXDataCenter
+            resp3 = requests.get(psxdc_url, timeout=15, headers=req_headers)
+            if resp3.status_code != 200:
+                return None, f"psxdc: HTTP {resp3.status_code}"
+
+            soup = BeautifulSoup(resp3.text, "lxml")
+            # Extrair titulo oficial (japones)
+            official_title = None
+            for tr in soup.find_all("tr"):
+                tds = tr.find_all("td")
+                if len(tds) >= 2 and "Official Title" in tds[0].get_text():
+                    official_title = tds[1].get_text(strip=True)
+                    break
+
+            if not official_title:
+                return None, "psxdc: titulo nao encontrado"
+
+            # Agora buscar no archive.org com o titulo japones
+            # Muitos ROMs JP no archive.org usam o titulo em japones
+            jp_query = f'"{official_title}" playstation'
+            search_url = (
+                f"https://archive.org/advancedsearch.php?q={quote_plus(jp_query)}"
+                f"+AND+mediatype%3Asoftware&fl[]=identifier&fl[]=title&fl[]=downloads"
+                f"&rows=20&page=1&output=json"
+            )
+            resp4 = requests.get(search_url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+            if resp4.status_code != 200:
+                return None, f"psxdc: archive HTTP {resp4.status_code}"
+
+            docs = resp4.json().get("response", {}).get("docs", [])
+            bl = load_blacklist()
+            blacklisted_ids = set(bl.get("archive_ids", []))
+            blacklist_terms = ["cover", "manual", "art", "scans", "booklet", "insert"]
+
+            for doc in docs:
+                if doc["identifier"] in blacklisted_ids:
+                    continue
+                title = doc.get("title", "").lower()
+                if any(term in title for term in blacklist_terms):
+                    continue
+                # Score: quantas palavras do titulo JP estao no titulo do archive
+                jp_words = [w for w in official_title.lower().split() if len(w) > 1]
+                score = sum(1 for w in jp_words if w in title)
+                if score >= max(1, len(jp_words) // 3):
+                    log.info(f"psxdc JP hit: {serial} -> '{official_title}' -> {doc['identifier']}")
+                    return ("archive_item", doc["identifier"]), f"psxdc->archive: {official_title[:30]}"
+
+            return None, f"psxdc: titulo '{official_title[:20]}' nao achado no archive"
+        except Exception as e:
+            return None, f"psxdc: erro {e}"
+
+    def search_retrostic_jp(self, query, serial, name):
+        """Busca na secao JP do Retrostic por serial.
+        Retrostic tem lista de ROMs JP com serial entre colchetes [SLPS-XXXXX].
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        if not serial:
+            return None, "retrostic_jp: sem serial"
+        if not serial.startswith(("SLPS", "SLPM", "SCPS", "SLKA")):
+            return None, "retrostic_jp: nao-JP"
+
+        try:
+            # Retrostic JP: listar todas as ROMs JP e procurar pelo serial
+            # A lista e paginada. Buscar nas primeiras paginas.
+            for page in range(1, 6):  # tentar 5 paginas
+                url = f"https://www.retrostic.com/jp/roms/ps-1?sorting=c&page={page}"
+                resp = requests.get(url, timeout=15, headers=req_headers)
+                if resp.status_code != 200:
+                    continue
+                soup = BeautifulSoup(resp.text, "lxml")
+                # Procurar por links que contenham o serial
+                for a in soup.find_all("a", href=True):
+                    text = a.get_text(strip=True)
+                    if serial in text or serial.lower().replace("-", "") in text.lower().replace("-", "").replace("_", ""):
+                        href = a["href"]
+                        if "/roms/" in href or "/ps-1/" in href:
+                            # Visitar a pagina do ROM
+                            rom_url = href if href.startswith("http") else f"https://www.retrostic.com{href}"
+                            resp2 = requests.get(rom_url, timeout=15, headers=req_headers)
+                            if resp2.status_code != 200:
+                                continue
+                            soup2 = BeautifulSoup(resp2.text, "lxml")
+                            # Procurar link de download
+                            for a2 in soup2.find_all("a", href=True):
+                                if "download" in a2["href"].lower() or "download" in a2.get_text(strip=True).lower():
+                                    dl_url = a2["href"]
+                                    if dl_url.startswith("/"):
+                                        dl_url = f"https://www.retrostic.com{dl_url}"
+                                    return ("direct_url", dl_url), f"retrostic_jp: {serial}"
+                            return None, f"retrostic_jp: pagina encontrada mas sem download {serial}"
+                # Se o serial nao esta nesta pagina, continuar
+            return None, "retrostic_jp: nao encontrado nas paginas"
+        except Exception as e:
+            return None, f"retrostic_jp: erro {e}"
+
+    def search_archive_org_jp(self, query, serial, name):
+        """Busca no archive.org com estrategias especificas para ROMs japoneses.
+        Usa titulo em romaji + termos JP + busca por serial sem hifen.
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0"}
+        if not serial:
+            return None, "archive_jp: sem serial"
+        if not serial.startswith(("SLPS", "SLPM", "SCPS", "SLKA")):
+            return None, "archive_jp: nao-JP"
+
+        bl = load_blacklist()
+        blacklisted_ids = set(bl.get("archive_ids", []))
+        blacklist_terms = ["cover", "manual", "art", "scans", "booklet", "insert"]
+
+        def search_a(query_str, rows=30):
+            search_url = (
+                f"https://archive.org/advancedsearch.php?q={quote_plus(query_str)}"
+                f"+AND+mediatype%3Asoftware&fl[]=identifier&fl[]=title&fl[]=downloads"
+                f"&rows={rows}&page=1&output=json"
+            )
+            resp = requests.get(search_url, timeout=20, headers=req_headers)
+            if resp.status_code != 200:
+                return []
+            return resp.json().get("response", {}).get("docs", [])
+
+        try:
+            # Estrategia 1: serial sem hifen (SLPS02000) — alguns itens do archive usam esse formato
+            serial_nohyphen = serial.replace("-", "")
+            docs = search_a(f"{serial_nohyphen} playstation")
+            for doc in docs:
+                if doc["identifier"] in blacklisted_ids:
+                    continue
+                ident_lower = doc["identifier"].lower().replace("-", "").replace("_", "")
+                if serial_nohyphen.lower() in ident_lower:
+                    title = doc.get("title", "").lower()
+                    if not any(term in title for term in blacklist_terms):
+                        return ("archive_item", doc["identifier"]), f"archive_jp: {doc.get('title', '')[:40]}"
+
+            # Estrategia 2: serial com underscore (SLPS_02000) — formato redump
+            serial_underscore = serial.replace("-", "_")
+            docs = search_a(f"psx {serial_underscore}")
+            for doc in docs:
+                if doc["identifier"] in blacklisted_ids:
+                    continue
+                ident_lower = doc["identifier"].lower()
+                if serial_underscore.lower() in ident_lower:
+                    return ("archive_item", doc["identifier"]), f"archive_jp: {doc.get('title', '')[:40]}"
+
+            # Estrategia 3: nome + Japan (muitos itens JP tem "Japan" no titulo)
+            name_clean = re.sub(r"\(.*?\)", "", name).strip()
+            name_clean = re.sub(r"\[.*?\]", "", name_clean).strip()
+            if len(name_clean) > 3:
+                docs = search_a(f'"{name_clean}" Japan playstation')
+                for doc in docs:
+                    if doc["identifier"] in blacklisted_ids:
+                        continue
+                    title = doc.get("title", "").lower()
+                    if any(term in title for term in blacklist_terms):
+                        continue
+                    if "japan" in title or "j" in title.split() or serial.lower().replace("-","") in doc["identifier"].lower().replace("-","").replace("_",""):
+                        return ("archive_item", doc["identifier"]), f"archive_jp: {doc.get('title', '')[:40]}"
+
+            # Estrategia 4: nome em romaji + iso (formato comum em colecoes JP)
+            if len(name_clean) > 3:
+                docs = search_a(f"{name_clean} japan iso")
+                name_words = [w for w in name_clean.lower().split() if len(w) > 2]
+                for doc in docs:
+                    if doc["identifier"] in blacklisted_ids:
+                        continue
+                    title = doc.get("title", "").lower()
+                    if any(term in title for term in blacklist_terms):
+                        continue
+                    score = sum(1 for w in name_words if w in title)
+                    if score >= max(1, len(name_words) // 2) and ("japan" in title or "jp" in title):
+                        return ("archive_item", doc["identifier"]), f"archive_jp: {doc.get('title', '')[:40]}"
+
+            return None, "archive_jp: nao encontrado"
+        except Exception as e:
+            return None, f"archive_jp: erro {e}"
+
+    def search_google(self, query, serial, name):
+        """Busca direto no Google por ROMs PSX com o serial.
+        Estrategia: buscar "serial" psx rom download e extrair URLs de sites conhecidos.
+        """
+        req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        if not serial:
+            return None, "google: sem serial"
+        try:
+            # Buscar no Google: serial + psx + rom
+            google_query = f'"{serial}" psx rom download'
+            google_url = f"https://www.google.com/search?q={requests.utils.quote(google_query)}&num=10"
+            resp = requests.get(google_url, timeout=15, headers=req_headers)
+            if resp.status_code != 200:
+                return None, f"google: HTTP {resp.status_code}"
+
+            # Sites conhecidos para extrair URLs
+            known_sites = {
+                "romspedia.com": "romspedia",
+                "romsgames.net": "romsgames",
+                "retromania.gg": "retromania",
+                "romsfun.com": "romsfun",
+                "romhustler.org": "romhustler",
+                "coolrom.com": "coolrom",
+                "retrostic.com": "retrostic",
+                "cdromance.org": "cdromance",
+                "vimm.net": "vimm",
+                "archive.org": "archive_org",
+            }
+
+            # Extrair URLs do resultado do Google
+            urls_found = []
+            for domain, site_key in known_sites.items():
+                pattern = rf'https?://(?:www\.)?{re.escape(domain)}/[^"\'<>\s]+'
+                for match in re.finditer(pattern, resp.text, re.IGNORECASE):
+                    url = match.group(0)
+                    skip_patterns = ["/emulators/", "/bios", "/contact", "/privacy", "/terms",
+                                     "/about", "/blog", "/category/", "/tag/", "/page/",
+                                     "/search", "/browse-all", "/requires-rom", "/download-limit"]
+                    if any(sp in url.lower() for sp in skip_patterns):
+                        continue
+                    if serial.lower() in url.lower() or "rom" in url.lower() or "playstation" in url.lower():
+                        urls_found.append((site_key, url))
+
+            if not urls_found:
+                return None, "google: nenhuma URL relevante encontrada"
+
+            for site_key, url in urls_found[:3]:
+                try:
+                    resp2 = requests.get(url, timeout=15, headers=req_headers, allow_redirects=True)
+                    if resp2.status_code != 200:
+                        continue
+                    soup2 = BeautifulSoup(resp2.text, "lxml")
+                    for a2 in soup2.find_all("a", href=True):
+                        href = a2["href"]
+                        href_lower = href.lower()
+                        text_lower = a2.get_text(strip=True).lower()
+                        is_dl = ("download" in href_lower or "download" in text_lower or
+                                 ".zip" in href_lower or ".7z" in href_lower or
+                                 ".rar" in href_lower or ".iso" in href_lower)
+                        if is_dl:
+                            dl_url = href if href.startswith("http") else (
+                                f"https://{url.split('/')[2]}{href}" if href.startswith("/") else
+                                f"{url.rsplit('/',1)[0]}/{href}"
+                            )
+                            if "archive.org" in dl_url:
+                                return ("archive_item", dl_url), f"google->{site_key}: {serial}"
+                            return ("direct_url", dl_url), f"google->{site_key}: {serial}"
+                except Exception:
+                    continue
+
+            return None, "google: URLs encontradas mas sem link de download"
+        except Exception as e:
+            return None, f"google: erro {e}"
+
+    def search_archive_org(self, query, serial, name):
+        """Busca no archive.org — estrategia: serial primeiro (preciso), nome depois (fallback)."""
+        # Filtrar resultados irrelevantes
+        blacklist_terms = ["cover", "manual", "art", "scans", "booklet", "insert", "psxtools", "psx_covers"]
+
+        # Estrategia 0: indice JP pre-construido (lookup local, instantaneo)
+        if serial:
+            jp_index_path = STATE_DIR / "archive_jp_index.json"
+            if jp_index_path.exists():
+                try:
+                    import json as _json
+                    jp_index = _json.loads(jp_index_path.read_text(encoding="utf-8"))
+                    if serial in jp_index:
+                        entry = jp_index[serial]
+                        collection = entry["collection"]
+                        filename = entry["file"]
+                        # Se o filename ja comeca com o nome da colecao, remover o prefixo
+                        if filename.startswith(collection + "/"):
+                            filename = filename[len(collection) + 1:]
+                        encoded_filename = quote(filename, safe="/")
+                        download_url = f"https://archive.org/download/{collection}/{encoded_filename}"
+                        log.info(f"JP-index hit: {serial} -> {download_url[:100]}")
+                        return ("direct_url", download_url), f"archive.jp-index: {collection}/{filename[:40]}"
+                    else:
+                        log.debug(f"JP-index miss: {serial}")
+                except Exception as e:
+                    log.warning(f"jp_index erro: {e}")
+
+        def search_archive(query_str, rows=50):
+            search_url = (
+                f"https://archive.org/advancedsearch.php?q={quote_plus(query_str)}"
+                f"+AND+mediatype%3Asoftware&fl[]=identifier&fl[]=title&fl[]=downloads"
+                f"&rows={rows}&page=1&output=json"
+            )
+            resp = requests.get(search_url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+            if resp.status_code != 200:
+                return []
+            data = resp.json()
+            return data.get("response", {}).get("docs", [])
+
+        def filter_docs(docs):
+            """Filtra docs irrelevantes e retorna o melhor."""
+            for doc in docs:
+                title = doc.get("title", "").lower()
+                if any(term in title for term in blacklist_terms):
+                    continue
+                return doc
+            return None
+
+        try:
+            # Carregar blacklist de items do archive.org
+            bl = load_blacklist()
+            blacklisted_ids = set(bl.get("archive_ids", []))
+
+            # Estrategia 1: busca exata por serial (entre aspas)
+            if serial:
+                docs = search_archive(f'"{serial}"')
+                if docs:
+                    # Filtrar blacklisted e irrelevantes
+                    for doc in docs:
+                        if doc["identifier"] in blacklisted_ids:
+                            continue
+                        title = doc.get("title", "").lower()
+                        if any(term in title for term in blacklist_terms):
+                            continue
+                        # Validar: identifier ou title deve conter o serial
+                        ident_lower = doc["identifier"].lower().replace("-", "").replace("_", "")
+                        serial_lower = serial.lower().replace("-", "")
+                        title_lower = title.replace("-", "").replace(" ", "")
+                        if serial_lower in ident_lower or serial_lower in title_lower:
+                            return ("archive_item", doc["identifier"]), f"archive.org: {doc.get('title', '')}"
+                    # SEM fallback — so retornar se o serial bater
+
+            # Estrategia 2: serial sem aspas
+            if serial:
+                docs = search_archive(serial)
+                if docs:
+                    for doc in docs:
+                        if doc["identifier"] in blacklisted_ids:
+                            continue
+                        title = doc.get("title", "").lower()
+                        if any(term in title for term in blacklist_terms):
+                            continue
+                        ident_lower = doc["identifier"].lower().replace("-", "").replace("_", "")
+                        serial_lower = serial.lower().replace("-", "")
+                        if serial_lower in ident_lower:
+                            return ("archive_item", doc["identifier"]), f"archive.org: {doc.get('title', '')}"
+                    # SEM fallback — so retornar se o serial bater
+
+            # Estrategia 3: nome do jogo + psx (apenas se nome for especifico o suficiente)
+            name_clean = re.sub(r"\(.*?\)", "", name).strip()
+            name_words = [w for w in re.sub(r"[^a-z0-9\s]", "", name_clean.lower()).split() if len(w) > 2]
+            if len(name_words) >= 2:  # Precisa de pelo menos 2 palavras para match confiavel
+                docs = search_archive(f"{name_clean} psx playstation")
+                if docs:
+                    for doc in docs:
+                        if doc["identifier"] in blacklisted_ids:
+                            continue
+                        title = doc.get("title", "").lower()
+                        if any(term in title for term in blacklist_terms):
+                            continue
+                        # Score por palavras do nome
+                        score = sum(1 for w in name_words if w in title)
+                        if score >= max(2, len(name_words) // 2):
+                            return ("archive_item", doc["identifier"]), f"archive.org: {doc.get('title', '')}"
+
+            # Estrategia 4: buscar por psx_ + serial (padrao de itens individuais do archive.org)
+            if serial:
+                serial_clean = serial.lower().replace("-", "_")
+                docs = search_archive(f"psx_{serial_clean}")
+                if docs:
+                    for doc in docs:
+                        if doc["identifier"] in blacklisted_ids:
+                            continue
+                        ident_lower = doc["identifier"].lower()
+                        if serial_lower in ident_lower.replace("-", "").replace("_", ""):
+                            return ("archive_item", doc["identifier"]), f"archive.org: {doc.get('title', '')}"
+
+            # Estrategia 5: buscar em colecao redump (psx-redump-NNNNN-SLPS-XXXXX)
+            if serial:
+                docs = search_archive(f"redump {serial}")
+                if docs:
+                    for doc in docs:
+                        if doc["identifier"] in blacklisted_ids:
+                            continue
+                        ident_lower = doc["identifier"].lower().replace("-", "").replace("_", "")
+                        serial_lower_clean = serial.lower().replace("-", "")
+                        if serial_lower_clean in ident_lower:
+                            return ("archive_item", doc["identifier"]), f"archive.org: {doc.get('title', '')}"
+
+            # Estrategia 6: buscar por nome sem "psx" (jogos japoneses podem estar com nome em romaji)
+            if len(name_words) >= 2:
+                docs = search_archive(f"{name_clean} playstation")
+                if docs:
+                    for doc in docs:
+                        if doc["identifier"] in blacklisted_ids:
+                            continue
+                        title = doc.get("title", "").lower()
+                        if any(term in title for term in blacklist_terms):
+                            continue
+                        score = sum(1 for w in name_words if w in title)
+                        if score >= max(2, len(name_words) // 2):
+                            return ("archive_item", doc["identifier"]), f"archive.org: {doc.get('title', '')}"
+
+            # Estrategia 7: buscar por primeiras 2-3 palavras do nome (para nomes longos japoneses)
+            if len(name_words) >= 3:
+                short_name = " ".join(name_words[:3])
+                docs = search_archive(f"{short_name} psx")
+                if docs:
+                    for doc in docs:
+                        if doc["identifier"] in blacklisted_ids:
+                            continue
+                        title = doc.get("title", "").lower()
+                        if any(term in title for term in blacklist_terms):
+                            continue
+                        score = sum(1 for w in name_words[:3] if w in title)
+                        if score >= 2:
+                            return ("archive_item", doc["identifier"]), f"archive.org: {doc.get('title', '')}"
+
+            # Estrategia 8: buscar sem mediatype filter (alguns itens podem nao estar classificados)
+            if serial:
+                try:
+                    search_url2 = (
+                        f"https://archive.org/advancedsearch.php?q={quote_plus(serial)}"
+                        f"&fl[]=identifier&fl[]=title&fl[]=downloads"
+                        f"&rows=50&page=1&output=json"
+                    )
+                    resp2 = requests.get(search_url2, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+                    if resp2.status_code == 200:
+                        docs2 = resp2.json().get("response", {}).get("docs", [])
+                        for doc in docs2:
+                            if doc["identifier"] in blacklisted_ids:
+                                continue
+                            ident_lower = doc["identifier"].lower().replace("-", "").replace("_", "")
+                            serial_lower2 = serial.lower().replace("-", "")
+                            if serial_lower2 in ident_lower:
+                                title = doc.get("title", "").lower()
+                                if not any(term in title for term in blacklist_terms):
+                                    return ("archive_item", doc["identifier"]), f"archive.org: {doc.get('title', '')}"
+                except Exception:
+                    pass
+
+            return None, "archive.org: sem resultados"
+        except Exception as e:
+            return None, f"archive.org: {str(e)[:200]}"
+
+    def download_archive_item(self, identifier, serial, name):
+        metadata_url = f"https://archive.org/metadata/{identifier}"
+        try:
+            resp = requests.get(metadata_url, timeout=20)
+            if resp.status_code != 200:
+                return None, f"archive metadata HTTP {resp.status_code}"
+            data = resp.json()
+            # Verificar titulo do item contra serial/nome esperado
+            item_title = data.get("metadata", {}).get("title", "").lower()
+            serial_lower = (serial or "").lower().replace("-", "")
+            name_clean = re.sub(r"\(.*?\)", "", (name or "")).strip().lower()
+            name_words = [w for w in re.sub(r"[^a-z0-9\s]", "", name_clean).split() if len(w) > 2]
+            # Se o titulo nao contem o serial nem nenhuma palavra do nome, suspeito
+            title_no_special = item_title.replace("-", "").replace("_", "").replace(" ", "")
+            title_matches = (serial_lower in title_no_special) if serial_lower else False
+            if not title_matches and name_words:
+                # Matching flexivel: palavra no titulo OU prefixo da palavra (ex: Ninku vs Ninkuu)
+                def word_match(word, text):
+                    if word in text:
+                        return True
+                    # Prefixo de 4+ chars (ex: "nink" em "ninku" e "ninkuu")
+                    if len(word) >= 4 and word[:4] in text:
+                        return True
+                    return False
+                # Matching rigoroso: pelo menos 80% das palavras significantes devem bater
+                # Para evitar false positives com series (ex: "Simple 1500 Series vol.20" vs "vol.76")
+                match_count = sum(1 for w in name_words if word_match(w, item_title))
+                title_matches = match_count >= max(2, len(name_words) * 4 // 5)
+                # Verificacao adicional: se ambos tem numero de volume, devem bater
+                vol_match = True
+                vol_expected = re.search(r"vol\.?\s*(\d+)", name_clean)
+                vol_item = re.search(r"vol\.?\s*(\d+)", item_title)
+                if vol_expected and vol_item:
+                    vol_match = vol_expected.group(1) == vol_item.group(1)
+                if not vol_match:
+                    title_matches = False
+            if not title_matches:
+                log.warning(f"Titulo do item nao bate: '{item_title}' vs serial={serial} name={name}")
+                # Blacklistar este identifier
+                bl = load_blacklist()
+                add_to_blacklist(bl, url=identifier, reason=f"titulo nao bate: {item_title[:60]} vs {serial}")
+                return None, f"archive.org: titulo nao corresponde ({item_title[:40]})"
+
+            files = data.get("files", [])
+            rom_files = []
+            for f in files:
+                fname = f.get("name", "")
+                fext = Path(fname).suffix.lower()
+                if fext in ROM_EXTS or fext in ARCHIVE_EXTS:
+                    size = int(f.get("size", 0))
+                    # Filtrar arquivos muito pequenos (< 1MB para ROMs)
+                    if size > 1024 * 1024:
+                        rom_files.append((fname, size, fext))
+            if not rom_files:
+                return None, "archive.org: sem ROMs no item"
+            # Preferir arquivos que contenham o serial ou nome do jogo
+            name_lower = name_clean
+            best_files = []
+            for fname, size, fext in rom_files:
+                fname_lower = fname.lower().replace("-", "").replace("_", "").replace(" ", "")
+                score = 0
+                if serial_lower and serial_lower in fname_lower:
+                    score += 10
+                if name_words:
+                    score += sum(1 for w in name_words if w in fname.lower())
+                best_files.append((fname, size, fext, score))
+            # Ordenar por score (desc) e depois por tamanho (desc)
+            best_files.sort(key=lambda x: (x[3], x[1]), reverse=True)
+            fname, size, fext, _ = best_files[0]
+            dl_url = f"https://archive.org/download/{identifier}/{quote_plus(fname)}"
+            dest = DOWNLOADS_TMP / f"{serial}_{fname}"
+            log.info(f"Baixando: {dl_url}")
+            t0 = time.time()
+            # Retry para erros transientes (500, 503, 429)
+            resp = None
+            for attempt in range(3):
+                try:
+                    resp = requests.get(dl_url, stream=True, timeout=300, headers={"User-Agent": "Mozilla/5.0"})
+                    if resp.status_code == 200:
+                        break
+                    if resp.status_code in (500, 503, 429) and attempt < 2:
+                        log.warning(f"HTTP {resp.status_code} — retry {attempt+1}/3 em 5s")
+                        time.sleep(5)
+                        continue
+                    return None, f"download HTTP {resp.status_code}"
+                except Exception as e:
+                    if attempt < 2:
+                        log.warning(f"Erro download — retry {attempt+1}/3: {str(e)[:100]}")
+                        time.sleep(5)
+                        continue
+                    return None, f"download erro: {str(e)[:150]}"
+            if resp is None or resp.status_code != 200:
+                return None, f"download falhou apos retries"
+            with open(dest, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=1024*256):
+                    f.write(chunk)
+            elapsed = time.time() - t0
+            actual_size = dest.stat().st_size
+            if actual_size < 1024 * 1024:  # Minimo 1MB
+                dest.unlink(missing_ok=True)
+                return None, f"download muito pequeno ({actual_size} bytes)"
+            speed = actual_size / elapsed if elapsed > 0 else 0
+            # Verificar se o tamanho baixado corresponde ao esperado
+            if abs(actual_size - size) > 1024 and size > 0:
+                log.warning(f"Tamanho divergente: esperado {size}, baixado {actual_size}")
+            return dest, f"baixado: {dest.name} ({actual_size//1024//1024}MB em {elapsed:.1f}s = {speed//1024}KB/s)"
+        except Exception as e:
+            return None, f"archive download: {str(e)[:200]}"
+
+    def download_direct_url(self, url, serial):
+        # Detectar extensao correta a partir da URL ou Content-Disposition
+        url_path = Path(url.split("?")[0]).name
+        # Se o ultimo segmento nao tem extensao, tentar extrair do path anterior
+        if "." not in url_path:
+            # Procurar extensao no path da URL (ex: /roms/psx/Game.7z/hash/ts)
+            parts = url.split("?")[0].split("/")
+            for part in reversed(parts):
+                if "." in part and not part.isdigit():
+                    url_path = part
+                    break
+        dest = DOWNLOADS_TMP / f"{serial}_{url_path}"
+        try:
+            t0 = time.time()
+            # Retry para erros transientes (500, 503, 429)
+            resp = None
+            for attempt in range(3):
+                try:
+                    resp = requests.get(url, stream=True, timeout=300, headers={"User-Agent": "Mozilla/5.0"})
+                    if resp.status_code == 200:
+                        break
+                    if resp.status_code in (500, 503, 429) and attempt < 2:
+                        log.warning(f"HTTP {resp.status_code} — retry {attempt+1}/3 em 5s")
+                        time.sleep(5)
+                        continue
+                    return None, f"HTTP {resp.status_code}"
+                except Exception as e:
+                    if attempt < 2:
+                        log.warning(f"Erro download — retry {attempt+1}/3: {str(e)[:100]}")
+                        time.sleep(5)
+                        continue
+                    return None, f"download erro: {str(e)[:150]}"
+            if resp is None or resp.status_code != 200:
+                return None, f"download falhou apos retries"
+            # Se ainda nao tem extensao, tentar Content-Disposition
+            if "." not in dest.name:
+                cd = resp.headers.get("content-disposition", "")
+                import re as _re
+                m = _re.search(r'filename="([^"]+)"', cd)
+                if m:
+                    fname = m.group(1)
+                    ext = Path(fname).suffix
+                    if ext:
+                        dest = dest.with_suffix(ext)
+            with open(dest, "wb") as f:
+                total_size = int(resp.headers.get("content-length", 0))
+                downloaded = 0
+                last_report = 0
+                for chunk in resp.iter_content(chunk_size=1024*256):
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    # Reportar progresso a cada 500KB ou 1s
+                    now = time.time()
+                    if downloaded - last_report > 512*1024 or now - t0 > 1:
+                        last_report = downloaded
+                        elapsed_now = now - t0
+                        speed_now = downloaded / elapsed_now if elapsed_now > 0 else 0
+                        queue_update_progress(serial, downloaded, total_size, speed_now)
+            queue_clear_progress(serial)
+            elapsed = time.time() - t0
+            size = dest.stat().st_size
+            if size < 1024:
+                return None, "arquivo muito pequeno"
+            speed = size / elapsed if elapsed > 0 else 0
+            return dest, f"baixado: {dest.name} ({size//1024}KB em {elapsed:.1f}s = {speed//1024}KB/s)"
+        except Exception as e:
+            return None, str(e)[:200]
+
+    def download_via_browser(self, url, serial):
+        try:
+            with self.page.expect_download(timeout=120000) as download_info:
+                self.page.goto(url)
+            download = download_info.value
+            dest = DOWNLOADS_TMP / f"{serial}_{download.suggested_filename}"
+            download.save_as(str(dest))
+            return dest, f"baixado via browser: {dest.name}"
+        except PWTimeout:
+            return None, "timeout no download"
+        except Exception as e:
+            return None, str(e)[:200]
+
+    def search_google(self, query, serial, name):
+        """Busca via DuckDuckGo (sem captcha) — descobre novos sites de ROM e os cadastra em sites.json."""
+        # Variar o query para evitar padrao fixo
+        query_suffixes = ["psx ps1 rom download", "psx iso", "playstation rom",
+                          "psx rom free download", "ps1 game iso download"]
+        suffix = query_suffixes[hash(serial) % len(query_suffixes)]
+        # DuckDuckGo HTML endpoint (sem JS, sem captcha)
+        search_url = f"https://html.duckduckgo.com/html/?q={quote_plus(query + ' ' + suffix)}"
+        ok, err = self._safe_goto(search_url)
+        if not ok:
+            return None, f"ddg: {err}"
+        time.sleep(1)
+        soup = BeautifulSoup(self.page.content(), "lxml")
+        # DuckDuckGo HTML: links com class "result__a"
+        results = []
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            text = a.get_text(strip=True)
+            # DuckDuckGo usa redirect: //duckduckgo.com/l/?uddg=URL
+            if "uddg=" in href:
+                real_url = href.split("uddg=")[1].split("&")[0]
+                real_url = urllib.parse.unquote(real_url)
+            elif href.startswith("http") and "duckduckgo" not in href:
+                real_url = href
+            else:
+                continue
+            if text and len(text) > 5 and "duckduckgo" not in real_url.lower():
+                results.append((real_url, text))
+        if not results:
+            return None, "ddg: nenhum link"
+
+        bl = load_blacklist()
+        blacklisted_domains = set(bl.get("sites", []))
+        blacklisted_urls = set(bl.get("urls", []))
+
+        # === Descoberta de novos sites ===
+        sites = load_sites()
+        discovered_count = 0
+        for url, text in results:
+            parsed = urlparse(url)
+            domain = parsed.netloc
+            if not domain or "duckduckgo" in domain:
+                continue
+            site_key = domain.replace("www.", "").split(".")[0]
+            if site_key in sites or site_key in blacklisted_domains:
+                continue
+            # Filtrar dominios nao-rom
+            skip_domains = ["google", "youtube", "wikipedia", "reddit", "facebook",
+                          "twitter", "amazon", "ebay", "pinterest", "instagram",
+                          "tiktok", "stackoverflow", "github", "discord", "duckduckgo"]
+            if any(d in domain for d in skip_domains):
+                continue
+            sites[site_key] = {
+                "url": f"https://{domain}",
+                "search_url": f"https://{domain}/?s={{query}}",
+                "type": "direct_search",
+                "enabled": True,
+                "fail_count": 0,
+                "max_fails": 3,
+                "discovered": True,
+                "discovered_from": "ddg",
+            }
+            discovered_count += 1
+            log.info(f"Site descoberto: {site_key} -> {domain}")
+        if discovered_count:
+            save_sites(sites)
+
+        # Filtrar resultados blacklisted
+        filtered = [(u, t) for u, t in results
+                    if urlparse(u).netloc.replace("www.", "").split(".")[0] not in blacklisted_domains
+                    and u not in blacklisted_urls]
+
+        # Procurar download direto nos resultados
+        for url, text in filtered[:10]:
+            if any(url.endswith(ext) for ext in ARCHIVE_EXTS):
+                return ("direct_url", url), f"ddg: {text[:50]}"
+
+        # Visitar sites encontrados procurando ROM
+        rom_keywords = ["rom", "download", "iso", "psx", "ps1", "playstation", "game"]
+        for url, text in filtered[:15]:
+            text_lower = text.lower()
+            url_lower = url.lower()
+            if any(kw in text_lower or kw in url_lower for kw in rom_keywords):
+                ok, err = self._safe_goto(url)
+                if not ok:
+                    if "paywall" in err or "bloqueado" in err or "malware" in err:
+                        domain_key = urlparse(url).netloc.replace("www.", "").split(".")[0]
+                        add_to_blacklist(load_blacklist(), site_key=domain_key,
+                                       reason=f"ddg descobriu: {err}")
+                    continue
+                time.sleep(1)
+                soup2 = BeautifulSoup(self.page.content(), "lxml")
+                for a in soup2.find_all("a", href=True):
+                    href = a["href"]
+                    a_text = a.get_text(strip=True).lower()
+                    if any(href.endswith(ext) for ext in ARCHIVE_EXTS):
+                        return ("direct_url", urljoin(url, href)), f"ddg->site: {text[:50]}"
+                    if "download" in a_text and href.startswith("http"):
+                        return ("page_url", href), f"ddg->site: {text[:50]}"
+        return None, "ddg: sem link util"
+
+
+def buffer_load():
+    """Carrega o buffer compartilhado do arquivo."""
+    return load_json(BUFFER_PATH, {})
+
+
+def buffer_save(data):
+    """Salva o buffer compartilhado no arquivo."""
+    save_json(BUFFER_PATH, data)
+
+
+def buffer_add(serial, result_type, url, site, detail):
+    """Adiciona uma URL encontrada ao buffer compartilhado."""
+    fl = file_lock()
+    try:
+        data = buffer_load()
+        data[serial] = {"type": result_type, "url": url, "site": site, "detail": detail}
+        buffer_save(data)
+    finally:
+        file_unlock(fl)
+
+
+def buffer_pop_ready():
+    """Pega uma URL pronta do buffer compartilhado, priorizando sites
+    com menos downloads ativos (balanceamento de carga)."""
+    fl = file_lock()
+    try:
+        data = buffer_load()
+        # Coletar todas as entradas prontas
+        ready = []
+        for serial, entry in data.items():
+            if entry.get("type") != "searching" and entry.get("url"):
+                ready.append((serial, entry))
+        if not ready:
+            return None, None
+        # Contar downloads ativos por site
+        active = get_active_downloads_per_site()
+        # Ordenar por (num_downloads_ativos_no_site, ordem_de_insercao)
+        # Mantem FIFO entre sites com mesma carga
+        items = list(data.items())
+        ready_with_idx = []
+        for serial, entry in ready:
+            site = entry.get("site", "")
+            load = active.get(site, 0)
+            idx = next(i for i, (s, _) in enumerate(items) if s == serial)
+            ready_with_idx.append((load, idx, serial, entry))
+        ready_with_idx.sort(key=lambda x: (x[0], x[1]))
+        # Pegar o primeiro (menor carga)
+        _, _, serial, entry = ready_with_idx[0]
+        del data[serial]
+        buffer_save(data)
+        return serial, entry
+    finally:
+        file_unlock(fl)
+
+
+def buffer_mark_searching(serial):
+    """Marca um serial como 'buscando' no buffer."""
+    fl = file_lock()
+    try:
+        data = buffer_load()
+        data[serial] = {"type": "searching", "url": None, "site": None, "detail": None}
+        buffer_save(data)
+    finally:
+        file_unlock(fl)
+
+
+def buffer_remove(serial):
+    """Remove um serial do buffer."""
+    fl = file_lock()
+    try:
+        data = buffer_load()
+        data.pop(serial, None)
+        buffer_save(data)
+    finally:
+        file_unlock(fl)
+
+
+def buffer_count_ready():
+    """Conta quantas URLs prontas ha no buffer."""
+    data = buffer_load()
+    return sum(1 for v in data.values() if v.get("type") != "searching" and v.get("url"))
+
+
+def buffer_count_total():
+    """Conta total de entradas no buffer."""
+    return len(buffer_load())
+
+
+def get_active_downloads_per_site():
+    """Conta quantos downloads estao ativos por site lendo queue.json.
+    Retorna dict {site_key: count}. Sites sem downloads ativos ficam com 0.
+    """
+    try:
+        data = load_json(QUEUE_PATH, {"in_progress": {}})
+        in_progress = data.get("in_progress", {})
+        counts = {}
+        for serial, info in in_progress.items():
+            site = info.get("_current_site", "")
+            if site:
+                counts[site] = counts.get(site, 0) + 1
+        return counts
+    except Exception:
+        return {}
+
+
+def get_balanced_site_order(all_sites, base_order=None):
+    """Retorna lista de sites ordenada por menor numero de downloads ativos.
+    Sites com mesmo numero de downloads ativos mantem ordem original (round-robin).
+    Sites nao presentes nos downloads ativos ficam primeiro (count=0).
+    """
+    if base_order is None:
+        base_order = all_sites
+    active = get_active_downloads_per_site()
+    # Ordenar por (num_downloads_ativos, posicao_original) — estavel
+    indexed = [(active.get(s, 0), i, s) for i, s in enumerate(base_order)]
+    indexed.sort(key=lambda x: (x[0], x[1]))
+    return [s for _, _, s in indexed]
+
+
+def misses_load():
+    """Carrega lista de seriais ja buscados sem sucesso."""
+    return set(load_json(MISSES_PATH, []))
+
+
+def misses_add(serial):
+    """Adiciona serial a lista de misses."""
+    fl = file_lock()
+    try:
+        data = list(load_json(MISSES_PATH, []))
+        if serial not in data:
+            data.append(serial)
+            save_json(MISSES_PATH, data)
+    finally:
+        file_unlock(fl)
+
+
+def misses_contains(serial):
+    """Verifica se serial esta na lista de misses."""
+    return serial in misses_load()
+
+
+def presearch_worker(navigator=None, worker_id=99):
+    """Searcher dedicado: pre-busca URLs para os proximos itens da fila.
+    Usa apenas requests (sem Playwright) para evitar conflitos de asyncio.
+    Roda em background, enchendo o buffer para que os workers possam baixar direto.
+    """
+    wlog = logging.getLogger(f"presearch-{worker_id}")
+    wlog.info("Pre-searcher iniciado (requests-only)")
+    while True:
+        try:
+            action, paused = check_control()
+            if action == "stop":
+                break
+            if action == "pause" or paused:
+                time.sleep(2)
+                continue
+
+            # Verificar se o buffer precisa de mais itens
+            with PRESEARCH_LOCK:
+                buffer_size = len(PRESEARCH_BUFFER)
+                # Limpar entradas "searching" antigas (mais de 60s)
+                # (nao temos timestamp, mas se houver muitas "searching", limpar)
+                searching_count = sum(1 for v in PRESEARCH_BUFFER.values() if v[0] == "searching")
+
+            if buffer_size >= PRESEARCH_MAX:
+                time.sleep(0.5)
+                continue
+
+            # Pegar proximo item da fila que ainda nao esta no buffer nem em progresso
+            data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}})
+            queue = data.get("queue", [])
+            in_progress = data.get("in_progress", {})
+            completed = data.get("completed", {})
+
+            item = None
+            for q_item in queue:
+                serial = q_item["serial"]
+                with PRESEARCH_LOCK:
+                    in_buffer = serial in PRESEARCH_BUFFER
+                if not in_buffer and serial not in in_progress and serial not in completed:
+                    item = q_item
+                    break
+
+            if item is None:
+                time.sleep(1)
+                continue
+
+            # Marcar como em busca no buffer (para evitar duplicacao)
+            with PRESEARCH_LOCK:
+                PRESEARCH_BUFFER[item["serial"]] = ("searching", None, None, None)
+
+            # Buscar usando apenas sites que funcionam com requests (sem Playwright)
+            serial = item["serial"]
+            name = item["name"]
+            short_query = re.sub(r"\(.*?\)", "", name).strip()
+            short_query = re.sub(r"\[.*?\]", "", short_query).strip()
+            sites = load_sites()
+            blacklist = load_blacklist()
+
+            found_result = None
+            found_detail = ""
+            found_site = ""
+
+            # Ordem de prioridade para pre-search (todos usam requests):
+            # 1. archive_org (JP-index e instantaneo)
+            # 2. coolrom (indice local + requests)
+            # 3. retrostic (cache + requests)
+            # 4. romsdl (cache + requests)
+            presearch_sites = ["archive_org", "coolrom", "retrostic", "romsdl"]
+
+            for site_key in presearch_sites:
+                site = sites.get(site_key)
+                if not site or not site.get("enabled"):
+                    continue
+                if site_key in blacklist.get("sites", []):
+                    continue
+
+                try:
+                    result = None
+                    detail = ""
+                    # Criar um SiteNavigator temporario so para os metodos requests
+                    # Na verdade, os metodos search_* sao metodos de instancia mas nao usam self.page
+                    # Vamos criar uma instancia fake so para chamar os metodos
+                    class FakeNav:
+                        pass
+                    fake = FakeNav()
+                    # Copiar os metodos de classe
+                    fake.search_coolrom = SiteNavigator.search_coolrom.__get__(fake)
+                    fake.search_retrostic = SiteNavigator.search_retrostic.__get__(fake)
+                    fake.search_romsdl = SiteNavigator.search_romsdl.__get__(fake)
+                    fake.search_archive_org = SiteNavigator.search_archive_org.__get__(fake)
+                    fake.search_romspedia = SiteNavigator.search_romspedia.__get__(fake)
+                    fake.search_romsgames = SiteNavigator.search_romsgames.__get__(fake)
+                    fake.search_retromania = SiteNavigator.search_retromania.__get__(fake)
+                    fake.search_romsfun = SiteNavigator.search_romsfun.__get__(fake)
+                    fake.search_romhustler = SiteNavigator.search_romhustler.__get__(fake)
+                    fake.search_google = SiteNavigator.search_google.__get__(fake)
+                    fake.search_psxdatacenter_jp = SiteNavigator.search_psxdatacenter_jp.__get__(fake)
+                    fake.search_retrostic_jp = SiteNavigator.search_retrostic_jp.__get__(fake)
+                    fake.search_archive_org_jp = SiteNavigator.search_archive_org_jp.__get__(fake)
+
+                    if site_key == "coolrom":
+                        result, detail = fake.search_coolrom(short_query, serial, name)
+                    elif site_key == "retrostic":
+                        result, detail = fake.search_retrostic(short_query, serial, name)
+                    elif site_key == "romsdl":
+                        result, detail = fake.search_romsdl(short_query, serial, name)
+                    elif site_key == "archive_org":
+                        result, detail = fake.search_archive_org(short_query, serial, name)
+                    elif site_key == "archive_org_jp":
+                        result, detail = fake.search_archive_org_jp(short_query, serial, name)
+                    elif site_key == "psxdatacenter_jp":
+                        result, detail = fake.search_psxdatacenter_jp(short_query, serial, name)
+                    elif site_key == "retrostic_jp":
+                        result, detail = fake.search_retrostic_jp(short_query, serial, name)
+
+                    if result:
+                        found_result = result
+                        found_detail = detail
+                        found_site = site_key
+                        break
+                except Exception as e:
+                    wlog.debug(f"Erro em {site_key} para {serial}: {e}")
+                    continue
+
+            # Salvar no buffer
+            with PRESEARCH_LOCK:
+                if found_result:
+                    PRESEARCH_BUFFER[serial] = (found_result[0], found_result[1], found_site, found_detail)
+                    wlog.info(f"Pre-search OK: {serial} via {found_site}")
+                else:
+                    # Remover do buffer se nao encontrou
+                    PRESEARCH_BUFFER.pop(serial, None)
+
+        except Exception as e:
+            wlog.error(f"Erro no pre-searcher: {e}")
+            time.sleep(2)
+
+    wlog.info("Pre-searcher finalizado")
+
+
+def get_presearched_url(serial):
+    """Verifica se ha uma URL pre-buscada para o serial. Retorna (result, site, detail) ou None."""
+    with PRESEARCH_LOCK:
+        entry = PRESEARCH_BUFFER.get(serial)
+        if entry and entry[0] != "searching" and entry[1] is not None:
+            # Remover do buffer e retornar
+            result_type, url, site, detail = PRESEARCH_BUFFER.pop(serial)
+            return (result_type, url), site, detail
+    return None
+
+
+def build_query(item):
+    if item["type"] == "homebrew":
+        return f"{item['name']} psx ps1 homebrew"
+    name = item["name"]
+    name = re.sub(r"\(.*?\)", "", name).strip()
+    name = re.sub(r"\[.*?\]", "", name).strip()
+    return f"{name} {item['serial']} psx ps1"
+
+
+def process_item(item, navigator, sites, blacklist):
+    serial = item["serial"]
+    name = item["name"]
+    short_query = re.sub(r"\(.*?\)", "", name).strip()
+    short_query = re.sub(r"\[.*?\]", "", short_query).strip()
+
+    site_order = get_optimized_site_order(sites, blacklist)
+    if not site_order:
+        site_order = [s for s in sites if sites[s].get("enabled") and s not in blacklist.get("sites", [])]
+
+    # Se todos os sites estiverem ocupados, esperar ate um liberar (max 30s)
+    waited = 0
+    while waited < 30:
+        available = [s for s in site_order if s not in get_busy_sites()]
+        if available:
+            break
+        log.debug(f"Todos os {len(site_order)} sites ocupados, esperando... ({waited}s)")
+        time.sleep(2)
+        waited += 2
+
+    for site_key in site_order:
+        site = sites.get(site_key)
+        if not site or not site.get("enabled"):
+            continue
+
+        # Pular sites que ja estao baixando algo (paralelismo entre sites)
+        if not acquire_site(site_key, serial):
+            busy = get_busy_sites()
+            log.debug(f"Site {site_key} ocupado por {busy.get(site_key,'?')}, pulando")
+            continue
+
+        queue_update_phase(serial, "searching", site_key, "buscando...")
+
+        try:
+            result = None
+            detail = ""
+            if site_key == "cdromance":
+                result, detail = navigator.search_cdromance(short_query, serial, name)
+            elif site_key == "vimm":
+                # Tentar cache primeiro (sem Playwright, via requests)
+                result, detail = navigator.search_vimm_cache(serial, name)
+                if result is None:
+                    # Fallback: navegar com Playwright
+                    result, detail = navigator.search_vimm(short_query, serial, name)
+            elif site_key == "archive_org":
+                result, detail = navigator.search_archive_org(short_query, serial, name)
+            else:
+                # Site generico: navegar pela busca e procurar links de ROM
+                search_url = site.get("search_url", "").replace("{query}", quote_plus(short_query))
+                if search_url:
+                    ok, err = navigator._safe_goto(search_url)
+                    if not ok:
+                        # Se paywall/bloqueio/malware, blacklistar imediatamente
+                        if any(x in err for x in ["paywall", "bloqueado", "malware", "HTTP 403", "HTTP 451"]):
+                            add_to_blacklist(blacklist, site_key=site_key, reason=f"{err}")
+                            site["enabled"] = False
+                            save_sites(sites)
+                            log.warning(f"Site {site_key} blacklisted: {err}")
+                            continue
+                        # Outros erros: incrementar fail_count
+                        site["fail_count"] = site.get("fail_count", 0) + 1
+                        if site["fail_count"] >= site.get("max_fails", 3):
+                            site["enabled"] = False
+                            add_to_blacklist(blacklist, site_key=site_key, reason=f"muitas falhas: {err}")
+                        save_sites(sites)
+                        continue
+                    if ok:
+                        time.sleep(1)
+                        soup = BeautifulSoup(navigator.page.content(), "lxml")
+                        # Procurar links que parecam paginas de jogo ou download direto
+                        name_lower = short_query.lower()
+                        name_words = [w for w in re.sub(r"[^a-z0-9\s]", "", name_lower).split() if len(w) > 2]
+                        serial_lower = serial.lower().replace("-", "") if serial else ""
+                        best_links = []
+                        for a in soup.find_all("a", href=True):
+                            href = a["href"]
+                            text = a.get_text(strip=True).lower()
+                            # Link direto para ROM
+                            if any(href.endswith(ext) for ext in ARCHIVE_EXTS) or any(href.endswith(ext) for ext in ROM_EXTS):
+                                full_url = urljoin(search_url, href)
+                                result = ("direct_url", full_url)
+                                detail = f"{site_key}: download direto"
+                                break
+                            # Link para pagina de jogo (match por nome ou serial)
+                            if "/rom" in href.lower() or "/game" in href.lower() or "/download" in href.lower():
+                                score = sum(1 for w in name_words if w in text)
+                                if serial_lower and serial_lower in text.replace("-", "").replace("_", ""):
+                                    score += 5
+                                if score > 0:
+                                    best_links.append((href, text, score))
+                        if result is None and best_links:
+                            best_links.sort(key=lambda x: x[2], reverse=True)
+                            result = ("page_url", urljoin(search_url, best_links[0][0]))
+                            detail = f"{site_key}: {best_links[0][1][:40]}"
+
+            if result is None:
+                site["fail_count"] = site.get("fail_count", 0) + 1
+                if site["fail_count"] >= site.get("max_fails", 5):
+                    site["enabled"] = False
+                    add_to_blacklist(blacklist, site_key=site_key, reason=f"muitas falhas: {detail}")
+                save_sites(sites)
+                record_site_result(site_key, success=False)
+                continue
+
+            queue_update_phase(serial, "downloading", site_key, detail)
+
+            dl_result = None
+            dl_detail = ""
+            dl_t0 = time.time()
+            if result[0] == "direct_url":
+                dl_result, dl_detail = navigator.download_direct_url(result[1], serial)
+            elif result[0] == "archive_item":
+                dl_result, dl_detail = navigator.download_archive_item(result[1], serial, name)
+            elif result[0] == "page_url":
+                ok, err = navigator._safe_goto(result[1])
+                if ok:
+                    soup = BeautifulSoup(navigator.page.content(), "lxml")
+                    found = False
+                    for a in soup.find_all("a", href=True):
+                        href = a["href"]
+                        text = a.get_text(strip=True).lower()
+                        if any(href.endswith(ext) for ext in ARCHIVE_EXTS):
+                            full_url = urljoin(result[1], href)
+                            dl_result, dl_detail = navigator.download_direct_url(full_url, serial)
+                            found = True
+                            break
+                        if "download" in text and href.startswith("http"):
+                            dl_result, dl_detail = navigator.download_via_browser(href, serial)
+                            if dl_result:
+                                found = True
+                                break
+                    if not found:
+                        dl_result, dl_detail = None, "sem link de download na pagina"
+
+            if dl_result is None:
+                log.warning(f"Download falhou ({site_key}): {dl_detail[:200]}")
+                site["fail_count"] = site.get("fail_count", 0) + 1
+                save_sites(sites)
+                record_site_result(site_key, success=False)
+                continue
+
+            queue_update_phase(serial, "verifying", site_key, "verificando...")
+            valid, verify_msg = verify_download(dl_result)
+            if not valid:
+                try:
+                    dl_result.unlink()
+                except:
+                    pass
+                site["fail_count"] = site.get("fail_count", 0) + 1
+                save_sites(sites)
+                record_site_result(site_key, success=False)
+                continue
+
+            extracted = extract_rom(dl_result, PSX_DIR, serial=serial, name=name)
+            if extracted:
+                try:
+                    dl_result.unlink()
+                except:
+                    pass
+                queue_mark_success(serial, extracted, site_key)
+                try:
+                    download_cover(serial, name)
+                except Exception:
+                    pass
+                site["fail_count"] = 0
+                save_sites(sites)
+                dl_elapsed = time.time() - dl_t0
+                dl_speed = dl_result.stat().st_size / dl_elapsed if dl_elapsed > 0 else 0
+                record_site_result(site_key, success=True, speed=dl_speed)
+                return True
+            else:
+                try:
+                    dl_result.unlink()
+                except:
+                    pass
+                record_site_result(site_key, success=False)
+
+        except Exception as e:
+            log.error(f"Erro em {site_key}: {e}")
+            site["fail_count"] = site.get("fail_count", 0) + 1
+            save_sites(sites)
+            record_site_result(site_key, success=False)
+        finally:
+            release_site(site_key)
+
+    # Google fallback
+    queue_update_phase(serial, "searching", "google", "buscando no Google...")
+    try:
+        result, detail = navigator.search_google(short_query, serial, name)
+        if result:
+            queue_update_phase(serial, "downloading", "google", detail)
+            dl_result = None
+            if result[0] == "direct_url":
+                dl_result, dl_detail = navigator.download_direct_url(result[1], serial)
+            elif result[0] == "page_url":
+                ok, err = navigator._safe_goto(result[1])
+                if ok:
+                    soup = BeautifulSoup(navigator.page.content(), "lxml")
+                    for a in soup.find_all("a", href=True):
+                        href = a["href"]
+                        if any(href.endswith(ext) for ext in ARCHIVE_EXTS):
+                            dl_result, dl_detail = navigator.download_direct_url(urljoin(result[1], href), serial)
+                            break
+            elif result[0] == "archive_item":
+                dl_result, dl_detail = navigator.download_archive_item(result[1], serial, name)
+            if dl_result:
+                valid, _ = verify_download(dl_result)
+                if valid:
+                    extracted = extract_rom(dl_result, PSX_DIR, serial=serial, name=name)
+                    if extracted:
+                        try:
+                            dl_result.unlink()
+                        except:
+                            pass
+                        queue_mark_success(serial, extracted, "google")
+                        try:
+                            download_cover(serial, name)
+                        except Exception:
+                            pass
+                        record_site_result("google", success=True)
+                        return True
+    except Exception as e:
+        log.error(f"Erro no Google: {e}")
+
+    queue_mark_failed(serial, "todos os sites + google falharam")
+    return False
+
+
+def worker_process(worker_id, limit, headless):
+    logging.basicConfig(
+        level=logging.INFO,
+        format=f"%(asctime)s [W{worker_id}] [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(LOG_PATH, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    wlog = logging.getLogger(f"worker-{worker_id}")
+    init_queue()
+    cleanup_stale_items(max_age_seconds=300)
+    wlog.info(f"Worker {worker_id} iniciado")
+
+    # Debug: verificar estado da fila
+    data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}})
+    wlog.info(f"Fila tem {len(data.get('queue', []))} itens")
+
+    processed = 0
+    pw = None
+    navigator = None
+    try:
+        # Padrao oficial: sync_playwright().start() por thread (nao usar with)
+        pw = sync_playwright().start()
+        navigator = SiteNavigator(pw)
+        wlog.info(f"Playwright OK")
+
+        while True:
+            action, paused = check_control()
+            if action == "stop":
+                wlog.info("Stop recebido")
+                break
+            if action == "pause" or paused:
+                time.sleep(2)
+                continue
+
+            item = queue_next_item()
+            if item is None:
+                wlog.info(f"next_item retornou None — verificando pending...")
+                time.sleep(0.5)
+                has = queue_has_pending()
+                wlog.info(f"has_pending: {has}")
+                if not has:
+                    break
+                continue
+
+            wlog.info(f"Item pego: {item['serial']}")
+
+            if limit and processed >= limit:
+                queue_return_item(item)
+                wlog.info(f"Limite {limit} alcancado — devolvendo item")
+                break
+
+            wlog.info(f"Processando: {item['serial']} — {item['name']}")
+            sites = load_sites()
+            blacklist = load_blacklist()
+            process_item(item, navigator, sites, blacklist)
+            processed += 1
+            time.sleep(1)
+
+    except Exception as e:
+        wlog.error(f"Erro no worker: {e}")
+    finally:
+        if navigator:
+            try:
+                navigator.close()
+            except Exception:
+                pass
+        if pw:
+            try:
+                pw.stop()
+            except Exception:
+                pass
+    wlog.info(f"Worker {worker_id} finalizado — {processed} itens")
+    return processed
+
+
+class DashboardServer:
+    """Servidor HTTP em subprocesso separado (nao importa Playwright)."""
+    def __init__(self):
+        self._proc = None
+
+    def start(self):
+        global SERVER_PORT
+        server_script = Path(__file__).parent / "importre_server.py"
+        # Matar servidores antigos na porta antes de iniciar
+        try:
+            import subprocess as sp
+            for port in [SERVER_PORT, SERVER_PORT + 1, SERVER_PORT + 2]:
+                sp.run(
+                    ["powershell", "-Command",
+                     f"Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | "
+                     "ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"],
+                    capture_output=True, timeout=5
+                )
+        except Exception:
+            pass
+        for port in [SERVER_PORT, SERVER_PORT + 1, SERVER_PORT + 2]:
+            try:
+                import subprocess as sp
+                self._proc = sp.Popen(
+                    [sys.executable, str(server_script), str(port)],
+                    stdout=sp.DEVNULL, stderr=sp.DEVNULL,
+                    creationflags=getattr(sp, "CREATE_NEW_PROCESS_GROUP", 0),
+                )
+                time.sleep(1.5)
+                if self._proc.poll() is None:
+                    SERVER_PORT = port
+                    log.info(f"Servidor: http://{SERVER_HOST}:{SERVER_PORT} (PID {self._proc.pid})")
+                    return
+                else:
+                    log.warning(f"Porta {port} falhou, tentando proxima...")
+            except Exception as e:
+                log.warning(f"Erro ao iniciar servidor na porta {port}: {e}")
+        log.warning("Nao foi possivel iniciar servidor HTTP")
+
+    def stop(self):
+        if self._proc:
+            try:
+                self._proc.terminate()
+                self._proc.wait(timeout=3)
+            except Exception:
+                pass
+
+
+def generate_dashboard_html():
+    """Gera HTML estatico com JS que faz poll da API."""
+    return """<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importre — Download de ROMs PSX</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 0; padding-top: 130px; }
+h2 { color: #e94560; margin-bottom: 8px; font-size: 15px; }
+/* === HEADER FIXO === */
+.header-fixed { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #16213e; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+/* Linha 1: joystick + titulo + status + estado + botoes */
+.header-row1 { display: flex; align-items: center; gap: 10px; padding: 6px 16px; flex-wrap: nowrap; }
+.header-title { font-size: 16px; font-weight: bold; color: #e94560; white-space: nowrap; }
+.header-spacer { flex: 1; }
+.header-update { font-size: 11px; color: #888; white-space: nowrap; }
+.server-status { padding: 3px 10px; border-radius: 5px; font-weight: bold; font-size: 11px; white-space: nowrap; }
+.server-online { background: #4ecca3; color: #1a1a2e; }
+.server-offline { background: #e94560; color: #fff; }
+.control-state { font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 6px; background: #0f3460; white-space: nowrap; }
+.state-running { color: #4ecca3; }
+.state-paused { color: #f0a500; }
+.state-stopped { color: #e94560; }
+.state-idle { color: #4fc3f7; }
+.control-buttons { display: flex; gap: 6px; }
+.btn { padding: 5px 14px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.btn-start { background: #4ecca3; color: #1a1a2e; }
+.btn-pause { background: #f0a500; color: #1a1a2e; }
+.btn-restart { background: #4fc3f7; color: #1a1a2e; }
+.btn-stop { background: #e94560; color: #fff; }
+/* Linha 2: progresso + cards */
+.header-row2 { display: flex; align-items: center; gap: 10px; padding: 4px 16px 6px; flex-wrap: wrap; }
+.progress-bar { flex: 1; min-width: 200px; height: 16px; background: #333; border-radius: 8px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #e94560, #4ecca3); transition: width 0.5s; }
+.progress-text { font-size: 11px; color: #888; white-space: nowrap; }
+.stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.stat-card { background: #0f3460; padding: 4px 14px; border-radius: 6px; text-align: center; min-width: 80px; }
+.stat-card .num { font-size: 18px; font-weight: bold; }
+.stat-card .label { font-size: 9px; color: #888; text-transform: uppercase; margin-top: 1px; }
+.stat-pending .num { color: #f0a500; }
+.stat-success .num { color: #4ecca3; }
+.stat-failed .num { color: #e94560; }
+.stat-searching .num { color: #4fc3f7; }
+.stat-downloading .num { color: #ba68c8; }
+.stat-skipped .num { color: #78909c; }
+/* === CONTEUDO === */
+.content { padding: 12px 16px; }
+.section { margin-top: 15px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 5px 10px; text-align: left; border-bottom: 1px solid #333; font-size: 12px; }
+th { background: #16213e; color: #e94560; text-transform: uppercase; font-size: 10px; position: sticky; top: 0; }
+tr:hover { background: #16213e; }
+.status-searching { color: #4fc3f7; }
+.status-downloading { color: #ba68c8; }
+.status-verifying { color: #4ecca3; }
+.status-success { color: #4ecca3; }
+.status-failed { color: #e94560; }
+.site-enabled { color: #4ecca3; }
+.site-disabled { color: #f0a500; }
+.site-blacklisted { color: #e94560; }
+.unrecoverable { background: #3d0000; padding: 8px; border-radius: 5px; margin: 8px 0; }
+.sites-panel { background: #16213e; border-radius: 8px; padding: 4px; }
+.fail-bar { width: 50px; height: 5px; background: #333; border-radius: 3px; overflow: hidden; display: inline-block; }
+.fail-fill { height: 100%; }
+.footer { margin-top: 20px; padding: 10px; background: #16213e; border-radius: 6px; text-align: center; font-size: 11px; }
+.toast { position: fixed; top: 60px; right: 20px; padding: 12px 20px; border-radius: 6px; font-weight: bold; z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; font-size: 12px; }
+.toast.show { opacity: 1; }
+#refresh-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4ecca3; margin-left: 5px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+/* === SCROLL DAS SECOES === */
+.scroll-area { max-height: 50vh; overflow-y: auto; border: 1px solid #333; border-radius: 6px; }
+.scroll-area table thead th { position: sticky; top: 0; z-index: 2; }
+.scroll-area::-webkit-scrollbar { width: 8px; }
+.scroll-area::-webkit-scrollbar-track { background: #1a1a2e; }
+.scroll-area::-webkit-scrollbar-thumb { background: #e94560; border-radius: 4px; }
+.success-scroll { max-height: 50vh; overflow-y: auto; border: 1px solid #333; border-radius: 6px; }
+.success-scroll table thead th { position: sticky; top: 0; z-index: 2; }
+.success-scroll::-webkit-scrollbar { width: 8px; }
+.success-scroll::-webkit-scrollbar-track { background: #1a1a2e; }
+.success-scroll::-webkit-scrollbar-thumb { background: #e94560; border-radius: 4px; }
+.stat-covers .num { color: #4fc3f7; }
+</style>
+</head>
+<body>
+
+<div class="header-fixed">
+    <div class="header-row1">
+        <span style="font-size:20px">🎮</span>
+        <span class="header-title">Importre — PSX</span>
+        <span class="header-update">⏱ <span id="last-update">—</span><span id="refresh-indicator"></span></span>
+        <span id="server-status" class="server-status server-offline">OFF</span>
+        <span id="control-state" class="control-state state-idle">—</span>
+        <span class="header-spacer"></span>
+        <div class="control-buttons">
+            <button class="btn btn-start" onclick="sendControl('start')">▶️</button>
+            <button class="btn btn-pause" onclick="sendControl('pause')">⏸️</button>
+            <button class="btn btn-restart" onclick="sendControl('restart')">🔄</button>
+            <button class="btn btn-stop" onclick="sendControl('stop')">🛑</button>
+        </div>
+    </div>
+    <div class="header-row2">
+        <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
+        <span id="progress-text" class="progress-text">0/0 (0%)</span>
+        <div class="stats">
+            <div class="stat-card stat-pending"><div class="num" id="stat-pending">0</div><div class="label">Pend.</div></div>
+            <div class="stat-card stat-searching"><div class="num" id="stat-searching">0</div><div class="label">Busca</div></div>
+            <div class="stat-card stat-downloading"><div class="num" id="stat-downloading">0</div><div class="label">DL</div></div>
+            <div class="stat-card stat-success"><div class="num" id="stat-success">0</div><div class="label">OK</div></div>
+            <div class="stat-card stat-failed"><div class="num" id="stat-failed">0</div><div class="label">Fail</div></div>
+            <div class="stat-card stat-skipped"><div class="num" id="stat-skipped">0</div><div class="label">Skip</div></div>
+            <div class="stat-card stat-covers"><div class="num" id="stat-covers">0</div><div class="label">Capas</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="content">
+
+<div class="section">
+<h2>🔄 Em Andamento</h2>
+<div class="scroll-area">
+<table><thead><tr><th>Serial</th><th>Jogo</th><th>Status</th><th>Site</th><th>Detalhe</th></tr></thead>
+<tbody id="in-progress-rows"><tr><td colspan="5" style="text-align:center;color:#888">—</td></tr></tbody></table>
+</div>
+</div>
+
+<div class="section">
+<h2>✅ Sucessos</h2>
+<div class="success-scroll">
+<table><thead><tr><th>Serial</th><th>Jogo</th><th>Site</th><th>Capa</th><th>Quando</th></tr></thead>
+<tbody id="success-rows"><tr><td colspan="5" style="text-align:center;color:#888">—</td></tr></tbody></table>
+</div>
+</div>
+
+<div class="section" id="failed-section" style="display:none">
+<h2>❌ Itens Irrecuperáveis</h2>
+<div class="unrecoverable"><table><thead><tr><th>Serial</th><th>Jogo</th><th>Motivo</th></tr></thead>
+<tbody id="failed-rows"></tbody></table></div>
+</div>
+
+<div class="section">
+<h2>🌐 Status dos Sites</h2>
+<div class="sites-panel"><table><thead><tr><th>Site</th><th>URL</th><th>Status</th><th>Ocupado</th><th>Falhas</th><th>Veloc.</th><th>Taxa</th></tr></thead>
+<tbody id="sites-rows"></tbody></table></div>
+</div>
+
+<div class="footer">
+    <p id="footer-count">Total: 0 | Processados: 0 | Restantes: 0</p>
+    <p style="color:#888;font-size:11px;margin-top:5px">importre.py | Servidor: http://127.0.0.1:8765</p>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+var API = 'http://127.0.0.1:8765';
+
+function showToast(msg, color) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = color || '#4ecca3';
+    t.style.color = '#1a1a2e';
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function sendControl(action) {
+    fetch(API + '/api/control/' + action)
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            showToast('Comando "' + action + '" enviado!', '#4ecca3');
+            refresh();
+        })
+        .catch(function() {
+            showToast('Servidor offline!', '#e94560');
+        });
+}
+
+function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function refresh() {
+    var ctrl = new AbortController();
+    var t = setTimeout(function() { ctrl.abort(); }, 5000);
+    fetch(API + '/api/status', {signal: ctrl.signal})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            clearTimeout(t);
+            document.getElementById('server-status').textContent = '🟢 ON';
+            document.getElementById('server-status').className = 'server-status server-online';
+            updateUI(data);
+        })
+        .catch(function() {
+            clearTimeout(t);
+            document.getElementById('server-status').textContent = '🔴 OFF';
+            document.getElementById('server-status').className = 'server-status server-offline';
+            var el = document.getElementById('control-state');
+            el.textContent = 'offline';
+            el.className = 'control-state state-stopped';
+            document.querySelector('.btn-start').disabled = true;
+            document.querySelector('.btn-pause').disabled = true;
+            document.querySelector('.btn-stop').disabled = true;
+        });
+}
+
+function updateUI(data) {
+    var s = data.status;
+    var ctrl = data.control;
+    var ps = data.process_state;
+
+    // Estado
+    var stateLabels = {running: '▶️ Rodando', paused: '⏸️ Pausado', stopped: '🛑 Parado', idle: '⏳ Aguardando'};
+    var stateColors = {running: 'state-running', paused: 'state-paused', stopped: 'state-stopped', idle: 'state-idle'};
+    var el = document.getElementById('control-state');
+    el.textContent = stateLabels[ps] || '—';
+    el.className = 'control-state ' + (stateColors[ps] || 'state-idle');
+
+    // Botoes
+    document.querySelector('.btn-start').disabled = (ps === 'running');
+    document.querySelector('.btn-pause').disabled = (ps !== 'running');
+    document.querySelector('.btn-stop').disabled = (ps === 'stopped');
+
+    // Progresso
+    var processed = s.completed + s.failed;
+    var total = s.total || (s.pending + s.in_progress + s.completed + s.failed);
+    var pct = total > 0 ? (processed / total * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct.toFixed(1) + '%';
+    document.getElementById('progress-text').textContent = processed + '/' + total + ' (' + pct.toFixed(1) + '%)';
+
+    // Stats
+    document.getElementById('stat-pending').textContent = s.pending;
+    document.getElementById('stat-searching').textContent = s.searching;
+    document.getElementById('stat-downloading').textContent = s.downloading;
+    document.getElementById('stat-success').textContent = s.completed;
+    document.getElementById('stat-failed').textContent = s.failed;
+    document.getElementById('stat-skipped').textContent = s.skipped || 0;
+    document.getElementById('stat-covers').textContent = data.cover_count || 0;
+
+    // Em andamento
+    var ipHtml = '';
+    var ipItems = s.in_progress_items || {};
+    if (Object.keys(ipItems).length === 0) {
+        ipHtml = '<tr><td colspan="5" style="text-align:center;color:#888">Nenhum item em andamento</td></tr>';
+    } else {
+        for (var serial in ipItems) {
+            var item = ipItems[serial];
+            var phase = item._phase || 'searching';
+            var icons = {searching: '🔍', downloading: '⬇️', verifying: '✅'};
+            ipHtml += '<tr><td>' + esc(serial) + '</td><td>' + esc(item.name) + '</td>' +
+                '<td class="status-' + phase + '">' + (icons[phase]||'⏳') + ' ' + phase + '</td>' +
+                '<td>' + esc(item._current_site || '—') + '</td><td>' + esc(item._detail || '—') + '</td></tr>';
+        }
+    }
+    document.getElementById('in-progress-rows').innerHTML = ipHtml;
+
+    // Sucessos
+    var suHtml = '';
+    var suItems = s.completed_items || {};
+    var coversInfo = data.covers_info || {};
+    if (Object.keys(suItems).length === 0) {
+        suHtml = '<tr><td colspan="5" style="text-align:center;color:#888">Nenhum sucesso ainda</td></tr>';
+    } else {
+        for (var serial in suItems) {
+            var info = suItems[serial];
+            var hasCover = coversInfo[serial];
+            var coverIcon = hasCover ? '🖼️' : '❌';
+            suHtml += '<tr><td>' + esc(serial) + '</td><td>' + esc(info.name) + '</td>' +
+                '<td>' + esc(info.site || '—') + '</td><td>' + coverIcon + '</td><td>' + esc((info.timestamp||'').slice(0,19)) + '</td></tr>';
+        }
+    }
+    document.getElementById('success-rows').innerHTML = suHtml;
+
+    // Falhas
+    var faItems = s.failed_items || {};
+    if (Object.keys(faItems).length > 0) {
+        document.getElementById('failed-section').style.display = 'block';
+        var faHtml = '';
+        for (var serial in faItems) {
+            var info = faItems[serial];
+            faHtml += '<tr><td>' + esc(serial) + '</td><td>' + esc(info.name) + '</td><td>' + esc(info.reason) + '</td></tr>';
+        }
+        document.getElementById('failed-rows').innerHTML = faHtml;
+    } else {
+        document.getElementById('failed-section').style.display = 'none';
+    }
+
+    // Sites
+    var sitesHtml = '';
+    var sites = data.sites || {};
+    var bl = data.blacklist || {sites: []};
+    var learn = data.learning || {site_stats: {}};
+    var busy = s.busy_sites || {};
+    if (Object.keys(sites).length === 0) {
+        sitesHtml = '<tr><td colspan="7" style="text-align:center;color:#888">Nenhum site</td></tr>';
+    } else {
+        for (var key in sites) {
+            var site = sites[key];
+            var isBl = bl.sites.indexOf(key) >= 0;
+            var isEn = site.enabled;
+            var statusLabel, statusClass;
+            if (isBl) { statusLabel = '🚫 Blacklist'; statusClass = 'site-blacklisted'; }
+            else if (isEn) { statusLabel = '✅ Ativo'; statusClass = 'site-enabled'; }
+            else { statusLabel = '⚠️ Desativado'; statusClass = 'site-disabled'; }
+            var fc = site.fail_count || 0;
+            var mf = site.max_fails || 5;
+            var fpct = Math.min(fc/mf*100, 100);
+            var fcolor = fpct > 80 ? '#e94560' : fpct > 50 ? '#f0a500' : '#4ecca3';
+            var stats = learn.site_stats[key] || {attempts: 0, successes: 0, avg_speed: 0};
+            var rate = stats.attempts > 0 ? (stats.successes / stats.attempts * 100).toFixed(0) + '%' : '—';
+            var speedKB = stats.avg_speed || 0;
+            var speedStr = speedKB > 1048576 ? (speedKB/1048576).toFixed(1) + 'MB/s' : speedKB > 1024 ? (speedKB/1024).toFixed(0) + 'KB/s' : '—';
+            var busyLabel = busy[key] ? '⬇️ ' + esc(busy[key]) : '—';
+            var busyClass = busy[key] ? 'status-downloading' : '';
+            sitesHtml += '<tr><td><strong>' + esc(key) + '</strong></td><td><a href="' + esc(site.url) + '" target="_blank" style="color:#4fc3f7">' + esc(site.url) + '</a></td>' +
+                '<td class="' + statusClass + '">' + statusLabel + '</td>' +
+                '<td class="' + busyClass + '">' + busyLabel + '</td>' +
+                '<td><div class="fail-bar"><div class="fail-fill" style="width:' + fpct + '%;background:' + fcolor + '"></div></div> ' + fc + '/' + mf + '</td>' +
+                '<td>' + speedStr + '</td>' +
+                '<td>' + rate + '</td></tr>';
+        }
+    }
+    document.getElementById('sites-rows').innerHTML = sitesHtml;
+
+    // Footer
+    document.getElementById('footer-count').textContent = 'Total: ' + total + ' | Processados: ' + processed + ' | Restantes: ' + s.pending;
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString('pt-BR');
+}
+
+// Poll a cada 3 segundos
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>"""
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Importre — Download de ROMs PSX")
+    parser.add_argument("--status", action="store_true", help="So inicia servidor + dashboard")
+    parser.add_argument("--retry-failed", action="store_true", help="Recoloca falhos na fila")
+    parser.add_argument("--site", type=str, help="So usa um site")
+    parser.add_argument("--limit", type=int, help="Limite de itens por worker")
+    parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS, help="Workers paralelos")
+    parser.add_argument("--rounds", type=int, default=0, help="Rodadas (0=continuo)")
+    parser.add_argument("--headless", action="store_true", default=True, help="Browser headless")
+    parser.add_argument("--no-headless", action="store_false", dest="headless", help="Browser visivel")
+    parser.add_argument("--no-server", action="store_true", help="Nao inicia servidor HTTP")
+    args = parser.parse_args()
+
+    init_queue()
+    cleanup_stale_items(max_age_seconds=300)  # limpar itens presos (>5min)
+
+    if args.retry_failed:
+        fl = file_lock()
+        try:
+            data = load_json(QUEUE_PATH, {"queue": [], "in_progress": {}, "completed": {}, "failed": {}, "retry_count": {}})
+            for serial, info in list(data.get("failed", {}).items()):
+                data["queue"].append({"serial": serial, "name": info.get("name", ""), "region": "??", "section": "", "type": "commercial"})
+                del data["failed"][serial]
+            data["retry_count"] = {}
+            save_json(QUEUE_PATH, data)
+            log.info("Falhos recolocados na fila")
+        finally:
+            file_unlock(fl)
+
+    if args.site:
+        sites = load_sites()
+        for key in sites:
+            sites[key]["enabled"] = (key == args.site)
+        save_sites(sites)
+
+    clear_control()
+
+    # Servidor HTTP (sempre rodando, mesmo em --status)
+    server = None
+    if not args.no_server:
+        server = DashboardServer()
+        server.start()
+
+    # Gerar dashboard inicial
+    with open(DASHBOARD_PATH, "w", encoding="utf-8") as f:
+        f.write(generate_dashboard_html())
+
+    if args.status:
+        print(f"\nDashboard: http://{SERVER_HOST}:{SERVER_PORT}")
+        print(f"Arquivo: {DASHBOARD_PATH}")
+        print("\nPressione Ctrl+C para parar...")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nParando...")
+        finally:
+            if server:
+                server.stop()
+        return
+
+    # Modo processamento
+    num_workers = max(1, min(args.workers, 8))
+    log.info(f"Importre iniciado — {num_workers} workers")
+
+    try:
+        if args.rounds > 0:
+            for round_num in range(1, args.rounds + 1):
+                action, _ = check_control()
+                if action == "stop":
+                    log.info("Stop — encerrando")
+                    break
+                log.info(f"=== RODADA {round_num}/{args.rounds} ===")
+                print(f"\n{'='*60}\nRODADA {round_num}/{args.rounds} — {num_workers} workers\n{'='*60}\n")
+                with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                    futures = [executor.submit(worker_process, w, args.limit, args.headless) for w in range(num_workers)]
+                    for f in as_completed(futures):
+                        log.info(f"Worker: {f.result()} itens")
+        else:
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                futures = [executor.submit(worker_process, w, args.limit, args.headless) for w in range(num_workers)]
+                for f in as_completed(futures):
+                    log.info(f"Worker: {f.result()} itens")
+    except KeyboardInterrupt:
+        log.info("Interrompido")
+
+    # Status final
+    status = queue_get_status()
+    log.info(f"Concluido: {status['completed']} sucessos, {status['failed']} falhas, {status['pending']} pendentes")
+    if status["failed_items"]:
+        print(f"\n{'='*60}\n⚠️  {len(status['failed_items'])} itens irrecuperáveis:")
+        for serial, info in status["failed_items"].items():
+            print(f"  {serial} — {info.get('name', '')} — {info.get('reason', '')}")
+        print(f"{'='*60}")
+
+    # Servidor continua rodando apos processamento
+    if server:
+        print(f"\nDashboard ativo: http://{SERVER_HOST}:{SERVER_PORT}")
+        print("Pressione Ctrl+C para parar o servidor...")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nParando servidor...")
+        finally:
+            server.stop()
+
+
+if __name__ == "__main__":
+    main()
