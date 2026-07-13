@@ -30,17 +30,7 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
 .btn-restart{background:var(--blue);color:var(--bg)}
 .btn-stop{background:#da3633;color:#fff}
 .hdr-update{font-size:10px;color:var(--txt2);margin-left:auto}
-.hdr-r2{display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 16px;border-top:1px solid var(--border);flex-wrap:wrap}
-.stats{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
-.stat{background:var(--bg3);padding:5px 12px;border-radius:6px;text-align:center;min-width:64px;border:1px solid var(--border)}
-.stat .n{font-size:18px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
-.stat .l{font-size:8px;color:var(--txt2);text-transform:uppercase;margin-top:2px}
-.s-pending{border-color:var(--yellow)}.s-pending .n{color:var(--yellow)}
-.s-search{border-color:var(--blue)}.s-search .n{color:var(--blue)}
-.s-dl{border-color:var(--purple)}.s-dl .n{color:var(--purple)}
-.s-ok{border-color:var(--green)}.s-ok .n{color:var(--green)}
-.s-fail{border-color:#da3633}.s-fail .n{color:#da3633}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:130px 16px 16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:90px 16px 16px}
 .widget-frame{width:100%;height:fit-content;border:none;border-radius:8px}
 .widget-frame.full{grid-column:1/-1}
 .log{grid-column:1/-1;height:180px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:Consolas,monospace;font-size:11px;overflow:auto;white-space:pre-wrap}
@@ -59,15 +49,6 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
     <button class="btn btn-stop" onclick="control('stop')">STOP</button>
     <button class="btn btn-go" onclick="reprocessFailures()" title="Reseta retry de falhas e move para o fim da fila">REPROCESSAR FALHAS</button>
     <div class="hdr-update" id="hdr-update">atualizando...</div>
-  </div>
-  <div class="hdr-r2">
-    <div class="stats">
-      <div class="stat s-pending"><div class="n" id="s-pending">0</div><div class="l">Pendentes</div></div>
-      <div class="stat s-search"><div class="n" id="s-searching">0</div><div class="l">Buscando</div></div>
-      <div class="stat s-dl"><div class="n" id="s-downloading">0</div><div class="l">Downloads</div></div>
-      <div class="stat s-ok"><div class="n" id="s-completed">0</div><div class="l">OK</div></div>
-      <div class="stat s-fail"><div class="n" id="s-failed">0</div><div class="l">Falhas</div></div>
-    </div>
   </div>
 </div>
 <div class="grid">
@@ -104,12 +85,6 @@ async function loadStatus(){
     document.getElementById('ctrl-state').textContent = (data.control||'running').toUpperCase();
     document.getElementById('ctrl-state').className = 'ctrl-state st-'+(data.control||'running');
     document.getElementById('hdr-update').textContent = 'atualizado '+new Date().toLocaleTimeString('pt-BR');
-    const qs = data.queue || {};
-    document.getElementById('s-pending').textContent = qs.pending || 0;
-    document.getElementById('s-searching').textContent = qs.searching || 0;
-    document.getElementById('s-downloading').textContent = qs.downloading || 0;
-    document.getElementById('s-completed').textContent = qs.completed || 0;
-    document.getElementById('s-failed').textContent = qs.failed || 0;
   }catch(e){ console.error(e); }
 }
 async function loadLog(){
