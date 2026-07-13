@@ -184,19 +184,41 @@ app.post('/queue/next-pending', (req, res) => {
 // Download service pega um item ready
 app.post('/queue/next-ready', (req, res) => {
   if (paused) return res.json({ item: null, paused: true });
+  const preferredSite = req.body && req.body.preferredSite;
   const q = getQueue();
-  const ready = q.queue
-    .filter(i => i.status === 'ready' && isReady(i) && !reservedReady.has(i.serial) && !q.in_progress[i.serial] && !q.completed[i.serial])
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  let ready = q.queue
+    .filter(i => i.status === 'ready' && isReady(i) && !reservedReady.has(i.serial) && !q.in_progress[i.serial] && !q.completed[i.serial]);
+  
+  // Funcao de ordenacao: primeiro por % de conclusao (maior primeiro), depois por prioridade
+  function sortByProgress(a, b) {
+    const pctA = (a.progress && a.progress.percent) || 0;
+    const pctB = (b.progress && b.progress.percent) || 0;
+    if (pctB !== pctA) return pctB - pctA; // maior % primeiro
+    return (b.priority || 0) - (a.priority || 0); // depois prioridade
+  }
+  
+  // Se tem fonte preferida, filtra por ela primeiro
+  if (preferredSite && preferredSite !== 'any') {
+    const withPref = ready.filter(i => (i.sources || []).some(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_')));
+    if (withPref.length > 0) {
+      ready = withPref.sort(sortByProgress);
+    } else {
+      ready = ready.sort(sortByProgress);
+    }
+  } else {
+    ready = ready.sort(sortByProgress);
+  }
+  
   if (!ready.length) return res.json({ item: null });
   const item = ready[0];
+  const pct = (item.progress && item.progress.percent) || 0;
   reservedReady.add(item.serial);
   item.status = 'downloading';
   item.download_started = new Date().toISOString();
   q.in_progress[item.serial] = item;
   markDirty();
   reservedReady.delete(item.serial);
-  log.info(`Next ready: ${item.serial}`);
+  log.info(`Next ready: ${item.serial} [${pct}%] [fonte pref: ${preferredSite || 'any'}]`);
   res.json({ item });
 });
 

@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS } = require('../../shared/config');
+const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { 'archive.org': 2, 'archive.org-jp': 2, 'coolrom': 5, 'round_robin': 5 };
 const Logger = require('../../shared/logger');
 const { aria2Download } = require('./aria2');
 
@@ -30,7 +31,7 @@ function getSlotState(site) {
 }
 
 function acquireSourceSlot(site, timeoutMs = 300000) {
-  // Timeout de 5min: dá tempo para slots liberarem sem falhar o item
+  // Timeout de 5min: workers dedicados esperam seu slot
   return new Promise((resolve, reject) => {
     const state = getSlotState(site);
     if (state.current < state.max) {
@@ -65,7 +66,7 @@ function releaseSourceSlot(site) {
 }
 
 async function queueRequest(method, endpoint, body) {
-  const res = await axios({ method, url: `${QUEUE_URL}${endpoint}`, data: body, timeout: 5000 });
+  const res = await axios({ method, url: `${QUEUE_URL}${endpoint}`, data: body, timeout: 15000 });
   return res.data;
 }
 
@@ -253,7 +254,7 @@ function sortSourcesBySpeed(sources) {
   return shuffled.sort((a, b) => (speedMap[b.site] || 5) - (speedMap[a.site] || 5));
 }
 
-async function resolveAndDownload(item, sources) {
+async function resolveAndDownload(item, sources, preferredSite) {
   if (!sources || !sources.length) throw new Error('sem sources');
   const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img'];
   sources = sortSourcesBySpeed(sources);
@@ -261,6 +262,20 @@ async function resolveAndDownload(item, sources) {
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i];
     if (!source.url) continue;
+    // Verifica se ha slot disponivel antes de tentar
+    const slotState = getSlotState(source.site);
+    if (slotState.current >= slotState.max) {
+      // Se e a fonte preferida (worker dedicado), ESPERA o slot
+      if (preferredSite && (source.site === preferredSite || source.site === preferredSite.replace('.', '_'))) {
+        log.info(`Worker dedicado ${preferredSite} esperando slot para ${item.serial}...`);
+        // acquireSourceSlot vai esperar com timeout de 5min
+      } else {
+        // Se nao e a preferida, pula para proxima fonte
+        log.info(`Slot cheio para ${source.site}, pulando para proxima fonte de ${item.serial}`);
+        errors.push(`${source.site}: slot cheio`);
+        continue;
+      }
+    }
     let url = source.url;
     const isDirect = directExts.some(e => source.url.toLowerCase().endsWith(e));
     if (!isDirect || ['coolrom', 'vimm', 'retrostic', 'romsdl', 'retroiso'].includes(source.site)) {
@@ -310,27 +325,48 @@ async function resolveAndDownload(item, sources) {
   throw new Error('todas as fontes falharam: ' + errors.join(' | '));
 }
 
-async function processOne() {
-  const { item } = await queueRequest('post', '/queue/next-ready');
-  if (!item) return false;
+// === Workers dedicados por fonte ===
+// Garante diversificacao: 2 archive.org + 2 archive.org-jp + 5 coolrom + 5 round-robin
+
+const rrSources = ['vimm', 'retrostic', 'romsdl', 'retroiso', 'romspedia', 'romsgames', 'blueroms', 'hexrom', 'homebrew', 'myrient', 'archive.org-extra'];
+let rrIndex = 0;
+
+function getNextRRSource() {
+  const src = rrSources[rrIndex % rrSources.length];
+  rrIndex++;
+  return src;
+}
+
+async function processOneWithPreferredSource(preferredSite) {
+  // Pega item ready com fonte preferida via queue service
+  const res = await queueRequest('post', '/queue/next-ready', { preferredSite });
+  if (!res || !res.item) return false;
+  const item = res.item;
 
   if (!item.sources || !item.sources.length) {
     await queueRequest('post', '/queue/fail', { serial: item.serial, reason: 'sem URL' });
     return true;
   }
 
+  // Se tem fonte preferida, reordena sources para ela primeiro
+  if (preferredSite && preferredSite !== 'any') {
+    const pref = item.sources.find(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_'));
+    if (pref) {
+      item.sources = [pref, ...item.sources.filter(s => s !== pref)];
+    }
+  }
+
   status.active++;
   let success = false;
   let lastError = null;
-  // Retry interno: tenta 3x antes de falhar o item
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       if (attempt > 0) {
         log.info(`Retry ${attempt}/3 para ${item.serial}...`);
         await new Promise(r => setTimeout(r, 5000 * attempt));
       }
-      log.info(`Download ${item.serial}: ${item.sources.length} fontes (tentativa ${attempt + 1})`);
-      await resolveAndDownload(item, item.sources);
+      log.info(`Download ${item.serial}: ${item.sources.length} fontes (tentativa ${attempt + 1}) [worker: ${preferredSite}]`);
+      await resolveAndDownload(item, item.sources, preferredSite);
       await queueRequest('post', '/queue/complete', { serial: item.serial });
       status.completed++;
       success = true;
@@ -349,23 +385,65 @@ async function processOne() {
   return true;
 }
 
-async function workerLoop(id) {
+async function dedicatedWorkerLoop(id, preferredSite) {
+  log.info(`Worker ${id} dedicado a: ${preferredSite}`);
   while (true) {
-    const hadWork = await processOne();
-    if (!hadWork) await new Promise(r => setTimeout(r, 2000));
+    const hadWork = await processOneWithPreferredSource(preferredSite);
+    if (!hadWork) await new Promise(r => setTimeout(r, 3000));
+  }
+}
+
+async function rrWorkerLoop(id) {
+  while (true) {
+    // Pega proxima fonte do round-robin
+    const site = getNextRRSource();
+    log.info(`Worker RR ${id} tentando fonte: ${site}`);
+    const hadWork = await processOneWithPreferredSource(site);
+    if (!hadWork) {
+      // Se nao achou com essa fonte, tenta qualquer item
+      const hadAny = await processOneWithPreferredSource('any');
+      if (!hadAny) await new Promise(r => setTimeout(r, 3000));
+    }
   }
 }
 
 async function loop() {
-  const workers = Math.max(1, WORKERS.DOWNLOAD || 1);
-  log.info(`Iniciando ${workers} workers de download`);
-  await Promise.all(Array.from({ length: workers }, (_, i) => workerLoop(i)));
+  const alloc = WORKER_ALLOCATION;
+  const workers = [];
+  let id = 0;
+  
+  // Workers dedicados para archive.org
+  for (let i = 0; i < (alloc['archive.org'] || 2); i++) {
+    workers.push(dedicatedWorkerLoop(id++, 'archive.org'));
+  }
+  // Workers dedicados para archive.org-jp
+  for (let i = 0; i < (alloc['archive.org-jp'] || 2); i++) {
+    workers.push(dedicatedWorkerLoop(id++, 'archive.org-jp'));
+  }
+  // Workers dedicados para coolrom
+  for (let i = 0; i < (alloc['coolrom'] || 5); i++) {
+    workers.push(dedicatedWorkerLoop(id++, 'coolrom'));
+  }
+  // Workers round-robin para outras fontes
+  for (let i = 0; i < (alloc['round_robin'] || 5); i++) {
+    workers.push(rrWorkerLoop(id++));
+  }
+  
+  log.info(`Iniciando ${workers.length} workers: ${alloc['archive.org']||2} archive.org + ${alloc['archive.org-jp']||2} archive.org-jp + ${alloc['coolrom']||5} coolrom + ${alloc['round_robin']||5} round-robin`);
+  await Promise.all(workers);
 }
 
 app.get('/status', (req, res) => res.json(status));
 
-process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
-process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
+// Resiliente: nao morre em uncaught/rejection
+process.on('uncaughtException', (e) => {
+  console.error('uncaughtException', e.stack || e.message);
+  log.error(`uncaught: ${e.message}`);
+});
+process.on('unhandledRejection', (e) => {
+  console.error('unhandledRejection', e && e.stack || e && e.message || e);
+  log.error(`rejection: ${e && e.message || e}`);
+});
 
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/queue-proxy', async (req, res) => {

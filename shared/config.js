@@ -43,22 +43,30 @@ module.exports = {
     SLOW_DOWNLOAD_THRESHOLD_MS: 60000
   },
   SOURCE_LIMITS: {
-    'archive.org': 5,
-    'archive.org-jp': 5,
-    'archive_org': 5,
-    'archive_org_jp': 5,
-    'archive.org-extra': 5,
-    'archive_extra': 5,
-    'coolrom': 10,
-    'vimm': 5,
-    'retrostic': 5,
-    'romsdl': 5,
-    'retroiso': 5,
-    'romspedia': 5,
-    'romsgames': 5,
-    'blueroms': 5,
-    'hexrom': 5,
-    'homebrew': 5,
-    'myrient': 5
+    'archive.org': 2,
+    'archive.org-jp': 2,
+    'archive_org': 2,
+    'archive_org_jp': 2,
+    'archive.org-extra': 2,
+    'archive_extra': 2,
+    'coolrom': 5,
+    'vimm': 2,
+    'retrostic': 2,
+    'romsdl': 2,
+    'retroiso': 2,
+    'romspedia': 2,
+    'romsgames': 2,
+    'blueroms': 2,
+    'hexrom': 2,
+    'homebrew': 2,
+    'myrient': 2
+  },
+  // Alocação obrigatória de workers por fonte
+  WORKER_ALLOCATION: {
+    'archive.org': 2,
+    'archive.org-jp': 2,
+    'coolrom': 5,
+    // 5 workers restantes fazem round-robin entre outras fontes
+    'round_robin': 5
   }
 };
