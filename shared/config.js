@@ -43,10 +43,10 @@ module.exports = {
     SLOW_DOWNLOAD_THRESHOLD_MS: 60000
   },
   SOURCE_LIMITS: {
-    'archive.org': 2,
-    'archive.org-jp': 2,
-    'archive_org': 2,
-    'archive_org_jp': 2,
+    'archive.org': 5,
+    'archive.org-jp': 5,
+    'archive_org': 5,
+    'archive_org_jp': 5,
     'coolrom': 5
   }
 };
