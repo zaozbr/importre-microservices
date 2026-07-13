@@ -4,7 +4,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { PSX_DIR, PORTS, WORKERS, ARIA2 } = require('../../shared/config');
+const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
 const { aria2Download } = require('./aria2');
 
@@ -114,6 +114,20 @@ function endDownloadTracking(serial) {
   activeDownloads.delete(serial);
 }
 
+function countActiveBySource(site) {
+  let count = 0;
+  for (const d of activeDownloads.values()) {
+    if (d.source === site) count++;
+  }
+  return count;
+}
+
+function sourceSlotsAvailable(site) {
+  const limit = SOURCE_LIMITS[site];
+  if (!limit) return true; // ilimitado
+  return countActiveBySource(site) < limit;
+}
+
 async function performanceWatchdog() {
   while (true) {
     await new Promise(r => setTimeout(r, ARIA2.SPEED_CHECK_INTERVAL_MS));
@@ -172,8 +186,16 @@ async function downloadFile(item, url, sourceIndex = 0) {
 }
 
 function sortSourcesBySpeed(sources) {
-  const speedMap = { 'coolrom': 10, 'vimm': 9, 'romsdl': 8, 'retrostic': 7, 'retroiso': 6, 'archive.org': 3, 'archive.org-jp': 3, 'archive_extra': 3, 'archive_org': 3, 'archive_org_jp': 3 };
-  return [...sources].sort((a, b) => (speedMap[b.site] || 5) - (speedMap[a.site] || 5));
+  const speedMap = {
+    'coolrom': 20, 'vimm': 19, 'romspedia': 18, 'romsgames': 17, 'retromania': 16,
+    'romspure': 15, 'romsretro': 14, 'blueroms': 13, 'consoleroms': 12, 'hexrom': 11,
+    'freeroms': 10, 'classicgames': 9, 'oldiesnest': 8, 'playretrogames': 7,
+    'roms2000': 6, 'romulation': 5, 'retrogames_cc': 4, 'retrogames_games': 4,
+    'myrient': 4, 'homebrew': 4, 'romsdl': 4, 'retrostic': 4, 'retroiso': 4,
+    'archive.org': 2, 'archive.org-jp': 2, 'archive_extra': 2, 'archive_org': 2, 'archive_org_jp': 2,
+    'google_fallback': 1
+  };
+  return [...sources].sort((a, b) => (speedMap[b.site] || 3) - (speedMap[a.site] || 3));
 }
 
 async function resolveAndDownload(item, sources) {
@@ -184,6 +206,10 @@ async function resolveAndDownload(item, sources) {
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i];
     if (!source.url) continue;
+    if (!sourceSlotsAvailable(source.site)) {
+      errors.push(`${source.site}: limite de downloads simultaneos atingido`);
+      continue;
+    }
     let url = source.url;
     const isDirect = directExts.some(e => source.url.toLowerCase().endsWith(e));
     if (!isDirect || ['coolrom', 'vimm', 'retrostic', 'romsdl', 'retroiso'].includes(source.site)) {
@@ -196,6 +222,7 @@ async function resolveAndDownload(item, sources) {
       }
     }
     try {
+      startDownloadTracking(item.serial, source.site);
       const tmpPath = await downloadFile(item, url, i);
       // aguarda handles serem liberados
       await new Promise(r => setTimeout(r, 2000));
@@ -243,7 +270,6 @@ async function processOne() {
   }
 
   status.active++;
-  startDownloadTracking(item.serial, item.sources[0]?.site || 'unknown');
   try {
     log.info(`Download ${item.serial}: ${item.sources.length} fontes disponiveis`);
     await resolveAndDownload(item, item.sources);

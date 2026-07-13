@@ -41,5 +41,11 @@ module.exports = {
     TOTAL_SPEED_MBPS: 20.0,
     SPEED_CHECK_INTERVAL_MS: 30000,
     SLOW_DOWNLOAD_THRESHOLD_MS: 60000
+  },
+  SOURCE_LIMITS: {
+    'archive.org': 2,
+    'archive.org-jp': 2,
+    'archive_org': 2,
+    'archive_org_jp': 2
   }
 };
