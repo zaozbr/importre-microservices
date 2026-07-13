@@ -1,0 +1,23 @@
+{
+  "name": "importre-lite",
+  "version": "1.0.0",
+  "description": "Orquestrador leve em Node.js para importre (download) e chdman (conversao CHD)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "importre": "node index.js --importre",
+    "chd": "node index.js --chd",
+    "status": "node index.js --status"
+  },
+  "keywords": [
+    "psx",
+    "roms",
+    "importre",
+    "chd"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^3.6.0"
+  }
+}
