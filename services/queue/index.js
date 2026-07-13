@@ -226,7 +226,6 @@ app.post('/queue/next-ready', (req, res) => {
 });
 
 // Requeue: devolve item para ready com cooldown de 15s (evita spin lock)
-const requeueCooldown = new Map(); // serial -> timestamp
 app.post('/queue/requeue', (req, res) => {
   const { serial } = req.body;
   const q = getQueue();

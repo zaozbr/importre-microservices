@@ -11,8 +11,6 @@ for (const i of q.queue) itemBySerial[i.serial] = i;
 
 const files = fs.readdirSync(dir).filter(f => !f.startsWith('.') && f !== '.playwright-mcp');
 
-// Extensoes validas de ROM
-const validExts = new Set(['.chd', '.bin', '.cue', '.iso', '.img', '.7z', '.zip', '.rar', '.ecm', '.mdf', '.mds', '.ccd', '.sub']);
 // Extensoes de lixo
 const trashExts = new Set(['.lo', '.c1', '.c2', '.c3', '.c4', '.c5', '.c6', '.c7', '.c8', '.m1', '.p1', '.sp2', '.s1', '.v1', '.v2', '.v3', '.tmp', '.php', '.url', '.exe', '.log', '.md5', '.gba', '.conf', '.aria2', '.bak', '.png', '.jpeg', '.html', '.sfix', '.sm1', '.sp1', '.1024', '.dat', '.z64', '.ps1', '.lock', '.pid', '.idlst', '.xml', '.b64', '.vbs', '.bat', '.txt', '.md', '.json', '.rom', '.pbp', '.crdownload', '.aria2__temp']);
 
@@ -53,7 +51,7 @@ for (const f of chdFiles) {
   }
 }
 
-for (const [serial, files] of Object.entries(chdBySerial)) {
+for (const [_serial, files] of Object.entries(chdBySerial)) {
   if (files.length <= 1) continue;
   
   // Mantem o arquivo com nome mais longo (mais descritivo)

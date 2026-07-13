@@ -3,11 +3,19 @@ const axios = require('axios');
 const fs = require('fs');
 const { spawn, exec } = require('child_process');
 const path = require('path');
-const { PORTS, LOG_PATH, PSX_DIR, STATE_DIR, QUEUE_PATH, ARIA2, WORKERS } = require('../shared/config');
+const { PORTS, LOG_PATH, PSX_DIR, QUEUE_PATH, WORKERS } = require('../shared/config');
 const Logger = require('../shared/logger');
 
 const log = new Logger('orchestrator');
 const app = express();
+
+// Scripts dos servicos (evita duplicacao de string)
+const SCRIPTS = {
+  queue: 'services/queue/index.js',
+  search: 'services/search/index.js',
+  download: 'services/download/index.js',
+  chd: 'services/chd/index.js'
+};
 app.use(express.json());
 
 const ROOT = path.dirname(__dirname);
@@ -246,10 +254,10 @@ app.get('/api/control/:action', async (req, res) => {
     res.json({ ok: true, state: 'restarting', result });
     setTimeout(() => {
       controlState = 'running';
-      startService('queue', 'services/queue/index.js');
-      startService('search', 'services/search/index.js');
-      startService('download', 'services/download/index.js');
-      startService('chd', 'services/chd/index.js');
+      startService('queue', SCRIPTS.queue);
+      startService('search', SCRIPTS.search);
+      startService('download', SCRIPTS.download);
+      startService('chd', SCRIPTS.chd);
     }, 2000);
   }
 });
@@ -301,7 +309,7 @@ async function performanceWatchdog() {
       const proc = services['download'];
       if (proc && proc.pid) await killByPid(proc.pid);
       await killProcessByPort(PORTS.DOWNLOAD);
-      startService('download', 'services/download/index.js');
+      startService('download', SCRIPTS.download);
       lastDlCompletedTime = Date.now();
     } else if (dlCompleted !== lastDlCompleted) {
       lastDlCompleted = dlCompleted;
@@ -313,7 +321,7 @@ async function performanceWatchdog() {
       const proc = services['search'];
       if (proc && proc.pid) await killByPid(proc.pid);
       await killProcessByPort(PORTS.SEARCH);
-      startService('search', 'services/search/index.js');
+      startService('search', SCRIPTS.search);
     }
 
     if (active < WORKERS.DOWNLOAD / 2 && ready > 0) {
@@ -321,7 +329,7 @@ async function performanceWatchdog() {
       const proc = services['download'];
       if (proc && proc.pid) await killByPid(proc.pid);
       await killProcessByPort(PORTS.DOWNLOAD);
-      startService('download', 'services/download/index.js');
+      startService('download', SCRIPTS.download);
     }
 
     if (failed > 0 && ready < WORKERS.DOWNLOAD) {
@@ -343,9 +351,9 @@ setInterval(performanceWatchdog, 2 * 60 * 1000);
 async function healthCheck() {
   if (controlState === 'stopped') return;
   const checks = [
-    { name: 'download', port: PORTS.DOWNLOAD, script: 'services/download/index.js' },
-    { name: 'queue', port: PORTS.QUEUE, script: 'services/queue/index.js' },
-    { name: 'search', port: PORTS.SEARCH, script: 'services/search/index.js' }
+    { name: 'download', port: PORTS.DOWNLOAD, script: SCRIPTS.download },
+    { name: 'queue', port: PORTS.QUEUE, script: SCRIPTS.queue },
+    { name: 'search', port: PORTS.SEARCH, script: SCRIPTS.search }
   ];
   for (const svc of checks) {
     try {
@@ -377,8 +385,8 @@ process.on('unhandledRejection', (e) => {
 
 app.listen(PORTS.ORCHESTRATOR, '127.0.0.1', () => {
   log.info('Orchestrator em http://127.0.0.1:' + PORTS.ORCHESTRATOR);
-  startService('queue', 'services/queue/index.js');
-  startService('search', 'services/search/index.js');
-  startService('download', 'services/download/index.js');
-  startService('chd', 'services/chd/index.js');
+  startService('queue', SCRIPTS.queue);
+  startService('search', SCRIPTS.search);
+  startService('download', SCRIPTS.download);
+  startService('chd', SCRIPTS.chd);
 });

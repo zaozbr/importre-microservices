@@ -7,7 +7,7 @@ module.exports = {
   needsMultiChunk: true,
   priority: 100,
   enabled: true,
-  async search(serial, title) {
+  async search(serial, _title) {
     const query = encodeURIComponent(`"${serial}" psx rom download 7z zip`);
     const engines = [
       `https://www.bing.com/search?q=${query}`,

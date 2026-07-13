@@ -27,3 +27,11 @@
 **Problema:** Ordem inicial estava invertida (maior prioridade primeiro), fazendo fallbacks web serem tentados antes de caches locais.
 
 **Correcao:** Sort crescente por prioridade (`pluginPriority(a) - pluginPriority(b)`).
+
+## 6. Sonar / ESLint — qualidade de codigo obrigatoria
+
+**Problema:** Codigo sem verificacao automatica de qualidade acumulava bugs silenciosos: variaveis nao usadas, complexidade cognitiva alta, strings duplicadas, escapes desnecessarios, reatribuicao de parametros.
+
+**Correcao:** Instalado `eslint-plugin-sonarjs` + `eslint` 9 com flat config em `eslint.config.mjs`. Todas as regras Sonar de bug/correcao ativadas como `error`. Complexidade cognitiva maxima 25. Scripts npm: `npm run lint`, `npm run lint:fix`, `npm run sonar`.
+
+**Regra OBRIGATORIA:** Rodar `npm run lint` antes de todo commit. Zero warnings e zero erros sao exigidos. Se uma regra Sonar for muito barulhenta, desativa-la com justificativa no comentario da regra em `eslint.config.mjs` — nunca ignorar warnings.

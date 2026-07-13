@@ -94,7 +94,7 @@ for (const f of chdFiles) {
     chdBySerial[s].push(f);
   }
 }
-const chdDups = Object.entries(chdBySerial).filter(([s, files]) => files.length > 1);
+const chdDups = Object.entries(chdBySerial).filter(([_s, files]) => files.length > 1);
 console.log('\n=== .chd duplicados por serial ===');
 console.log('Total seriais com duplicata:', chdDups.length);
 for (const [s, files] of chdDups.slice(0, 10)) {

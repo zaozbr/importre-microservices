@@ -31,7 +31,7 @@ const HEADERS = {
 const TIMEOUT = 30000;
 
 // Serial entre parênteses ou colchetes: (SLUS-01234), [SLUS-01234], (SLUS 01234)
-const SERIAL_RE = /[\(\[]([A-Z]{4})[-\s]?(\d{3,5})[\)\]]/i;
+const SERIAL_RE = /(?:\(|\[)([A-Z]{4})[-\s]?(\d{3,5})(?:\)|\])/i;
 
 function extractSerial(name) {
   const m = name.match(SERIAL_RE);

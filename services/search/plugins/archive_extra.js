@@ -6,7 +6,7 @@ module.exports = {
   needsMultiChunk: true,
   priority: 10,
   enabled: false,
-  search(serial, title) {
+  search(serial, _title) {
     const extra = loadJson('extra_index.json');
     const smart = loadJson('smart_index.json');
     const sources = [];

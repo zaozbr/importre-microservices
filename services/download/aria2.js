@@ -1,8 +1,6 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const Logger = require('../../shared/logger');
-const log = new Logger('aria2');
 
 const ARIA2C = path.join(__dirname, '..', '..', 'aria2c.exe');
 
@@ -57,8 +55,6 @@ function aria2Download(url, outputPath, options = {}) {
     // outros: 16 (padrao)
     const connections = options.connections || (isArchiveOrg ? 64 : isCoolrom ? 32 : 16);
     const split = options.split || (isArchiveOrg ? 64 : isCoolrom ? 32 : 16);
-    const minSpeed = options.minSpeed || (isArchiveOrg ? '100K' : '1M');
-    const lowestSpeed = options.lowestSpeed || '1K';
     const args = [
       url,
       '--dir=' + path.dirname(outputPath),
@@ -102,7 +98,6 @@ function aria2Download(url, outputPath, options = {}) {
     }
     const proc = spawn(ARIA2C, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let stderr = '';
-    let stdout = '';
     let lastProgress = { percent: 0, speed: null, bytes: 0 };
     let stalledSince = 0;
     let slowSince = 0;
@@ -121,7 +116,7 @@ function aria2Download(url, outputPath, options = {}) {
       }
     }
     proc.stderr.on('data', d => { stderr += d.toString(); handleOutput(d.toString()); });
-    proc.stdout.on('data', d => { stdout += d.toString(); handleOutput(d.toString()); });
+    proc.stdout.on('data', d => { handleOutput(d.toString()); });
 
     speedCheckTimer = setInterval(() => {
       const mbps = speedToMbps(lastProgress.speed);
@@ -155,4 +150,4 @@ function aria2Download(url, outputPath, options = {}) {
   });
 }
 
-module.exports = { aria2Download };
+module.exports = { aria2Download, parseSpeed, parseProgress, parseSize, speedToMbps };

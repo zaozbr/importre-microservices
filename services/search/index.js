@@ -34,7 +34,7 @@ async function processOne() {
   return true;
 }
 
-async function workerLoop(id) {
+async function workerLoop(_id) {
   while (true) {
     const hadWork = await processOne();
     if (!hadWork) await new Promise(r => setTimeout(r, 2000));

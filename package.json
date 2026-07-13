@@ -13,7 +13,16 @@
     "queue": "node services/queue/index.js",
     "search": "node services/search/index.js",
     "download": "node services/download/index.js",
-    "chd": "node services/chd/index.js"
+    "chd": "node services/chd/index.js",
+    "lint": "eslint services orchestrator shared tools tests --no-error-on-unmatched-pattern",
+    "lint:fix": "eslint services orchestrator shared tools tests --fix --no-error-on-unmatched-pattern",
+    "lint:report": "eslint services orchestrator shared tools tests --no-error-on-unmatched-pattern -f json -o eslint-report.json || true",
+    "sonar": "sonar-scanner -Dproject.settings=sonar-project.properties",
+    "test": "mocha tests/download/**/*.test.js --timeout 120000 --exit",
+    "test:unit": "mocha tests/download/unit.test.js --timeout 30000 --exit",
+    "test:integration": "mocha tests/download/integration.test.js --timeout 120000 --exit",
+    "test:stress": "mocha tests/download/stress.test.js --timeout 120000 --exit",
+    "test:resilience": "mocha tests/download/resilience.test.js --timeout 120000 --exit"
   },
   "dependencies": {
     "axios": "^1.7.2",
@@ -24,5 +33,12 @@
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "ws": "^8.17.1"
+  },
+  "devDependencies": {
+    "chai": "^4.5.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-sonarjs": "^1.0.4",
+    "globals": "^15.15.0",
+    "mocha": "^11.7.6"
   }
 }

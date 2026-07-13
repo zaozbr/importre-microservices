@@ -1,8 +1,8 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { spawn, execSync } = require('child_process');
-const { PSX_DIR, CHDMAN_PATH, CHD_TEMP_DIR, PORTS, WORKERS } = require('../../shared/config');
+const { spawn } = require('child_process');
+const { PSX_DIR, CHDMAN_PATH, PORTS, WORKERS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
 
 const log = new Logger('chd-service');
@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use('/shared', express.static(path.join(__dirname, '..', '..', 'shared')));
 
-let status = { 
+const status = { 
   ready: 0, 
   converting: [], 
   completed: 0, 
@@ -49,7 +49,7 @@ function extractArchive(archPath) {
     const args = ['x', '-y', `-o${PSX_DIR}`, archPath];
     const proc = spawn(sevenZip, args, { windowsHide: true });
     let stderr = '';
-    proc.stderr.on('data', d => stderr += d.toString());
+    proc.stderr.on('data', d => { stderr += d.toString(); });
     proc.on('exit', (code) => {
       if (code === 0) {
         // Apaga o archive apos extrair
@@ -117,8 +117,8 @@ function convertOne(job) {
     status.converting.push(job.chdName);
     const proc = spawn(CHDMAN_PATH, ['createcd', '-i', job.cuePath, '-o', job.chdPath, '-f'], { cwd: PSX_DIR });
     let stderr = '';
-    proc.stderr.on('data', d => stderr += d.toString());
-    proc.on('exit', (code) => {
+    proc.stderr.on('data', d => { stderr += d.toString(); });
+    proc.on('exit', (_code) => {
       status.converting = status.converting.filter(n => n !== job.chdName);
       const ok = fs.existsSync(job.chdPath) && fs.statSync(job.chdPath).size > 1024 * 1024;
       if (ok) {

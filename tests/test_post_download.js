@@ -13,7 +13,6 @@ console.log('=== Testes: Fluxo pós-download ===\n');
 console.log('Teste 1: validateExtractedContent com serial presente');
 {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-psx-'));
-  const origReadDir = fs.readdirSync;
   // Mock: cria arquivo .chd com serial no nome
   fs.writeFileSync(path.join(tmpDir, 'Crash-Bandicoot-SLUS-00362.chd'), 'fake');
   

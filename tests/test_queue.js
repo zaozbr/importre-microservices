@@ -92,7 +92,6 @@ test('saveQueue escreve atomicamente via tmp+rename', () => {
 // Teste 4: canRetry - item nunca falhou pode retry
 test('canRetry: item sem last_failed pode retry', () => {
   const item = { retry_count: 0, last_failed: null };
-  const retries = item.retry_count || 0;
   const lastFail = item.last_failed ? new Date(item.last_failed).getTime() : 0;
   assert.ok(lastFail === 0, 'lastFail deve ser 0');
   // sem lastFail = pode retry

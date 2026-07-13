@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 const { LOG_PATH } = require('./config');
 
 class Logger {

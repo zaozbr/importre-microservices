@@ -1,4 +1,4 @@
-const { normalize, titleScore } = require('../services/search/plugins/_base');
+const { titleScore } = require('../services/search/plugins/_base');
 
 // Testa casos problematicos
 const tests = [

@@ -14,7 +14,6 @@ const CHECK_INTERVAL = 15000; // 15s
 const LOG_FILE = path.join('D:\\roms\\library\\roms\\_importre_state', 'orchestrator_watchdog.log');
 
 let orchProcess = null;
-let lastCheck = Date.now();
 
 function log(msg) {
   const ts = new Date().toISOString();
@@ -75,16 +74,16 @@ async function loop() {
       setTimeout(() => startOrchestrator(), 2000);
     }
   }
-  lastCheck = Date.now();
 }
 
 // Iniciar
 log('Watchdog do orchestrator iniciado');
-if (!await checkOrchestrator()) {
-  startOrchestrator();
-}
-
-setInterval(loop, CHECK_INTERVAL);
+(async () => {
+  if (!await checkOrchestrator()) {
+    startOrchestrator();
+  }
+  setInterval(loop, CHECK_INTERVAL);
+})();
 
 // Graceful shutdown
 process.on('SIGINT', () => {

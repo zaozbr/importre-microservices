@@ -6,7 +6,7 @@ module.exports = {
   needsMultiChunk: false,
   priority: 27,
   enabled: true,
-  search(serial, title) {
+  search(serial, _title) {
     if (!serial.startsWith('HBREW-')) return [];
     const idx = loadJson('homebrew_index.json');
     const info = idx[serial];

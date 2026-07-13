@@ -5,19 +5,23 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS } = require('../../shared/config');
-const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { 'archive.org': 2, 'archive.org-jp': 2, 'coolrom': 5, 'round_robin': 5 };
+const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { [ARCHIVE_ORG]: 2, [ARCHIVE_ORG_JP]: 2, 'coolrom': 5, 'round_robin': 5 };
 const Logger = require('../../shared/logger');
 const { aria2Download } = require('./aria2');
 
 const log = new Logger('download-service');
+
+// Constantes de fontes (evita duplicacao de string)
+const ARCHIVE_ORG = 'archive.org';
+const ARCHIVE_ORG_JP = 'archive.org-jp';
 const app = express();
 app.use(express.json());
 app.use('/shared', express.static(path.join(__dirname, '..', '..', 'shared')));
 
 const QUEUE_URL = `http://127.0.0.1:${PORTS.QUEUE}`;
 
-let status = { active: 0, completed: 0, failed: 0 };
-let activeDownloads = new Map(); // serial -> { progress, speed, source, startedAt }
+const status = { active: 0, completed: 0, failed: 0 };
+const activeDownloads = new Map(); // serial -> { progress, speed, source, startedAt }
 
 // Controle de slots concorrentes por fonte (evita race condition entre workers)
 const sourceSlots = new Map(); // site -> { current, max, waiters }
@@ -74,203 +78,154 @@ async function resolvePageDownload(pageUrl, siteHint) {
   const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' };
   const res = await axios.get(pageUrl, { headers, timeout: 20000 });
   const $ = cheerio.load(res.data);
-  
-  // === CoolROM ===
+
   if (siteHint === 'coolrom' || pageUrl.includes('coolrom')) {
-    const link = $('a[href*="dl.coolrom"]').attr('href');
-    if (link) return link;
+    return resolveCoolrom($);
   }
-  
-  // === Vimm: extrai mediaId do HTML, GET dl3 com cookies ===
   if (siteHint === 'vimm' || pageUrl.includes('vimm.net')) {
-    // Extrai cookies da resposta (PHPSESSID é necessario)
-    const setCookies = res.headers['set-cookie'];
-    const cookieStr = setCookies 
-      ? (Array.isArray(setCookies) ? setCookies : [setCookies])
-          .map(c => c.split(';')[0]).join('; ')
-      : '';
-    
-    // Procura mediaId no JavaScript embutido
-    const scriptText = $('script').map((i, el) => $(el).html()).get().join('\n');
-    const mediaMatch = scriptText.match(/"ID":(\d+)/);
-    const mediaId = mediaMatch ? mediaMatch[1] : null;
-    
-    if (mediaId) {
-      // GET dl3.vimm.net com cookies + Referer retorna o arquivo direto
-      const dlUrl = `https://dl3.vimm.net/?mediaId=${mediaId}&alt=0`;
-      log.info(`Vimm resolvido: ${dlUrl} (cookies: ${cookieStr ? 'sim' : 'nao'})`);
-      // Retorna URL especial com cookies embutidos via header customizado
-      // O aria2/axios precisa do Cookie header - armazenamos nos metadados
-      return { url: dlUrl, headers: { 'Cookie': cookieStr, 'Referer': pageUrl } };
-    }
-    throw new Error('vimm: mediaId nao encontrado');
+    return resolveVimm($, res, pageUrl);
   }
-  
-  // === RetroStic: POST com session/rom_url/console_url ===
   if (siteHint === 'retrostic' || pageUrl.includes('retrostic')) {
-    // Extrai form de download com campos hidden
-    const form = $('form[action*="download"]');
-    if (form.length) {
-      const formData = {};
-      form.find('input').each((i, el) => {
-        const name = $(el).attr('name');
-        const value = $(el).attr('value');
-        if (name) formData[name] = value || '';
-      });
-      
-      // POST para {pageUrl}/download
-      const dlUrl = pageUrl.endsWith('/') ? pageUrl + 'download' : pageUrl + '/download';
-      const postRes = await axios.post(dlUrl, new URLSearchParams(formData).toString(), {
-        headers: { 
-          ...headers, 
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Referer': pageUrl
-        },
-        timeout: 20000,
-        maxRedirects: 0,
-        validateStatus: s => s < 400
-      });
-      
-      // Extrai URL do JS redirect
-      const jsMatch = postRes.data.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
-      if (jsMatch) return jsMatch[1];
-      
-      // Ou procura link direto na resposta
-      const $resp = cheerio.load(postRes.data);
-      const directLink = $resp('a[href*=".7z"], a[href*=".zip"], a[href*=".rar"], a[href*=".iso"]').attr('href');
-      if (directLink) return directLink;
-      
-      throw new Error('retrostic: URL nao extraida do POST');
-    }
-    throw new Error('retrostic: form de download nao encontrado');
+    return resolveRetrostic($, pageUrl, headers);
   }
-  
-  // === RomsDL: POST com form data (rom_url, console_url, session) para /download ===
   if (siteHint === 'romsdl' || pageUrl.includes('romsdl')) {
-    // Normalizar para romsdl.com (sem www) — o redirect 301 www→non-www invalida a sessao
-    const baseUrl = pageUrl.replace('://www.romsdl.com', '://romsdl.com');
-    const dlUrl = baseUrl.endsWith('/') ? baseUrl + 'download' : baseUrl + '/download';
-
-    // Extrair campos do formulario de download da pagina (ja carregada em $)
-    const dlForm = $('form[action$="/download"][method="post"]').first();
-    const formData = {};
-    if (dlForm.length) {
-      dlForm.find('input').each((_, el) => {
-        const name = $(el).attr('name');
-        const value = $(el).attr('value');
-        if (name) formData[name] = value;
-      });
-    }
-
-    // Extrair cookies da resposta GET (necessarios para sessao valida)
-    const setCookies = res.headers['set-cookie'];
-    const cookieStr = setCookies
-      ? (Array.isArray(setCookies) ? setCookies : [setCookies])
-          .map(c => c.split(';')[0]).join('; ')
-      : '';
-
-    // Se nao ha formulario na pagina, re-faz GET na URL non-www para obter sessao
-    let formDataFinal = formData;
-    let cookieFinal = cookieStr;
-    if (!formDataFinal.session) {
-      const reGet = await axios.get(baseUrl, { headers, timeout: 20000, maxRedirects: 5 });
-      const $re = cheerio.load(reGet.data);
-      const reForm = $re('form[action$="/download"][method="post"]').first();
-      if (reForm.length) {
-        formDataFinal = {};
-        reForm.find('input').each((_, el) => {
-          const name = $re(el).attr('name');
-          const value = $re(el).attr('value');
-          if (name) formDataFinal[name] = value;
-        });
-      }
-      const reCookies = reGet.headers['set-cookie'];
-      cookieFinal = reCookies
-        ? (Array.isArray(reCookies) ? reCookies : [reCookies])
-            .map(c => c.split(';')[0]).join('; ')
-        : cookieStr;
-    }
-
-    log.info(`romsdl: POST form data=${JSON.stringify(formDataFinal)} cookies=${cookieFinal ? 'sim' : 'nao'}`);
-
-    let postRes;
-    try {
-      postRes = await axios.post(dlUrl, new URLSearchParams(formDataFinal).toString(), {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Referer': baseUrl,
-          ...(cookieFinal ? { 'Cookie': cookieFinal } : {}),
-        },
-        timeout: 20000,
-        maxRedirects: 5,
-        validateStatus: s => s < 400
-      });
-    } catch (e) {
-      // Se 302 redirect, pega Location
-      if (e.response && e.response.headers && e.response.headers.location) {
-        return e.response.headers.location;
-      }
-      throw new Error('romsdl: POST falhou: ' + e.message);
-    }
-
-    // Se redirect seguido, verifica URL final
-    const finalUrl = postRes.request?.res?.responseUrl || postRes.config?.url;
-    if (finalUrl && /\.(7z|zip|rar|iso|bin)$/i.test(finalUrl)) {
-      return finalUrl;
-    }
-
-    // Metodo 1: link direto <a> com extensao
-    const respData = typeof postRes.data === 'string' ? postRes.data : '';
-    const $resp = cheerio.load(respData);
-    const directLink = $resp('a[href*=".7z"], a[href*=".zip"], a[href*=".rar"], a[href*=".iso"], a[href*=".bin"]').attr('href');
-    if (directLink) return directLink;
-
-    // Metodo 2: JS redirect (window.location.href = "url")
-    const jsMatch = respData.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
-    if (jsMatch) return jsMatch[1];
-
-    // Metodo 3: meta refresh
-    const metaMatch = respData.match(/<meta[^>]+refresh[^>]+url=([^"'>]+)/i);
-    if (metaMatch) return metaMatch[1];
-
-    // Metodo 4: Location header
-    if (postRes.headers && postRes.headers.location) {
-      return postRes.headers.location;
-    }
-
-    // Diagnostico: se a pagina de erro foi retornada
-    if (respData.includes('Invalid session')) {
-      throw new Error('romsdl: sessao invalida — session token expirado ou invalido');
-    }
-    if (respData.includes('An Error Occurred')) {
-      throw new Error('romsdl: pagina de erro retornada pelo site');
-    }
-
-    throw new Error('romsdl: URL nao extraida do POST');
+    return resolveRomsdl($, res, pageUrl, headers);
   }
-  
-  // === RomsRetro: link direto dl.romsretro.com ===
   if (siteHint === 'romsretro' || pageUrl.includes('romsretro')) {
-    const dlLink = $('a[href*="dl.romsretro.com"]').attr('href');
-    if (dlLink) return dlLink;
+    const dl = resolveRomsretro($);
+    if (dl) return dl;
   }
-  
-  // === Generico: procura link com extensao ===
+  return resolveGenericLink($, pageUrl);
+}
+
+function resolveCoolrom($) {
+  const link = $('a[href*="dl.coolrom"]').attr('href');
+  if (link) return link;
+  throw new Error('coolrom: link de download nao encontrado');
+}
+
+function resolveVimm($, res, pageUrl) {
+  const setCookies = res.headers['set-cookie'];
+  const cookieStr = setCookies
+    ? (Array.isArray(setCookies) ? setCookies : [setCookies])
+        .map(c => c.split(';')[0]).join('; ')
+    : '';
+  const scriptText = $('script').map((i, el) => $(el).html()).get().join('\n');
+  const mediaMatch = scriptText.match(/"ID":(\d+)/);
+  const mediaId = mediaMatch ? mediaMatch[1] : null;
+  if (!mediaId) throw new Error('vimm: mediaId nao encontrado');
+  const dlUrl = `https://dl3.vimm.net/?mediaId=${mediaId}&alt=0`;
+  log.info(`Vimm resolvido: ${dlUrl} (cookies: ${cookieStr ? 'sim' : 'nao'})`);
+  return { url: dlUrl, headers: { 'Cookie': cookieStr, 'Referer': pageUrl } };
+}
+
+async function resolveRetrostic($, pageUrl, headers) {
+  const form = $('form[action*="download"]');
+  if (!form.length) throw new Error('retrostic: form de download nao encontrado');
+  const formData = {};
+  form.find('input').each((i, el) => {
+    const name = $(el).attr('name');
+    const value = $(el).attr('value');
+    if (name) formData[name] = value || '';
+  });
+  const dlUrl = pageUrl.endsWith('/') ? pageUrl + 'download' : pageUrl + '/download';
+  const postRes = await axios.post(dlUrl, new URLSearchParams(formData).toString(), {
+    headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': pageUrl },
+    timeout: 20000, maxRedirects: 0, validateStatus: s => s < 400
+  });
+  const jsMatch = postRes.data.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
+  if (jsMatch) return jsMatch[1];
+  const $resp = cheerio.load(postRes.data);
+  const directLink = $resp('a[href*=".7z"], a[href*=".zip"], a[href*=".rar"], a[href*=".iso"]').attr('href');
+  if (directLink) return directLink;
+  throw new Error('retrostic: URL nao extraida do POST');
+}
+
+function extractCookieStr(res) {
+  const setCookies = res.headers['set-cookie'];
+  return setCookies
+    ? (Array.isArray(setCookies) ? setCookies : [setCookies])
+        .map(c => c.split(';')[0]).join('; ')
+    : '';
+}
+
+function extractFormData($, formSelector) {
+  const form = $(formSelector).first();
+  const formData = {};
+  if (form.length) {
+    form.find('input').each((_, el) => {
+      const name = $(el).attr('name');
+      const value = $(el).attr('value');
+      if (name) formData[name] = value;
+    });
+  }
+  return formData;
+}
+
+async function resolveRomsdl($, res, pageUrl, headers) {
+  const baseUrl = pageUrl.replace('://www.romsdl.com', '://romsdl.com');
+  const dlUrl = baseUrl.endsWith('/') ? baseUrl + 'download' : baseUrl + '/download';
+  let formDataFinal = extractFormData($, 'form[action$="/download"][method="post"]');
+  let cookieFinal = extractCookieStr(res);
+
+  if (!formDataFinal.session) {
+    const reGet = await axios.get(baseUrl, { headers, timeout: 20000, maxRedirects: 5 });
+    const $re = cheerio.load(reGet.data);
+    formDataFinal = extractFormData($re, 'form[action$="/download"][method="post"]');
+    cookieFinal = extractCookieStr(reGet) || cookieFinal;
+  }
+
+  log.info(`romsdl: POST form data=${JSON.stringify(formDataFinal)} cookies=${cookieFinal ? 'sim' : 'nao'}`);
+
+  let postRes;
+  try {
+    postRes = await axios.post(dlUrl, new URLSearchParams(formDataFinal).toString(), {
+      headers: {
+        ...headers, 'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': baseUrl, ...(cookieFinal ? { 'Cookie': cookieFinal } : {}),
+      },
+      timeout: 20000, maxRedirects: 5, validateStatus: s => s < 400
+    });
+  } catch (e) {
+    if (e.response && e.response.headers && e.response.headers.location) {
+      return e.response.headers.location;
+    }
+    throw new Error('romsdl: POST falhou: ' + e.message);
+  }
+
+  const finalUrl = postRes.request?.res?.responseUrl || postRes.config?.url;
+  if (finalUrl && /\.(7z|zip|rar|iso|bin)$/i.test(finalUrl)) return finalUrl;
+
+  const respData = typeof postRes.data === 'string' ? postRes.data : '';
+  const $resp = cheerio.load(respData);
+  const directLink = $resp('a[href*=".7z"], a[href*=".zip"], a[href*=".rar"], a[href*=".iso"], a[href*=".bin"]').attr('href');
+  if (directLink) return directLink;
+
+  const jsMatch = respData.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
+  if (jsMatch) return jsMatch[1];
+
+  const metaMatch = respData.match(/<meta[^>]+refresh[^>]+url=([^"'>]+)/i);
+  if (metaMatch) return metaMatch[1];
+
+  if (postRes.headers && postRes.headers.location) return postRes.headers.location;
+  if (respData.includes('Invalid session')) throw new Error('romsdl: sessao invalida');
+  if (respData.includes('An Error Occurred')) throw new Error('romsdl: pagina de erro');
+  throw new Error('romsdl: URL nao extraida do POST');
+}
+
+function resolveRomsretro($) {
+  return $('a[href*="dl.romsretro.com"]').attr('href') || null;
+}
+
+function resolveGenericLink($, pageUrl) {
   const exts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img', '.chd'];
   let best = null;
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href');
     if (!href) return;
     const lower = href.toLowerCase();
-    if (exts.some(e => lower.includes(e))) {
-      best = href;
-      return false;
-    }
-    if (lower.includes('/download/') && !best) {
-      best = href;
-      return false;
-    }
+    if (exts.some(e => lower.includes(e))) { best = href; return false; }
+    if (lower.includes('/download/') && !best) { best = href; return false; }
   });
   if (!best) throw new Error('link de download nao encontrado');
   if (best.startsWith('http')) return best;
@@ -283,34 +238,41 @@ function testArchive(archivePath) {
     const sevenZip = process.env.SEVEN_ZIP_PATH || 'C:\\Program Files\\7-Zip\\7z.exe';
     const proc = spawn(sevenZip, ['t', archivePath], { windowsHide: true });
     let stderr = '';
-    proc.stderr.on('data', d => stderr += d.toString());
+    proc.stderr.on('data', d => { stderr += d.toString(); });
     proc.on('exit', (code) => {
       if (code === 0) resolve(true);
       else reject(new Error(stderr.slice(0, 200)));
     });
+    proc.on('error', (err) => reject(new Error('7z.exe nao encontrado: ' + err.message)));
   });
 }
 
 function extractWith7z(archivePath, destDir) {
   return new Promise((resolve, reject) => {
     const sevenZip = process.env.SEVEN_ZIP_PATH || 'C:\\Program Files\\7-Zip\\7z.exe';
+    if (!fs.existsSync(destDir)) {
+      try { fs.mkdirSync(destDir, { recursive: true }); } catch (e) {
+        return reject(new Error('destino nao existe e nao pode ser criado: ' + destDir));
+      }
+    }
     const proc = spawn(sevenZip, ['x', '-y', '-o' + destDir, archivePath], { cwd: destDir, windowsHide: true });
     let stderr = '';
-    proc.stderr.on('data', d => stderr += d.toString());
+    proc.stderr.on('data', d => { stderr += d.toString(); });
     proc.on('exit', (code) => {
       if (code === 0) resolve();
       else reject(new Error(stderr.slice(0, 200)));
     });
+    proc.on('error', (err) => reject(new Error('7z.exe nao encontrado: ' + err.message)));
   });
 }
 
 // Valida se o conteudo extraido em PSX_DIR contem o serial esperado
 function validateExtractedContent(serial) {
+  if (!serial) return false;
   try {
     const files = fs.readdirSync(PSX_DIR);
     const serialLower = serial.toLowerCase();
-    // Procura arquivos .chd, .bin, .cue que contenham o serial no nome
-    const matches = files.filter(f => 
+    const matches = files.filter(f =>
       f.toLowerCase().includes(serialLower) &&
       /\.(chd|bin|cue|iso|img)$/i.test(f)
     );
@@ -352,12 +314,9 @@ function endDownloadTracking(serial) {
 }
 
 // === Metricas de resiliencia ===
-let requeueCount = 0;
 let requeueRecent = []; // timestamps dos requeues recentes
-let lastWatchdogStats = null;
 
 function trackRequeue() {
-  requeueCount++;
   const now = Date.now();
   requeueRecent.push(now);
   // Mantem apenas ultimos 60s
@@ -412,8 +371,6 @@ async function performanceWatchdog() {
     } else if (requeueRate > 10) {
       log.warn(`[WATCHDOG] ALERTA: ${requeueRate} requeues em 60s. Possivel spin lock iminente.`);
     }
-    
-    lastWatchdogStats = { active, totalMbps, slowCount, fontesUnicas, bySource, requeueRate };
   }
 }
 
@@ -428,7 +385,7 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
       connections: ARIA2.CONNECTIONS,
       split: ARIA2.SPLIT,
       // minSpeedMbps: nao passar para archive.org (aria2.js usa 0.25 default)
-      ...(url.includes('archive.org') ? {} : { minSpeedMbps: ARIA2.MIN_SPEED_MBPS }),
+      ...(url.includes(ARCHIVE_ORG) ? {} : { minSpeedMbps: ARIA2.MIN_SPEED_MBPS }),
       slowThresholdMs: ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS,
       stalledThresholdMs: ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS + 30000,
       onProgress: (p) => { updateProgress(item.serial, p); },
@@ -438,7 +395,7 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
     log.warn(`aria2 falhou ${item.serial}: ${e.message}. Tentando fallback axios.`);
     const writer = fs.createWriteStream(tmpPath);
     try {
-      const isArchive = url.includes('archive.org');
+      const isArchive = url.includes(ARCHIVE_ORG);
       const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
@@ -462,7 +419,6 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
       });
       response.data.pipe(writer);
       // Stream timeout: 120s + kill se speed < 0.3MB/s por 120s
-      const streamStart = Date.now();
       const STREAM_TIMEOUT_MS = 120000;
       const SLOW_SPEED_THRESHOLD = 0.3; // MB/s
       const SLOW_SPEED_MS = 120000;
@@ -522,7 +478,7 @@ function sortSourcesBySpeed(sources) {
     // CoolROM: rapido mas satura (prioridade media)
     'coolrom': 7,
     // archive.org: lento por arquivo mas estavel (prioridade baixa-media)
-    'archive.org': 5, 'archive.org-jp': 5, 'archive_extra': 5, 'archive_org': 5, 'archive_org_jp': 5,
+    [ARCHIVE_ORG]: 5, [ARCHIVE_ORG_JP]: 5, 'archive_extra': 5, 'archive_org': 5, 'archive_org_jp': 5,
     'archive.org-extra': 5,
     // Fallback web (ultima opcao)
     'google_fallback': 1, 'google-fallback': 1
@@ -532,33 +488,78 @@ function sortSourcesBySpeed(sources) {
   return shuffled.sort((a, b) => (speedMap[b.site] || 5) - (speedMap[a.site] || 5));
 }
 
+function orderSources(sources, preferredSite) {
+  if (preferredSite && preferredSite !== 'any') {
+    const pref = sources.find(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_'));
+    if (pref) return [pref, ...sources.filter(s => s !== pref)];
+  }
+  return sortSourcesBySpeed(sources);
+}
+
+const RESOLVER_SITES = ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro'];
+
+async function tryResolveUrl(source, directExts) {
+  const isDirect = directExts.some(e => source.url.toLowerCase().endsWith(e));
+  if (isDirect && !RESOLVER_SITES.includes(source.site)) return null;
+  const resolved = await resolvePageDownload(source.url, source.site);
+  if (typeof resolved === 'object' && resolved.url) {
+    return { url: resolved.url, extraHeaders: resolved.headers || null };
+  }
+  return { url: resolved, extraHeaders: null };
+}
+
+async function processDownload(item, source, url, sourceIndex, extraHeaders) {
+  const tmpPath = await downloadFile(item, source, url, sourceIndex, extraHeaders);
+  await new Promise(r => setTimeout(r, 2000));
+  if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
+    await validateAndExtract(tmpPath);
+  }
+  const contentOk = validateExtractedContent(item.serial);
+  if (!contentOk) {
+    log.warn(`Conteudo extraido para ${item.serial} nao contem serial - possivel download errado`);
+  }
+  log.info(`Download concluido: ${item.serial} (${source.site})`);
+}
+
+async function validateAndExtract(tmpPath) {
+  let archiveOk = false;
+  let archiveErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await testArchive(tmpPath);
+      archiveOk = true;
+      break;
+    } catch (err) {
+      archiveErr = err;
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  if (!archiveOk) {
+    try { fs.unlinkSync(tmpPath); } catch (e) {}
+    throw new Error('arquivo corrompido: ' + archiveErr.message);
+  }
+  try {
+    await extractWith7z(tmpPath, PSX_DIR);
+    fs.unlinkSync(tmpPath);
+  } catch (extractErr) {
+    try { fs.unlinkSync(tmpPath); } catch (e) {}
+    throw new Error('extracao falhou: ' + extractErr.message);
+  }
+}
+
 async function resolveAndDownload(item, sources, preferredSite) {
   if (!sources || !sources.length) throw new Error('sem sources');
   const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img', '.chd'];
-  // Se tem fonte preferida, coloca ela primeiro ANTES do sort
-  if (preferredSite && preferredSite !== 'any') {
-    const pref = sources.find(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_'));
-    if (pref) {
-      sources = [pref, ...sources.filter(s => s !== pref)];
-    } else {
-      sources = sortSourcesBySpeed(sources);
-    }
-  } else {
-    sources = sortSourcesBySpeed(sources);
-  }
+  const orderedSources = orderSources(sources, preferredSite);
   const errors = [];
-  for (let i = 0; i < sources.length; i++) {
-    const source = sources[i];
+  for (let i = 0; i < orderedSources.length; i++) {
+    const source = orderedSources[i];
     if (!source.url) continue;
-    // Verifica se ha slot disponivel antes de tentar
     const slotState = getSlotState(source.site);
     if (slotState.current >= slotState.max) {
-      // Se e a fonte preferida (worker dedicado), ESPERA o slot
       if (preferredSite && (source.site === preferredSite || source.site === preferredSite.replace('.', '_'))) {
         log.info(`Worker dedicado ${preferredSite} esperando slot para ${item.serial}...`);
-        // acquireSourceSlot vai esperar com timeout de 5min
       } else {
-        // Se nao e a preferida, pula para proxima fonte
         log.info(`Slot cheio para ${source.site}, pulando para proxima fonte de ${item.serial}`);
         errors.push(`${source.site}: slot cheio`);
         continue;
@@ -566,61 +567,17 @@ async function resolveAndDownload(item, sources, preferredSite) {
     }
     let url = source.url;
     let extraHeaders = null;
-    const isDirect = directExts.some(e => source.url.toLowerCase().endsWith(e));
-    if (!isDirect || ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro'].includes(source.site)) {
-      try {
-        const resolved = await resolvePageDownload(source.url, source.site);
-        if (typeof resolved === 'object' && resolved.url) {
-          url = resolved.url;
-          extraHeaders = resolved.headers || null;
-        } else {
-          url = resolved;
-        }
-      } catch (e) {
-        log.warn(`Nao foi possivel resolver pagina ${source.site} para ${item.serial}: ${e.message}`);
-        errors.push(`${source.site}: ${e.message}`);
-        continue;
-      }
+    try {
+      const resolved = await tryResolveUrl(source, directExts);
+      if (resolved) { url = resolved.url; extraHeaders = resolved.extraHeaders; }
+    } catch (e) {
+      log.warn(`Nao foi possivel resolver pagina ${source.site} para ${item.serial}: ${e.message}`);
+      errors.push(`${source.site}: ${e.message}`);
+      continue;
     }
     try {
-      const tmpPath = await downloadFile(item, source, url, i, extraHeaders);
-      // aguarda handles serem liberados
-      await new Promise(r => setTimeout(r, 2000));
-      if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
-        let archiveOk = false;
-        let archiveErr = null;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            await testArchive(tmpPath);
-            archiveOk = true;
-            break;
-          } catch (err) {
-            archiveErr = err;
-            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-          }
-        }
-        if (!archiveOk) {
-          try { fs.unlinkSync(tmpPath); } catch (e) {}
-          throw new Error('arquivo corrompido: ' + archiveErr.message);
-        }
-        try {
-          await extractWith7z(tmpPath, PSX_DIR);
-          fs.unlinkSync(tmpPath);
-        } catch (extractErr) {
-          try { fs.unlinkSync(tmpPath); } catch (e) {}
-          throw new Error('extracao falhou: ' + extractErr.message);
-        }
-      }
-      // Valida se o conteudo extraido contem o serial esperado
-      // Se nao encontrar, era download errado (ex: coolrom com cache bug)
-      const contentOk = validateExtractedContent(item.serial);
-      if (!contentOk) {
-        log.warn(`Conteudo extraido para ${item.serial} nao contem serial - possivel download errado`);
-        // Nao falha imediatamente - pode ser .chd direto sem serial no nome
-        // Mas marca como suspeito para verificacao posterior
-      }
-      log.info(`Download concluido: ${item.serial} (${source.site})`);
-      return; // sucesso
+      await processDownload(item, source, url, i, extraHeaders);
+      return;
     } catch (e) {
       log.warn(`Download fonte #${i + 1} (${source.site}) falhou para ${item.serial}: ${e.message}`);
       errors.push(`${source.site}: ${e.message}`);
@@ -662,60 +619,13 @@ const rrSources = [
   'homebrew'            // RR 9
 ];
 
-async function processOneWithPreferredSource(preferredSite) {
-  // Se a fonte preferida esta em cooldown (ex: 429), espera antes de pegar item
-  if (preferredSite && preferredSite !== 'any' && isSourceInCooldown(preferredSite)) {
-    const remaining = Math.ceil((sourceCooldown.get(preferredSite) - Date.now()) / 1000);
-    log.info(`Worker ${preferredSite} aguardando cooldown (${remaining}s)...`);
-    await new Promise(r => setTimeout(r, Math.min(remaining * 1000, 30000)));
-    return false; // nao pegou item, loop espera 3s e re-tenta
-  }
-  // Pega item ready com fonte preferida via queue service
-  // RR workers: tenta fonte dedicada primeiro, fallback para 'any' apos 2 tentativas
-  let res = await queueRequest('post', '/queue/next-ready', { preferredSite });
-  if ((!res || !res.item) && preferredSite && preferredSite !== 'any') {
-    // Fallback: pega qualquer item ready (worker nao fica ocioso)
-    res = await queueRequest('post', '/queue/next-ready', { preferredSite: 'any' });
-  }
-  if (!res || !res.item) return false;
-  const item = res.item;
-
-  if (!item.sources || !item.sources.length) {
-    await queueRequest('post', '/queue/fail', { serial: item.serial, reason: 'sem URL' });
-    return true;
-  }
-
-  // Se tem fonte preferida, reordena sources para ela primeiro
-  if (preferredSite && preferredSite !== 'any') {
-    const pref = item.sources.find(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_'));
-    if (pref) {
-      item.sources = [pref, ...item.sources.filter(s => s !== pref)];
-    }
-  }
-
-  // Verifica se pelo menos uma fonte tem slot disponivel
-  const hasAvailableSlot = item.sources.some(s => {
-    const st = getSlotState(s.site);
-    return st.current < st.max;
-  });
-  if (!hasAvailableSlot) {
-    // Devolve para a fila com cooldown - todos slots cheios
-    trackRequeue();
-    await queueRequest('post', '/queue/requeue', { serial: item.serial });
-    log.info(`Item ${item.serial} devolvido (cooldown 15s) - todos slots cheios`);
-    // Espera 5s antes de pegar proximo item (evita spin)
-    await new Promise(r => setTimeout(r, 5000));
-    return true;
-  }
-
-  status.active++;
+async function executeDownloadWithRetry(item, preferredSite, maxAttempts) {
   let success = false;
   let lastError = null;
-  const MAX_ATTEMPTS = 2; // era 3 - reduzido para evitar workers presos
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       if (attempt > 0) {
-        log.info(`Retry ${attempt}/${MAX_ATTEMPTS} para ${item.serial}...`);
+        log.info(`Retry ${attempt}/${maxAttempts} para ${item.serial}...`);
         await new Promise(r => setTimeout(r, 3000 * attempt));
       }
       log.info(`Download ${item.serial}: ${item.sources.length} fontes (tentativa ${attempt + 1}) [worker: ${preferredSite}]`);
@@ -726,27 +636,63 @@ async function processOneWithPreferredSource(preferredSite) {
       break;
     } catch (e) {
       lastError = e;
-      // Detecta 429 (rate limit) e coloca fonte em cooldown
       if (e.message && e.message.includes('429')) {
-        setSourceCooldown(preferredSite, 60000); // 60s cooldown para rate limit
+        setSourceCooldown(preferredSite, 60000);
       }
-      log.warn(`Tentativa ${attempt + 1}/${MAX_ATTEMPTS} falhou para ${item.serial}: ${e.message}`);
+      log.warn(`Tentativa ${attempt + 1}/${maxAttempts} falhou para ${item.serial}: ${e.message}`);
     }
   }
-  if (!success) {
-    log.error(`Download falhou definitivo ${item.serial}: ${lastError?.message}`);
-    // Item falhou - devolve para fila com cooldown (retry depois, nao marca como failed permanente)
-    item.retry_count = (item.retry_count || 0) + 1;
-    if (item.retry_count >= 5) {
-      // 5 falhas = marca como failed definitivo
-      await queueRequest('post', '/queue/fail', { serial: item.serial, reason: lastError?.message || 'erro desconhecido' });
-      status.failed++;
-    } else {
-      // Devolve para cooldown (tenta de novo em 30s)
-      await queueRequest('post', '/queue/requeue', { serial: item.serial });
-      log.info(`Item ${item.serial} devolvido para retry (${item.retry_count}/5 falhas)`);
-    }
+  return { success, lastError };
+}
+
+async function handleDownloadFailure(item, lastError) {
+  log.error(`Download falhou definitivo ${item.serial}: ${lastError?.message}`);
+  item.retry_count = (item.retry_count || 0) + 1;
+  if (item.retry_count >= 5) {
+    await queueRequest('post', '/queue/fail', { serial: item.serial, reason: lastError?.message || 'erro desconhecido' });
+    status.failed++;
+  } else {
+    await queueRequest('post', '/queue/requeue', { serial: item.serial });
+    log.info(`Item ${item.serial} devolvido para retry (${item.retry_count}/5 falhas)`);
   }
+}
+
+async function processOneWithPreferredSource(preferredSite) {
+  if (preferredSite && preferredSite !== 'any' && isSourceInCooldown(preferredSite)) {
+    const remaining = Math.ceil((sourceCooldown.get(preferredSite) - Date.now()) / 1000);
+    log.info(`Worker ${preferredSite} aguardando cooldown (${remaining}s)...`);
+    await new Promise(r => setTimeout(r, Math.min(remaining * 1000, 30000)));
+    return false;
+  }
+  let res = await queueRequest('post', '/queue/next-ready', { preferredSite });
+  if ((!res || !res.item) && preferredSite && preferredSite !== 'any') {
+    res = await queueRequest('post', '/queue/next-ready', { preferredSite: 'any' });
+  }
+  if (!res || !res.item) return false;
+  const item = res.item;
+
+  if (!item.sources || !item.sources.length) {
+    await queueRequest('post', '/queue/fail', { serial: item.serial, reason: 'sem URL' });
+    return true;
+  }
+
+  if (preferredSite && preferredSite !== 'any') {
+    const pref = item.sources.find(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_'));
+    if (pref) item.sources = [pref, ...item.sources.filter(s => s !== pref)];
+  }
+
+  const hasAvailableSlot = item.sources.some(s => getSlotState(s.site).current < getSlotState(s.site).max);
+  if (!hasAvailableSlot) {
+    trackRequeue();
+    await queueRequest('post', '/queue/requeue', { serial: item.serial });
+    log.info(`Item ${item.serial} devolvido (cooldown 15s) - todos slots cheios`);
+    await new Promise(r => setTimeout(r, 5000));
+    return true;
+  }
+
+  status.active++;
+  const { success, lastError } = await executeDownloadWithRetry(item, preferredSite, 2);
+  if (!success) await handleDownloadFailure(item, lastError);
   status.active--;
   return true;
 }
@@ -777,12 +723,12 @@ async function loop() {
   let id = 0;
   
   // Workers dedicados para archive.org (2)
-  for (let i = 0; i < (alloc['archive.org'] || 2); i++) {
-    workers.push(dedicatedWorkerLoop(id++, 'archive.org'));
+  for (let i = 0; i < (alloc[ARCHIVE_ORG] || 2); i++) {
+    workers.push(dedicatedWorkerLoop(id++, ARCHIVE_ORG));
   }
   // Workers dedicados para archive.org-jp (2)
-  for (let i = 0; i < (alloc['archive.org-jp'] || 2); i++) {
-    workers.push(dedicatedWorkerLoop(id++, 'archive.org-jp'));
+  for (let i = 0; i < (alloc[ARCHIVE_ORG_JP] || 2); i++) {
+    workers.push(dedicatedWorkerLoop(id++, ARCHIVE_ORG_JP));
   }
   // Workers dedicados para coolrom (5)
   for (let i = 0; i < (alloc['coolrom'] || 5); i++) {
@@ -796,7 +742,7 @@ async function loop() {
   }
   
   const fontesUnicas = 3 + Math.min(rrCount, rrSources.length); // archive.org + archive.org-jp + coolrom + RR unicos
-  log.info(`Iniciando ${workers.length} workers: ${alloc['archive.org']||2} archive.org + ${alloc['archive.org-jp']||2} archive.org-jp + ${alloc['coolrom']||5} coolrom + ${rrCount} RR fixos. Meta: ${fontesUnicas} fontes unicas`);
+  log.info(`Iniciando ${workers.length} workers: ${alloc[ARCHIVE_ORG]||2} ${ARCHIVE_ORG} + ${alloc[ARCHIVE_ORG_JP]||2} ${ARCHIVE_ORG_JP} + ${alloc['coolrom']||5} coolrom + ${rrCount} RR fixos. Meta: ${fontesUnicas} fontes unicas`);
   await Promise.all(workers);
 }
 
@@ -821,15 +767,57 @@ app.get('/queue-proxy', async (req, res) => {
   } catch (e) { res.json({ error: e.message }); }
 });
 
-const server = app.listen(PORTS.DOWNLOAD, '127.0.0.1', () => {
-  log.info(`Download service em http://127.0.0.1:${PORTS.DOWNLOAD}`);
-  loop();
-  performanceWatchdog();
-});
-server.on('error', (e) => {
-  if (e.code === 'EADDRINUSE') {
-    log.error(`Porta ${PORTS.DOWNLOAD} em uso. Encerrando (outra instancia ja rodando).`);
-    process.exit(1);
-  }
-  log.error(`Erro no servidor: ${e.message}`);
-});
+// === Exports para testes ===
+module.exports = {
+  resolvePageDownload,
+  resolveCoolrom,
+  resolveVimm,
+  resolveRetrostic,
+  resolveRomsdl,
+  resolveRomsretro,
+  resolveGenericLink,
+  extractCookieStr,
+  extractFormData,
+  speedToMbps,
+  sortSourcesBySpeed,
+  orderSources,
+  tryResolveUrl,
+  validateAndExtract,
+  resolveAndDownload,
+  processOneWithPreferredSource,
+  executeDownloadWithRetry,
+  handleDownloadFailure,
+  getSlotState,
+  acquireSourceSlot,
+  releaseSourceSlot,
+  startDownloadTracking,
+  endDownloadTracking,
+  trackRequeue,
+  isSourceInCooldown,
+  setSourceCooldown,
+  validateExtractedContent,
+  testArchive,
+  extractWith7z,
+  downloadFile,
+  status,
+  activeDownloads,
+  sourceSlots,
+  sourceCooldown,
+  app,
+};
+
+// === Inicializacao do servidor (so quando executado diretamente) ===
+if (require.main === module) {
+  const server = app.listen(PORTS.DOWNLOAD, '127.0.0.1', () => {
+    log.info(`Download service em http://127.0.0.1:${PORTS.DOWNLOAD}`);
+    loop();
+    performanceWatchdog();
+  });
+  server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+      log.error(`Porta ${PORTS.DOWNLOAD} em uso. Encerrando (outra instancia ja rodando).`);
+      process.exit(1);
+    }
+    log.error(`Erro no servidor: ${e.message}`);
+  });
+}

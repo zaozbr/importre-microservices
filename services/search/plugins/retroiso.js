@@ -1,4 +1,4 @@
-const { loadJson, normalize, titleScore, buildSource } = require('./_base');
+const { loadJson, normalize, buildSource } = require('./_base');
 
 module.exports = {
   name: 'retroiso',
