@@ -29,7 +29,7 @@ function getSlotState(site) {
   return sourceSlots.get(site);
 }
 
-function acquireSourceSlot(site, timeoutMs = 10000) {
+function acquireSourceSlot(site, timeoutMs = 60000) {
   return new Promise((resolve, reject) => {
     const state = getSlotState(site);
     if (state.current < state.max) {
