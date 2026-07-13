@@ -1,0 +1,20 @@
+Importre Microservices:
+  Dashboard:
+    ☐ Integrar 100% com a extensão TODOs Tree
+    ☐ Ajustar altura dos blocos para evitar scroll duplo
+    ☐ Adicionar refresh manual no dashboard
+  Downloads:
+    ☐ Monitorar performance do archive.org (<1MB/s = alerta)
+    ☐ Aumentar paralelismo se necessario
+  Search:
+    ☐ Adicionar archive_name_index aos plugins
+    ☐ Melhorar resolvers CoolROM, Vimm, RetroStic, RomsDL
+    ☐ Otimizar ou desativar google-fallback
+  Testes:
+    ☐ Criar testes automatizados para search
+    ☐ Criar testes automatizados para download
+  CHD:
+    ☐ Verificar conversões pendentes
+    ☐ Tratar arquivos .bin/.img/.iso nao alinhados a setor
+  Infra:
+    ☐ Revisar MCP servers built-in (devin/git, devin/fetch) que falham sem auth
