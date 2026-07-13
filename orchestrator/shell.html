@@ -62,6 +62,10 @@ function control(action){
   fetch('/api/control/'+action).then(r=>r.json()).then(d=>{
     document.getElementById('ctrl-state').textContent = (d.state||'running').toUpperCase();
     document.getElementById('ctrl-state').className = 'ctrl-state st-'+(d.state||'running');
+    if(d.result){
+      const r = d.result;
+      alert(`${action.toUpperCase()} OK\nServicos mortos: ${(r.killed||[]).join(', ')}\nIn_progress limpos: ${r.cleaned||0}\nPortas livres: ${r.portsFree?'sim':'nao'}`);
+    }
   }).catch(()=>alert('Servidor offline'));
 }
 function reprocessFailures(){
