@@ -427,7 +427,8 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
     await aria2Download(url, tmpPath, {
       connections: ARIA2.CONNECTIONS,
       split: ARIA2.SPLIT,
-      minSpeedMbps: ARIA2.MIN_SPEED_MBPS,
+      // minSpeedMbps: nao passar para archive.org (aria2.js usa 0.25 default)
+      ...(url.includes('archive.org') ? {} : { minSpeedMbps: ARIA2.MIN_SPEED_MBPS }),
       slowThresholdMs: ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS,
       stalledThresholdMs: ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS + 30000,
       onProgress: (p) => { updateProgress(item.serial, p); },
@@ -460,11 +461,11 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
         headers
       });
       response.data.pipe(writer);
-      // Stream timeout: 120s + kill se speed < 1MB/s por 60s
+      // Stream timeout: 120s + kill se speed < 0.3MB/s por 120s
       const streamStart = Date.now();
       const STREAM_TIMEOUT_MS = 120000;
-      const SLOW_SPEED_THRESHOLD = 1.0; // MB/s
-      const SLOW_SPEED_MS = 60000;
+      const SLOW_SPEED_THRESHOLD = 0.3; // MB/s
+      const SLOW_SPEED_MS = 120000;
       let streamSlowSince = 0;
       let lastStreamSpeed = 0;
       // Monitora bytes recebidos para detectar speed baixo
