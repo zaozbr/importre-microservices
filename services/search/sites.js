@@ -49,8 +49,12 @@ async function searchAll(serial, title) {
   }
 
   // 2. Buscas online em paralelo (timeout generoso)
+  // Fontes novas (romsfun, consoleroms) sempre executam para popular a fila
+  const prioritySources = ['romsfun', 'consoleroms', 'cdromance', 'romsretro'];
   const onlineNames = names.filter(n => pluginPriority(n) < 50 && isEnabled(n) && !['google_fallback', 'bing_fallback', 'duckduckgo_fallback'].includes(n));
   const onlinePromises = onlineNames.map(async name => {
+    // Fontes prioritarias sempre executam; outras so se poucos resultados
+    if (!prioritySources.includes(name) && results.length >= 10) return [];
     try { return await searchWithTimeout(name, serial, title, 25000); } catch (e) { return []; }
   });
   const onlineResults = (await Promise.all(onlinePromises)).flat();

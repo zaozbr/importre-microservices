@@ -63,7 +63,7 @@ module.exports = {
     'consoleroms': 2,
     'freeroms': 2,
     'cdromance': 2,
-    'romsfun': 2
+    'romsfun': 3
   },
   // Alocação obrigatória: 2 archive.org + 2 archive.org-jp + 5 coolrom + 10 RR
   // Total: 19 workers, mínimo 10 fontes diferentes ativas

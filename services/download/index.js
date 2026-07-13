@@ -474,7 +474,7 @@ function sortSourcesBySpeed(sources) {
     'retromania': 10, 'romspure': 10, 'romsretro': 10, 'blueroms': 10, 'consoleroms': 10,
     'hexrom': 10, 'freeroms': 10, 'classicgames': 10, 'oldiesnest': 10, 'playretrogames': 10,
     'roms2000': 10, 'romulation': 10, 'retrogames_cc': 10, 'retrogames_games': 10,
-    'myrient': 10, 'homebrew': 10, 'retroiso': 10,
+    'myrient': 10, 'homebrew': 10, 'retroiso': 10, 'romsfun': 10, 'cdromance': 10,
     // CoolROM: rapido mas satura (prioridade media)
     'coolrom': 7,
     // archive.org: lento por arquivo mas estavel (prioridade baixa-media)
@@ -499,7 +499,9 @@ function orderSources(sources, preferredSite) {
 const RESOLVER_SITES = ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro'];
 
 async function tryResolveUrl(source, directExts) {
-  const isDirect = directExts.some(e => source.url.toLowerCase().endsWith(e));
+  // Remove query string antes de checar extensao (URLs com token: file.zip?token=...)
+  const urlNoQuery = source.url.split('?')[0].toLowerCase();
+  const isDirect = directExts.some(e => urlNoQuery.endsWith(e));
   if (isDirect && !RESOLVER_SITES.includes(source.site)) return null;
   const resolved = await resolvePageDownload(source.url, source.site);
   if (typeof resolved === 'object' && resolved.url) {
@@ -604,7 +606,7 @@ function setSourceCooldown(site, ms) {
   log.warn(`Fonte ${site} em cooldown por ${ms/1000}s (rate limit)`);
 }
 
-// 10 fontes para os 10 RR workers (cada worker fixo numa fonte)
+// 14 fontes para os 14 RR workers (cada worker fixo numa fonte)
 const rrSources = [
   'archive.org-extra',  // RR 0
   'vimm',               // RR 1
@@ -616,7 +618,10 @@ const rrSources = [
   'romspedia',          // RR 6
   'romsgames',          // RR 7
   'myrient',            // RR 8
-  'homebrew'            // RR 9
+  'homebrew',           // RR 9
+  'romsfun',            // RR 10
+  'coolrom',            // RR 11
+  'consoleroms'         // RR 12
 ];
 
 async function executeDownloadWithRetry(item, preferredSite, maxAttempts) {

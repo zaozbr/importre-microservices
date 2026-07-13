@@ -5,7 +5,7 @@ module.exports = {
   matchType: 'title',
   needsMultiChunk: true,
   priority: 3,
-  enabled: false, // pausado - cache com URLs erradas, precisa reconstruir
+  enabled: true,
   search(serial, title) {
     const data = loadJson('coolrom_index.json');
     const crData = data.cr_data || data;

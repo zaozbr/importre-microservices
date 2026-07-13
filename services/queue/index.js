@@ -166,9 +166,19 @@ app.post('/resume', (req, res) => { paused = false; log.info('Queue resumed'); r
 app.post('/queue/next-pending', (req, res) => {
   if (paused) return res.json({ item: null, paused: true });
   const q = getQueue();
+  // Prioriza US/EU sobre JP para diversificar fontes (consoleroms/romsfun nao cobrem JP)
+  function regionPriority(serial) {
+    if (/^(SLUS|SCUS|SLES|SCES)/.test(serial)) return 2; // US/EU primeiro
+    if (/^(SLPS|SCPS|SLPM)/.test(serial)) return 1;      // JP depois
+    return 0;
+  }
   const pending = q.queue
     .filter(i => i.status === 'pending' && !reservedPending.has(i.serial) && !q.in_progress[i.serial] && !q.completed[i.serial] && canRetry(i))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    .sort((a, b) => {
+      const rp = regionPriority(b.serial) - regionPriority(a.serial);
+      if (rp !== 0) return rp;
+      return (b.priority || 0) - (a.priority || 0);
+    });
   if (!pending.length) return res.json({ item: null });
   const item = pending[0];
   reservedPending.add(item.serial);
