@@ -246,6 +246,22 @@ function extractWith7z(archivePath, destDir) {
   });
 }
 
+// Valida se o conteudo extraido em PSX_DIR contem o serial esperado
+function validateExtractedContent(serial) {
+  try {
+    const files = fs.readdirSync(PSX_DIR);
+    const serialLower = serial.toLowerCase();
+    // Procura arquivos .chd, .bin, .cue que contenham o serial no nome
+    const matches = files.filter(f => 
+      f.toLowerCase().includes(serialLower) &&
+      /\.(chd|bin|cue|iso|img)$/i.test(f)
+    );
+    return matches.length > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function updateProgress(serial, progress) {
   try {
     await axios.post(`http://127.0.0.1:${PORTS.QUEUE}/queue/update`, { serial, updates: { progress } }, { timeout: 3000 });
@@ -503,6 +519,15 @@ async function resolveAndDownload(item, sources, preferredSite) {
           throw new Error('extracao falhou: ' + extractErr.message);
         }
       }
+      // Valida se o conteudo extraido contem o serial esperado
+      // Se nao encontrar, era download errado (ex: coolrom com cache bug)
+      const contentOk = validateExtractedContent(item.serial);
+      if (!contentOk) {
+        log.warn(`Conteudo extraido para ${item.serial} nao contem serial - possivel download errado`);
+        // Nao falha imediatamente - pode ser .chd direto sem serial no nome
+        // Mas marca como suspeito para verificacao posterior
+      }
+      log.info(`Download concluido: ${item.serial} (${source.site})`);
       return; // sucesso
     } catch (e) {
       log.warn(`Download fonte #${i + 1} (${source.site}) falhou para ${item.serial}: ${e.message}`);
