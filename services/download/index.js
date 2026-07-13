@@ -145,13 +145,63 @@ async function resolvePageDownload(pageUrl, siteHint) {
     throw new Error('retrostic: form de download nao encontrado');
   }
   
-  // === RomsDL: POST vazio para /download ===
+  // === RomsDL: POST com form data (rom_url, console_url, session) para /download ===
   if (siteHint === 'romsdl' || pageUrl.includes('romsdl')) {
-    const dlUrl = pageUrl.endsWith('/') ? pageUrl + 'download' : pageUrl + '/download';
+    // Normalizar para romsdl.com (sem www) — o redirect 301 www→non-www invalida a sessao
+    const baseUrl = pageUrl.replace('://www.romsdl.com', '://romsdl.com');
+    const dlUrl = baseUrl.endsWith('/') ? baseUrl + 'download' : baseUrl + '/download';
+
+    // Extrair campos do formulario de download da pagina (ja carregada em $)
+    const dlForm = $('form[action$="/download"][method="post"]').first();
+    const formData = {};
+    if (dlForm.length) {
+      dlForm.find('input').each((_, el) => {
+        const name = $(el).attr('name');
+        const value = $(el).attr('value');
+        if (name) formData[name] = value;
+      });
+    }
+
+    // Extrair cookies da resposta GET (necessarios para sessao valida)
+    const setCookies = res.headers['set-cookie'];
+    const cookieStr = setCookies
+      ? (Array.isArray(setCookies) ? setCookies : [setCookies])
+          .map(c => c.split(';')[0]).join('; ')
+      : '';
+
+    // Se nao ha formulario na pagina, re-faz GET na URL non-www para obter sessao
+    let formDataFinal = formData;
+    let cookieFinal = cookieStr;
+    if (!formDataFinal.session) {
+      const reGet = await axios.get(baseUrl, { headers, timeout: 20000, maxRedirects: 5 });
+      const $re = cheerio.load(reGet.data);
+      const reForm = $re('form[action$="/download"][method="post"]').first();
+      if (reForm.length) {
+        formDataFinal = {};
+        reForm.find('input').each((_, el) => {
+          const name = $re(el).attr('name');
+          const value = $re(el).attr('value');
+          if (name) formDataFinal[name] = value;
+        });
+      }
+      const reCookies = reGet.headers['set-cookie'];
+      cookieFinal = reCookies
+        ? (Array.isArray(reCookies) ? reCookies : [reCookies])
+            .map(c => c.split(';')[0]).join('; ')
+        : cookieStr;
+    }
+
+    log.info(`romsdl: POST form data=${JSON.stringify(formDataFinal)} cookies=${cookieFinal ? 'sim' : 'nao'}`);
+
     let postRes;
     try {
-      postRes = await axios.post(dlUrl, '', {
-        headers: { ...headers, 'Referer': pageUrl },
+      postRes = await axios.post(dlUrl, new URLSearchParams(formDataFinal).toString(), {
+        headers: {
+          ...headers,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Referer': baseUrl,
+          ...(cookieFinal ? { 'Cookie': cookieFinal } : {}),
+        },
         timeout: 20000,
         maxRedirects: 5,
         validateStatus: s => s < 400
@@ -163,32 +213,40 @@ async function resolvePageDownload(pageUrl, siteHint) {
       }
       throw new Error('romsdl: POST falhou: ' + e.message);
     }
-    
+
     // Se redirect seguido, verifica URL final
     const finalUrl = postRes.request?.res?.responseUrl || postRes.config?.url;
     if (finalUrl && /\.(7z|zip|rar|iso|bin)$/i.test(finalUrl)) {
       return finalUrl;
     }
-    
+
     // Metodo 1: link direto <a> com extensao
     const respData = typeof postRes.data === 'string' ? postRes.data : '';
     const $resp = cheerio.load(respData);
     const directLink = $resp('a[href*=".7z"], a[href*=".zip"], a[href*=".rar"], a[href*=".iso"], a[href*=".bin"]').attr('href');
     if (directLink) return directLink;
-    
-    // Metodo 2: JS redirect
+
+    // Metodo 2: JS redirect (window.location.href = "url")
     const jsMatch = respData.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
     if (jsMatch) return jsMatch[1];
-    
+
     // Metodo 3: meta refresh
     const metaMatch = respData.match(/<meta[^>]+refresh[^>]+url=([^"'>]+)/i);
     if (metaMatch) return metaMatch[1];
-    
+
     // Metodo 4: Location header
     if (postRes.headers && postRes.headers.location) {
       return postRes.headers.location;
     }
-    
+
+    // Diagnostico: se a pagina de erro foi retornada
+    if (respData.includes('Invalid session')) {
+      throw new Error('romsdl: sessao invalida — session token expirado ou invalido');
+    }
+    if (respData.includes('An Error Occurred')) {
+      throw new Error('romsdl: pagina de erro retornada pelo site');
+    }
+
     throw new Error('romsdl: URL nao extraida do POST');
   }
   
