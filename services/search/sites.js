@@ -36,7 +36,7 @@ async function searchAll(serial, title) {
   const names = Object.keys(plugins).sort((a, b) => pluginPriority(a) - pluginPriority(b));
 
   // 1. Cache local puro (muito rapido, 1.5s)
-  const pureCacheNames = names.filter(n => pluginPriority(n) < 50 && isLocalCache(n) && isEnabled(n) && ['archive_org', 'archive_org_jp', 'archive_extra', 'myrient', 'homebrew', 'coolrom', 'romsdl', 'retrostic', 'vimm'].includes(n));
+  const pureCacheNames = names.filter(n => pluginPriority(n) < 50 && isLocalCache(n) && isEnabled(n) && ['archive_org', 'archive_org_jp', 'archive_extra', 'myrient', 'homebrew', 'coolrom', 'romsdl', 'retrostic', 'vimm', 'psxdatacenter'].includes(n));
   const cachePromises = pureCacheNames.map(async name => {
     try { return await searchWithTimeout(name, serial, title, 1500); } catch (e) { return []; }
   });

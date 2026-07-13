@@ -139,7 +139,8 @@ function shutdownOrchestrator(delay = 1000) {
 
 function startService(name, script) {
   if (controlState === 'stopped') return;
-  const proc = spawn('node', [script], { cwd: ROOT });
+  const heap = name === 'download' ? '12288' : '4096';
+  const proc = spawn('node', [`--max-old-space-size=${heap}`, script], { cwd: ROOT });
   services[name] = proc;
   proc.stdout.on('data', d => { try { log.info('[' + name + '] ' + d.toString().trim()); } catch (e) {} });
   proc.stdout.on('error', () => {});

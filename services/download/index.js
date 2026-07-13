@@ -187,15 +187,15 @@ async function downloadFile(item, url, sourceIndex = 0) {
 
 function sortSourcesBySpeed(sources) {
   const speedMap = {
-    'coolrom': 20, 'vimm': 19, 'romspedia': 18, 'romsgames': 17, 'retromania': 16,
-    'romspure': 15, 'romsretro': 14, 'blueroms': 13, 'consoleroms': 12, 'hexrom': 11,
-    'freeroms': 10, 'classicgames': 9, 'oldiesnest': 8, 'playretrogames': 7,
-    'roms2000': 6, 'romulation': 5, 'retrogames_cc': 4, 'retrogames_games': 4,
-    'myrient': 4, 'homebrew': 4, 'romsdl': 4, 'retrostic': 4, 'retroiso': 4,
-    'archive.org': 2, 'archive.org-jp': 2, 'archive_extra': 2, 'archive_org': 2, 'archive_org_jp': 2,
+    'coolrom': 8, 'vimm': 8, 'romspedia': 8, 'romsgames': 8, 'retromania': 8,
+    'romspure': 8, 'romsretro': 8, 'blueroms': 8, 'consoleroms': 8, 'hexrom': 8,
+    'freeroms': 8, 'classicgames': 8, 'oldiesnest': 8, 'playretrogames': 8,
+    'roms2000': 8, 'romulation': 8, 'retrogames_cc': 8, 'retrogames_games': 8,
+    'myrient': 8, 'homebrew': 8, 'romsdl': 8, 'retrostic': 8, 'retroiso': 8,
+    'archive.org': 3, 'archive.org-jp': 3, 'archive_extra': 3, 'archive_org': 3, 'archive_org_jp': 3,
     'google_fallback': 1
   };
-  return [...sources].sort((a, b) => (speedMap[b.site] || 3) - (speedMap[a.site] || 3));
+  return [...sources].sort((a, b) => (speedMap[b.site] || 5) - (speedMap[a.site] || 5));
 }
 
 async function resolveAndDownload(item, sources) {

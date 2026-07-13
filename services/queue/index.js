@@ -174,8 +174,14 @@ app.post('/queue/fail', (req, res) => {
     q.failed[serial] = q.in_progress[serial];
     delete q.in_progress[serial];
   }
+  // Move item para o fim da fila para nao bloquear outros
+  const idx = q.queue.findIndex(i => i.serial === serial);
+  if (idx !== -1) {
+    const [failedItem] = q.queue.splice(idx, 1);
+    q.queue.push(failedItem);
+  }
   saveQueue(q);
-  log.warn(`Falhou: ${serial} - ${reason} (retry ${item?.retry_count || 0})`);
+  log.warn(`Falhou: ${serial} - ${reason} (retry ${item?.retry_count || 0}) -> movido para o fim da fila`);
   res.json({ ok: true });
 });
 
