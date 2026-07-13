@@ -225,13 +225,15 @@ app.post('/queue/next-ready', (req, res) => {
   res.json({ item });
 });
 
-// Requeue: devolve item para ready sem incrementar retry
+// Requeue: devolve item para ready com cooldown de 15s (evita spin lock)
+const requeueCooldown = new Map(); // serial -> timestamp
 app.post('/queue/requeue', (req, res) => {
   const { serial } = req.body;
   const q = getQueue();
   const item = q.queue.find(i => i.serial === serial);
   if (!item) return res.status(404).json({ error: 'not found' });
-  item.status = 'ready';
+  item.status = 'cooldown';
+  item.cooldown_until = Date.now() + 15000;
   delete q.in_progress[item.serial];
   markDirty();
   res.json({ ok: true });
@@ -382,12 +384,18 @@ function startQueueDrainWatchdog() {
           drained++;
         }
       }
+      // Cooldown expirado volta para ready
+      if (item.status === 'cooldown' && item.cooldown_until && now > item.cooldown_until) {
+        item.status = 'ready';
+        delete item.cooldown_until;
+        drained++;
+      }
     }
     if (drained) {
       markDirty();
-      log.warn(`Queue drain: ${drained} itens presos liberados`);
+      log.warn(`Queue drain: ${drained} itens liberados (presos + cooldown)`);
     }
-  }, 60000);
+  }, 30000); // a cada 30s (era 60s)
 }
 
 // Auto-reprocess de falhas a cada 10min

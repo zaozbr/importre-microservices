@@ -515,9 +515,11 @@ async function processOneWithPreferredSource(preferredSite) {
     return st.current < st.max;
   });
   if (!hasAvailableSlot) {
-    // Devolve para a fila - todos slots cheios
+    // Devolve para a fila com cooldown - todos slots cheios
     await queueRequest('post', '/queue/requeue', { serial: item.serial });
-    log.info(`Item ${item.serial} devolvido - todos slots cheios`);
+    log.info(`Item ${item.serial} devolvido (cooldown 15s) - todos slots cheios`);
+    // Espera 5s antes de pegar proximo item (evita spin)
+    await new Promise(r => setTimeout(r, 5000));
     return true;
   }
 
