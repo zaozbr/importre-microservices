@@ -323,7 +323,33 @@ async function performanceWatchdog() {
 }
 
 setInterval(checkAutoReprocess, 30000);
-setInterval(performanceWatchdog, 5 * 60 * 1000);
+setInterval(performanceWatchdog, 2 * 60 * 1000);
+
+async function healthCheck() {
+  if (controlState === 'stopped') return;
+  const checks = [
+    { name: 'download', port: PORTS.DOWNLOAD, script: 'services/download/index.js' },
+    { name: 'queue', port: PORTS.QUEUE, script: 'services/queue/index.js' },
+    { name: 'search', port: PORTS.SEARCH, script: 'services/search/index.js' }
+  ];
+  for (const svc of checks) {
+    try {
+      const res = await axios.get('http://127.0.0.1:' + svc.port + '/status', { timeout: 5000 });
+      if (res.data && !res.data.error) continue;
+      throw new Error('resposta invalida');
+    } catch (e) {
+      log.warn('[HEALTHCHECK-30s] ' + svc.name + ' service nao responde em /status (' + e.message + '). Reiniciando...');
+      const proc = services[svc.name];
+      if (proc && proc.pid) await killByPid(proc.pid);
+      await killProcessByPort(svc.port);
+      if (controlState !== 'stopped') {
+        startService(svc.name, svc.script);
+      }
+    }
+  }
+}
+
+setInterval(healthCheck, 30000);
 
 process.on('uncaughtException', (e) => log.error('uncaught: ' + e.message));
 process.on('unhandledRejection', (e) => log.error('rejection: ' + e.message));
