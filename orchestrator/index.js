@@ -3,7 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 const { spawn, exec } = require('child_process');
 const path = require('path');
-const { PORTS, LOG_PATH, PSX_DIR, STATE_DIR, QUEUE_PATH } = require('../shared/config');
+const { PORTS, LOG_PATH, PSX_DIR, STATE_DIR, QUEUE_PATH, ARIA2, WORKERS } = require('../shared/config');
 const Logger = require('../shared/logger');
 
 const log = new Logger('orchestrator');
@@ -260,7 +260,50 @@ async function checkAutoReprocess() {
   }
 }
 
+async function performanceWatchdog() {
+  if (controlState === 'stopped' || controlState === 'paused') return;
+  try {
+    const q = await serviceGet(PORTS.QUEUE, '/status');
+    const dl = await serviceGet(PORTS.DOWNLOAD, '/status');
+    const active = dl.active || 0;
+    const ready = q.ready || 0;
+    const pending = q.pending || 0;
+    const searching = q.searching || 0;
+    const failed = q.failed || 0;
+
+    log.info(`[WATCHDOG-5m] downloads=${active} ready=${ready} pending=${pending} searching=${searching} failed=${failed}`);
+
+    if (ready === 0 && pending > 0 && searching < WORKERS.SEARCH) {
+      log.warn('[WATCHDOG-5m] fila pronta vazia e busca subutilizada. Reiniciando search service...');
+      const proc = services['search'];
+      if (proc && proc.pid) await killByPid(proc.pid);
+      await killProcessByPort(PORTS.SEARCH);
+      startService('search', 'services/search/index.js');
+    }
+
+    if (active < WORKERS.DOWNLOAD / 2 && ready > 0) {
+      log.warn('[WATCHDOG-5m] poucos downloads ativos. Reiniciando download service...');
+      const proc = services['download'];
+      if (proc && proc.pid) await killByPid(proc.pid);
+      await killProcessByPort(PORTS.DOWNLOAD);
+      startService('download', 'services/download/index.js');
+    }
+
+    if (failed > 0 && ready < WORKERS.DOWNLOAD) {
+      log.info('[WATCHDOG-5m] reprocessando falhas para aumentar pool de fontes...');
+      await servicePost(PORTS.QUEUE, '/reprocess-failures', {});
+    }
+
+    if (active > 0 && ready === 0 && pending === 0) {
+      log.warn('[WATCHDOG-5m] downloads ativos mas sem fila futura. Verificar velocidade individual no log.');
+    }
+  } catch (e) {
+    log.error('[WATCHDOG-5m] erro: ' + e.message);
+  }
+}
+
 setInterval(checkAutoReprocess, 30000);
+setInterval(performanceWatchdog, 5 * 60 * 1000);
 
 process.on('uncaughtException', (e) => log.error('uncaught: ' + e.message));
 process.on('unhandledRejection', (e) => log.error('rejection: ' + e.message));

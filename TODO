@@ -1,20 +1,21 @@
 Importre Microservices:
+  Performance Downloads (target: 1MB/s por download, 20MB/s total):
+    ✔ Diagnosticar estado atual de downloads e velocidades
+    ✔ Aumentar paralelismo de downloads e workers
+    ☐ Adicionar indices locais para aumentar cobertura de fontes
+    ✔ Implementar watchdog de performance a cada 5 minutos
+    ✔ Melhorar resolvers de download para fontes principais
+    ☐ Testar e validar targets de 1MB/s por download e 20MB/s total
   Dashboard:
-    ☐ Integrar 100% com a extensão TODOs Tree
+    ☐ Integrar 100% com a extensao TODOs Tree
     ☐ Ajustar altura dos blocos para evitar scroll duplo
     ☐ Adicionar refresh manual no dashboard
-  Downloads:
-    ☐ Monitorar performance do archive.org (<1MB/s = alerta)
-    ☐ Aumentar paralelismo se necessario
   Search:
-    ☐ Adicionar archive_name_index aos plugins
-    ☐ Melhorar resolvers CoolROM, Vimm, RetroStic, RomsDL
     ☐ Otimizar ou desativar google-fallback
   Testes:
     ☐ Criar testes automatizados para search
     ☐ Criar testes automatizados para download
   CHD:
-    ☐ Verificar conversões pendentes
-    ☐ Tratar arquivos .bin/.img/.iso nao alinhados a setor
+    ☐ Verificar conversoes pendentes
   Infra:
     ☐ Revisar MCP servers built-in (devin/git, devin/fetch) que falham sem auth

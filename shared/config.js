@@ -30,8 +30,16 @@ module.exports = {
     ORCHESTRATOR: 8767
   },
   WORKERS: {
-    SEARCH: 4,
-    DOWNLOAD: 6,
+    SEARCH: 10,
+    DOWNLOAD: 12,
     CHD: 2
+  },
+  ARIA2: {
+    CONNECTIONS: 16,
+    SPLIT: 16,
+    MIN_SPEED_MBPS: 1.0,
+    TOTAL_SPEED_MBPS: 20.0,
+    SPEED_CHECK_INTERVAL_MS: 30000,
+    SLOW_DOWNLOAD_THRESHOLD_MS: 60000
   }
 };

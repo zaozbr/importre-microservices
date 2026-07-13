@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const { PORTS } = require('../../shared/config');
+const { PORTS, WORKERS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
 const { searchAll, listPlugins } = require('./sites');
 
@@ -34,11 +34,38 @@ async function processOne() {
   return true;
 }
 
-async function loop() {
+async function workerLoop(id) {
   while (true) {
-    while (await processOne()) {}
-    await new Promise(r => setTimeout(r, 5000));
+    const hadWork = await processOne();
+    if (!hadWork) await new Promise(r => setTimeout(r, 2000));
   }
+}
+
+async function feedWatchdog() {
+  while (true) {
+    await new Promise(r => setTimeout(r, 30000));
+    try {
+      const q = await queueRequest('get', '/status');
+      const ready = q.ready || 0;
+      const pending = q.pending || 0;
+      const downloading = q.downloading || 0;
+      const searchWorkers = Math.max(1, WORKERS.SEARCH || 1);
+      log.info(`[WATCHDOG] search: pendentes=${pending} buscando=${q.searching||0} prontos=${ready} downloads=${downloading} workers=${searchWorkers}`);
+      if (ready === 0 && pending > 0 && (q.searching || 0) < searchWorkers) {
+        log.warn(`[WATCHDOG] fila pronta vazia com ${pending} pendentes. Aumentando pressao de busca.`);
+      }
+      if (ready < WORKERS.DOWNLOAD && pending > 0) {
+        log.warn(`[WATCHDOG] prontos=${ready} insuficiente para downloads=${WORKERS.DOWNLOAD}. Necessario mais fontes.`);
+      }
+    } catch (e) { log.error(`[WATCHDOG] erro: ${e.message}`); }
+  }
+}
+
+async function loop() {
+  const workers = Math.max(1, WORKERS.SEARCH || 1);
+  log.info(`Iniciando ${workers} workers de busca`);
+  feedWatchdog();
+  await Promise.all(Array.from({ length: workers }, (_, i) => workerLoop(i)));
 }
 
 app.get('/status', (req, res) => res.json({ ok: true, plugins: listPlugins() }));

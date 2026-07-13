@@ -35,11 +35,26 @@ function parseSize(s) {
   return Math.round(val * (units[unit] || 1));
 }
 
+function speedToMbps(speedStr) {
+  if (!speedStr) return 0;
+  const m = speedStr.match(/([\d.]+)([KMGT]?i?)B\/s/);
+  if (!m) return 0;
+  const val = parseFloat(m[1]);
+  const unit = (m[2] || '').toLowerCase();
+  if (unit.startsWith('k')) return val / 1024;
+  if (unit.startsWith('m')) return val;
+  if (unit.startsWith('g')) return val * 1024;
+  return val / 1048576; // bytes
+}
+
 function aria2Download(url, outputPath, options = {}) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(ARIA2C)) return reject(new Error('aria2c.exe nao encontrado'));
-    const connections = options.connections || 16;
-    const split = options.split || 16;
+    const isArchiveOrg = url.includes('archive.org');
+    const connections = options.connections || (isArchiveOrg ? 32 : 16);
+    const split = options.split || (isArchiveOrg ? 32 : 16);
+    const minSpeed = options.minSpeed || (isArchiveOrg ? '100K' : '1M');
+    const lowestSpeed = options.lowestSpeed || '1K';
     const args = [
       url,
       '--dir=' + path.dirname(outputPath),
@@ -55,23 +70,63 @@ function aria2Download(url, outputPath, options = {}) {
       '--auto-file-renaming=false',
       '--allow-overwrite=true',
       '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      '--summary-interval=1'
+      '--summary-interval=1',
+      '--max-overall-download-limit=0',
+      '--max-download-limit=0',
+      '--min-tls-version=TLSv1.2',
+      '--max-resume-failure-tries=5'
     ];
+    if (options.maxTime) args.push('--max-download-result=' + options.maxTime);
     if (options.header) args.push('--header=' + options.header);
     const proc = spawn(ARIA2C, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let stderr = '';
     let stdout = '';
+    let lastProgress = { percent: 0, speed: null, bytes: 0 };
+    let stalledSince = 0;
+    let slowSince = 0;
+    const slowThresholdMs = options.slowThresholdMs || 60000;
+    const stalledThresholdMs = options.stalledThresholdMs || 90000;
+    const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.25 : 1.0);
+    let speedCheckTimer = null;
+
     function handleOutput(chunk) {
       const lastLine = chunk.trim().split('\n').pop();
       const speed = parseSpeed(lastLine);
       const pct = parseProgress(lastLine);
-      if (options.onProgress && (speed || pct !== null)) {
-        options.onProgress({ percent: pct || 0, speed });
+      if (speed || pct !== null) {
+        lastProgress = { percent: pct || lastProgress.percent, speed: speed || lastProgress.speed };
+        if (options.onProgress) options.onProgress(lastProgress);
       }
     }
     proc.stderr.on('data', d => { stderr += d.toString(); handleOutput(d.toString()); });
     proc.stdout.on('data', d => { stdout += d.toString(); handleOutput(d.toString()); });
+
+    speedCheckTimer = setInterval(() => {
+      const mbps = speedToMbps(lastProgress.speed);
+      if (mbps < minSpeedMbps) {
+        if (!slowSince) slowSince = Date.now();
+        else if (Date.now() - slowSince > slowThresholdMs) {
+          clearInterval(speedCheckTimer);
+          proc.kill('SIGTERM');
+          reject(new Error(`download muito lento: ${lastProgress.speed || '0'} por ${slowThresholdMs/1000}s (min ${minSpeedMbps}MB/s)`));
+        }
+      } else {
+        slowSince = 0;
+      }
+      if (lastProgress.speed === null && lastProgress.percent < 100) {
+        if (!stalledSince) stalledSince = Date.now();
+        else if (Date.now() - stalledSince > stalledThresholdMs) {
+          clearInterval(speedCheckTimer);
+          proc.kill('SIGTERM');
+          reject(new Error(`download travado por ${stalledThresholdMs/1000}s`));
+        }
+      } else {
+        stalledSince = 0;
+      }
+    }, 5000);
+
     proc.on('exit', (code) => {
+      clearInterval(speedCheckTimer);
       if (code === 0 && fs.existsSync(outputPath)) resolve(outputPath);
       else reject(new Error(stderr.slice(0, 300) || `aria2 exit ${code}`));
     });
