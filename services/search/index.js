@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const { PORTS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
+const { searchAll } = require('./sites');
 
 const log = new Logger('search-service');
 const app = express();
@@ -14,29 +15,12 @@ async function queueRequest(method, endpoint, body) {
   return res.data;
 }
 
-async function searchArchive(serial) {
-  try {
-    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`"${serial}"`)}&fl%5B%5D=identifier&fl%5B%5D=title&sort=&rows=10&page=1&output=json&save=yes`;
-    const res = await axios.get(url, { timeout: 30000 });
-    const docs = res.data?.response?.docs || [];
-    return docs.map(d => ({
-      site: 'archive.org',
-      identifier: d.identifier,
-      title: d.title,
-      url: `https://archive.org/download/${d.identifier}/`
-    }));
-  } catch (e) {
-    log.error(`archive.org search error: ${e.message}`);
-    return [];
-  }
-}
-
 async function processOne() {
   const { item } = await queueRequest('post', '/queue/next-pending');
   if (!item) return false;
 
   log.info(`Buscando ${item.serial}`);
-  const sources = await searchArchive(item.serial);
+  const sources = await searchAll(item.serial, item.title);
 
   if (!sources.length) {
     await queueRequest('post', '/queue/fail', { serial: item.serial, reason: 'nenhuma fonte encontrada' });
@@ -44,18 +28,21 @@ async function processOne() {
   }
 
   await queueRequest('post', '/queue/ready', { serial: item.serial, sources });
-  log.info(`Ready ${item.serial}: ${sources.length} fontes`);
+  log.info(`Ready ${item.serial}: ${sources.length} fontes (${sources.map(s => s.site).join(', ')})`);
   return true;
 }
 
 async function loop() {
   while (true) {
     while (await processOne()) {}
-    await new Promise(r => setTimeout(r, 10000));
+    await new Promise(r => setTimeout(r, 5000));
   }
 }
 
 app.get('/status', (req, res) => res.json({ ok: true }));
+
+process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
+process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
 app.listen(PORTS.SEARCH, () => {
   log.info(`Search service em http://127.0.0.1:${PORTS.SEARCH}`);

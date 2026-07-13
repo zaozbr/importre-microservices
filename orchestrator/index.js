@@ -15,8 +15,10 @@ const services = {};
 function startService(name, script) {
   const proc = spawn('node', [script], { cwd: ROOT });
   services[name] = proc;
-  proc.stdout.on('data', d => log.info(`[${name}] ${d.toString().trim()}`));
-  proc.stderr.on('data', d => log.error(`[${name}] ${d.toString().trim()}`));
+  proc.stdout.on('data', d => { try { log.info(`[${name}] ${d.toString().trim()}`); } catch (e) {} });
+  proc.stdout.on('error', () => {});
+  proc.stderr.on('data', d => { try { log.error(`[${name}] ${d.toString().trim()}`); } catch (e) {} });
+  proc.stderr.on('error', () => {});
   proc.on('exit', (code) => {
     log.warn(`[${name}] saiu com code ${code}. Reiniciando em 30s...`);
     delete services[name];
@@ -50,6 +52,9 @@ app.get('/', async (req, res) => {
     <p><a href="/status">Status JSON</a></p>
   `);
 });
+
+process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
+process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
 app.listen(PORTS.ORCHESTRATOR, () => {
   log.info(`Orchestrator em http://127.0.0.1:${PORTS.ORCHESTRATOR}`);

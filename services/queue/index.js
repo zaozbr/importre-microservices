@@ -170,6 +170,9 @@ app.post('/queue/fail', (req, res) => {
   res.json({ ok: true });
 });
 
+process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
+process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
+
 app.listen(PORTS.QUEUE, () => {
   log.info(`Queue service em http://127.0.0.1:${PORTS.QUEUE}`);
 });

@@ -6,12 +6,15 @@ class Logger {
   constructor(name) {
     this.name = name;
     this.stream = fs.createWriteStream(LOG_PATH, { flags: 'a' });
+    this.stream.on('error', () => {});
   }
 
   log(level, msg) {
-    const line = `[${new Date().toISOString()}] [${level}] [${this.name}] ${msg}`;
-    console.log(line);
-    this.stream.write(line + '\n');
+    try {
+      const line = `[${new Date().toISOString()}] [${level}] [${this.name}] ${msg}`;
+      console.log(line);
+      this.stream.write(line + '\n');
+    } catch (e) { /* ignore */ }
   }
 
   info(msg) { this.log('INFO', msg); }

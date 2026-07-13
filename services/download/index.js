@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -19,9 +20,21 @@ async function queueRequest(method, endpoint, body) {
   return res.data;
 }
 
+async function resolveCoolrom(pageUrl) {
+  const res = await axios.get(pageUrl, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+    timeout: 20000
+  });
+  const $ = cheerio.load(res.data);
+  const link = $('a[href*="dl.coolrom"]').attr('href');
+  if (!link) throw new Error('link coolrom nao encontrado');
+  return link;
+}
+
 function extractWith7z(archivePath, destDir) {
   return new Promise((resolve, reject) => {
-    const proc = spawn('7z', ['x', '-y', '-o' + destDir, archivePath], { cwd: destDir });
+    const sevenZip = process.env.SEVEN_ZIP_PATH || 'C:\\Program Files\\7-Zip\\7z.exe';
+    const proc = spawn(sevenZip, ['x', '-y', '-o' + destDir, archivePath], { cwd: destDir });
     let stderr = '';
     proc.stderr.on('data', d => stderr += d.toString());
     proc.on('exit', (code) => {
@@ -40,7 +53,8 @@ async function downloadFile(item, url) {
     url,
     responseType: 'stream',
     timeout: 600000,
-    maxRedirects: 5
+    maxRedirects: 5,
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
   });
   response.data.pipe(writer);
   await new Promise((resolve, reject) => {
@@ -48,6 +62,18 @@ async function downloadFile(item, url) {
     writer.on('error', reject);
   });
   return tmpPath;
+}
+
+async function resolveAndDownload(item, source) {
+  let url = source.url;
+  if (source.site === 'coolrom') {
+    url = await resolveCoolrom(source.url);
+  }
+  const tmpPath = await downloadFile(item, url);
+  if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
+    await extractWith7z(tmpPath, PSX_DIR);
+    fs.unlinkSync(tmpPath);
+  }
 }
 
 async function processOne() {
@@ -62,12 +88,8 @@ async function processOne() {
 
   status.active++;
   try {
-    log.info(`Download ${item.serial} de ${source.url}`);
-    const tmpPath = await downloadFile(item, source.url);
-    if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
-      await extractWith7z(tmpPath, PSX_DIR);
-      fs.unlinkSync(tmpPath);
-    }
+    log.info(`Download ${item.serial} de ${source.site}: ${source.url}`);
+    await resolveAndDownload(item, source);
     await queueRequest('post', '/queue/complete', { serial: item.serial });
     status.completed++;
   } catch (e) {
@@ -90,6 +112,9 @@ async function loop() {
 }
 
 app.get('/status', (req, res) => res.json(status));
+
+process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
+process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 
 app.listen(PORTS.DOWNLOAD, () => {
   log.info(`Download service em http://127.0.0.1:${PORTS.DOWNLOAD}`);
