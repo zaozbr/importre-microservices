@@ -81,6 +81,10 @@ app.get('/api/chds', async (req, res) => {
   }
 });
 
+app.post('/api/reprocess-failures', async (req, res) => {
+  res.json(await servicePost(PORTS.QUEUE, '/reprocess-failures', {}));
+});
+
 app.get('/api/control/:action', async (req, res) => {
   const { action } = req.params;
   const valid = ['pause', 'resume', 'restart', 'stop'];

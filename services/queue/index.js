@@ -179,6 +179,27 @@ app.post('/queue/fail', (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/reprocess-failures', (req, res) => {
+  const q = loadQueue();
+  let moved = 0;
+  const failures = q.queue.filter(i => i.retry_count > 0 || i.last_error);
+  // resetar e mover para o fim, sem duplicar (sobrescreve posicao no array)
+  for (const item of failures) {
+    item.retry_count = 0;
+    item.last_error = null;
+    item.last_failed = null;
+    item.status = 'pending';
+    moved++;
+  }
+  // colocar todos os itens pendentes no fim da fila mantendo ordem relativa
+  const nonPending = q.queue.filter(i => i.status !== 'pending');
+  const pending = q.queue.filter(i => i.status === 'pending');
+  q.queue = [...nonPending, ...pending];
+  saveQueue(q);
+  log.info(`Reprocessar falhas: ${moved} itens resetados e movidos para o fim da fila`);
+  res.json({ ok: true, moved });
+});
+
 process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
 process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
 

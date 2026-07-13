@@ -46,6 +46,7 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
     <button class="btn btn-pause" onclick="control('pause')">PAUSE</button>
     <button class="btn btn-restart" onclick="control('restart')">RESTART</button>
     <button class="btn btn-stop" onclick="control('stop')">STOP</button>
+    <button class="btn btn-go" onclick="reprocessFailures()" title="Reseta retry de falhas e move para o fim da fila">REPROCESSAR FALHAS</button>
     <div class="hdr-update" id="hdr-update">atualizando...</div>
   </div>
 </div>
@@ -61,6 +62,13 @@ function control(action){
   fetch('/api/control/'+action).then(r=>r.json()).then(d=>{
     document.getElementById('ctrl-state').textContent = (d.state||'running').toUpperCase();
     document.getElementById('ctrl-state').className = 'ctrl-state st-'+(d.state||'running');
+  }).catch(()=>alert('Servidor offline'));
+}
+function reprocessFailures(){
+  if(!confirm('Resetar falhas e colocar no fim da fila?')) return;
+  fetch('/api/reprocess-failures',{method:'POST'}).then(r=>r.json()).then(d=>{
+    alert(d.ok ? `${d.moved} falhas reprocessadas` : 'Erro: '+d.error);
+    loadStatus();
   }).catch(()=>alert('Servidor offline'));
 }
 async function loadStatus(){
