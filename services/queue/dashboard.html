@@ -15,7 +15,6 @@
 </head>
 <body>
 <div class="widget">
-  <div class="widget-header">Fila <span id="h-cnt"></span></div>
   <div class="widget-body">
     <div id="table"></div>
   </div>
@@ -32,8 +31,6 @@ function statusBar(i){
 }
 async function render(){
   const data = await Dashboard.fetchJSON('/status');
-  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.total);
-  if(data.paused) document.getElementById('h-cnt').innerHTML += ' <span style="color:var(--yellow)">PAUSED</span>';
 
   const q = await Dashboard.fetchJSON('/queue');
   const items = (q.queue||[]).filter(i=>['pending','searching','ready','downloading'].includes(i.status)).slice(0,50);

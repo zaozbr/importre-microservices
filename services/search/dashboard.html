@@ -12,7 +12,6 @@
 </head>
 <body>
 <div class="widget">
-  <div class="widget-header">Busca <span id="h-cnt"></span></div>
   <div class="widget-body">
     <div id="status" class="muted"></div>
     <div id="table"></div>
@@ -22,7 +21,6 @@
 <script>
 async function render(){
   const data = await Dashboard.fetchJSON('/status');
-  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.active||0);
   document.getElementById('status').textContent = (data.ok===false ? 'offline' : 'online') + ' | ' + (data.plugins||[]).length + ' plugins';
 
   const q = await Dashboard.fetchJSON('/queue-proxy');

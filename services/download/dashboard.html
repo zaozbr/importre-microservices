@@ -17,7 +17,6 @@
 </head>
 <body>
 <div class="widget">
-  <div class="widget-header">Downloads <span id="h-cnt"></span></div>
   <div class="widget-body">
     <div class="stat-grid" id="stats"></div>
     <div id="table"></div>
@@ -27,7 +26,6 @@
 <script>
 async function render(){
   const data = await Dashboard.fetchJSON('/status');
-  document.getElementById('h-cnt').innerHTML = Dashboard.badge(data.active||0);
   document.getElementById('stats').innerHTML = `
     <div class="stat"><div class="n">${data.active||0}</div><div class="l">Ativos</div></div>
     <div class="stat"><div class="n" style="color:var(--green)">${data.completed||0}</div><div class="l">OK</div></div>
