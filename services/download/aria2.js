@@ -84,6 +84,11 @@ function aria2Download(url, outputPath, options = {}) {
     ];
     if (options.maxTime) args.push('--max-download-result=' + options.maxTime);
     if (options.header) args.push('--header=' + options.header);
+    // Headers para archive.org (evita 403)
+    if (isArchiveOrg) {
+      args.push('--header=Referer: https://archive.org/');
+      args.push('--header=Accept: */*');
+    }
     const proc = spawn(ARIA2C, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let stderr = '';
     let stdout = '';

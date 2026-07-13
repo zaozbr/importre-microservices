@@ -72,7 +72,7 @@ async function queueRequest(method, endpoint, body) {
 
 async function resolvePageDownload(pageUrl, siteHint) {
   const res = await axios.get(pageUrl, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
     timeout: 20000
   });
   const $ = cheerio.load(res.data);
@@ -81,12 +81,31 @@ async function resolvePageDownload(pageUrl, siteHint) {
     const link = $('a[href*="dl.coolrom"]').attr('href');
     if (link) return link;
   }
-  // Vimm: link direto para download
+  // Vimm: usa form POST para dl3.vimm.net
   if (siteHint === 'vimm' || pageUrl.includes('vimm.net')) {
-    const link = $('a[href*="/vault/"][href*="download"]').attr('href') || $('a[href*="media/"]').attr('href');
+    const form = $('form[action*="dl3.vimm.net"]');
+    if (form.length) {
+      let action = form.attr('action');
+      if (action) {
+        if (action.startsWith('//')) action = 'https:' + action;
+        else if (action.startsWith('/')) action = 'https://vimm.net' + action;
+        return action;
+      }
+    }
+    // Fallback: procura link direto
+    const link = $('a[href*="media/"]').attr('href') || $('a[href*="download"]').attr('href');
     if (link) return link.startsWith('http') ? link : `https://vimm.net${link}`;
   }
-  // RetroStic, RomsDL, RetroISO e outros genericos
+  // RetroISO: link /download/ID
+  if (siteHint === 'retroiso' || pageUrl.includes('retroiso')) {
+    const dlLink = $('a[href*="/download/"]').attr('href');
+    if (dlLink) {
+      if (dlLink.startsWith('http')) return dlLink;
+      const base = new URL(pageUrl).origin;
+      return dlLink.startsWith('/') ? base + dlLink : base + '/' + dlLink;
+    }
+  }
+  // RetroStic, RomsDL e outros genericos
   const exts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img'];
   let best = null;
   $('a[href]').each((_, el) => {
@@ -95,7 +114,12 @@ async function resolvePageDownload(pageUrl, siteHint) {
     const lower = href.toLowerCase();
     if (exts.some(e => lower.includes(e))) {
       best = href;
-      return false; // para no primeiro
+      return false;
+    }
+    // Tambem procura links /download/
+    if (lower.includes('/download/') && !best) {
+      best = href;
+      return false;
     }
   });
   if (!best) throw new Error('link de download nao encontrado');
@@ -206,19 +230,28 @@ async function downloadFile(item, source, url, sourceIndex = 0) {
     log.warn(`aria2 falhou ${item.serial}: ${e.message}. Tentando fallback axios.`);
     const writer = fs.createWriteStream(tmpPath);
     try {
+      const isArchive = url.includes('archive.org');
+      const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+      };
+      if (isArchive) {
+        headers['Referer'] = 'https://archive.org/';
+        headers['Cookie'] = 'logged-in-sig=0; logged-in-user=0';
+      }
       const response = await axios({
         method: 'get',
         url,
         responseType: 'stream',
         timeout: 600000,
         maxRedirects: 5,
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+        headers
       });
       response.data.pipe(writer);
       await new Promise((resolve, reject) => {
         writer.on('finish', resolve);
         writer.on('error', reject);
-        // Timeout de 10min no stream
         setTimeout(() => reject(new Error('axios stream timeout')), 600000);
       });
     } catch (axiosErr) {
@@ -257,7 +290,17 @@ function sortSourcesBySpeed(sources) {
 async function resolveAndDownload(item, sources, preferredSite) {
   if (!sources || !sources.length) throw new Error('sem sources');
   const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img'];
-  sources = sortSourcesBySpeed(sources);
+  // Se tem fonte preferida, coloca ela primeiro ANTES do sort
+  if (preferredSite && preferredSite !== 'any') {
+    const pref = sources.find(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_'));
+    if (pref) {
+      sources = [pref, ...sources.filter(s => s !== pref)];
+    } else {
+      sources = sortSourcesBySpeed(sources);
+    }
+  } else {
+    sources = sortSourcesBySpeed(sources);
+  }
   const errors = [];
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i];
