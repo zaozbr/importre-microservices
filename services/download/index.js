@@ -177,6 +177,7 @@ async function downloadFile(item, source, url, sourceIndex = 0) {
   const ext = path.extname(new URL(url).pathname) || '.7z';
   const tmpPath = path.join(PSX_DIR, `${item.serial}${ext}`);
   await acquireSourceSlot(source.site);
+  startDownloadTracking(item.serial, source.site);
   try {
     log.info(`aria2 start ${item.serial} fonte #${sourceIndex + 1} (${source.site}): ${url}`);
     await aria2Download(url, tmpPath, {
@@ -204,6 +205,7 @@ async function downloadFile(item, source, url, sourceIndex = 0) {
       writer.on('error', reject);
     });
   } finally {
+    endDownloadTracking(item.serial);
     releaseSourceSlot(source.site);
   }
   return tmpPath;
@@ -242,7 +244,6 @@ async function resolveAndDownload(item, sources) {
       }
     }
     try {
-      startDownloadTracking(item.serial, source.site);
       const tmpPath = await downloadFile(item, source, url, i);
       // aguarda handles serem liberados
       await new Promise(r => setTimeout(r, 2000));
@@ -301,7 +302,6 @@ async function processOne() {
     status.failed++;
   }
   status.active--;
-  endDownloadTracking(item.serial);
   return true;
 }
 
