@@ -57,10 +57,23 @@ async function resolvePageDownload(pageUrl, siteHint) {
   return best.startsWith('/') ? base + best : base + '/' + best;
 }
 
+function testArchive(archivePath) {
+  return new Promise((resolve, reject) => {
+    const sevenZip = process.env.SEVEN_ZIP_PATH || 'C:\\Program Files\\7-Zip\\7z.exe';
+    const proc = spawn(sevenZip, ['t', archivePath], { windowsHide: true });
+    let stderr = '';
+    proc.stderr.on('data', d => stderr += d.toString());
+    proc.on('exit', (code) => {
+      if (code === 0) resolve(true);
+      else reject(new Error(stderr.slice(0, 200)));
+    });
+  });
+}
+
 function extractWith7z(archivePath, destDir) {
   return new Promise((resolve, reject) => {
     const sevenZip = process.env.SEVEN_ZIP_PATH || 'C:\\Program Files\\7-Zip\\7z.exe';
-    const proc = spawn(sevenZip, ['x', '-y', '-o' + destDir, archivePath], { cwd: destDir });
+    const proc = spawn(sevenZip, ['x', '-y', '-o' + destDir, archivePath], { cwd: destDir, windowsHide: true });
     let stderr = '';
     proc.stderr.on('data', d => stderr += d.toString());
     proc.on('exit', (code) => {
@@ -179,8 +192,14 @@ async function resolveAndDownload(item, sources) {
     try {
       const tmpPath = await downloadFile(item, url, i);
       if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
-        await extractWith7z(tmpPath, PSX_DIR);
-        fs.unlinkSync(tmpPath);
+        try {
+          await testArchive(tmpPath);
+          await extractWith7z(tmpPath, PSX_DIR);
+          fs.unlinkSync(tmpPath);
+        } catch (archiveErr) {
+          fs.unlinkSync(tmpPath);
+          throw new Error('arquivo corrompido: ' + archiveErr.message);
+        }
       }
       return; // sucesso
     } catch (e) {

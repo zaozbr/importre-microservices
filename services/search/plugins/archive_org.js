@@ -15,24 +15,31 @@ module.exports = {
       return [buildSource('archive.org', local.download_url, local.name || title || serial, { size: local.size })];
     }
 
-    // 2. Busca online no archive.org
+    // 2. Indice JP
+    const jpIdx = loadJson('archive_jp_index.json');
+    const jp = jpIdx[serial];
+    if (jp && jp.url) {
+      return [buildSource('archive.org', jp.url, jp.name || title || serial, { size: jp.size })];
+    }
+
+    // 3. Busca online no archive.org (timeout curto, metadata em paralelo)
     try {
       const q = encodeURIComponent(`"${serial}"`);
       const url = `https://archive.org/advancedsearch.php?q=${q}&fl%5B%5D=identifier&fl%5B%5D=title&sort=title&rows=10&page=1&output=json&save=yes`;
-      const res = await axios.get(url, { timeout: 20000 });
+      const res = await axios.get(url, { timeout: 10000 });
       const docs = res.data?.response?.docs || [];
-      const sources = [];
-      for (const d of docs) {
+      if (!docs.length) return [];
+      const metaPromises = docs.map(async d => {
         try {
-          const meta = await axios.get(`https://archive.org/metadata/${d.identifier}`, { timeout: 15000 });
+          const meta = await axios.get(`https://archive.org/metadata/${d.identifier}`, { timeout: 10000 });
           const files = meta.data?.files || [];
           const romFiles = files.filter(f => /\.(7z|zip|rar|bin|cue|img|iso|chd)$/i.test(f.name) && f.size > 1024 * 1024);
-          if (romFiles.length) {
-            const best = romFiles.find(f => f.name.toLowerCase().includes(serial.toLowerCase())) || romFiles[0];
-            sources.push(buildSource('archive.org', `https://archive.org/download/${d.identifier}/${encodeURIComponent(best.name)}`, d.title, { size: best.size }));
-          }
-        } catch (e) { /* ignore */ }
-      }
+          if (!romFiles.length) return null;
+          const best = romFiles.find(f => f.name.toLowerCase().includes(serial.toLowerCase())) || romFiles[0];
+          return buildSource('archive.org', `https://archive.org/download/${d.identifier}/${encodeURIComponent(best.name)}`, d.title, { size: best.size });
+        } catch (e) { return null; }
+      });
+      const sources = (await Promise.all(metaPromises)).filter(Boolean);
       return sources;
     } catch (e) {
       return [];

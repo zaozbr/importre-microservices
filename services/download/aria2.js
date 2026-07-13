@@ -74,7 +74,9 @@ function aria2Download(url, outputPath, options = {}) {
       '--max-overall-download-limit=0',
       '--max-download-limit=0',
       '--min-tls-version=TLSv1.2',
-      '--max-resume-failure-tries=5'
+      '--max-resume-failure-tries=5',
+      '--file-allocation=none',
+      '--console-log-level=warn'
     ];
     if (options.maxTime) args.push('--max-download-result=' + options.maxTime);
     if (options.header) args.push('--header=' + options.header);
