@@ -48,7 +48,7 @@ function cleanupInProgress() {
     saveQueue(q);
     return cleaned;
   } catch (e) {
-    log.error(`cleanupInProgress error: ${e.message}`);
+    log.error('cleanupInProgress error: ' + e.message);
     return 0;
   }
 }
@@ -56,7 +56,7 @@ function cleanupInProgress() {
 async function killByPid(pid) {
   try { process.kill(pid, 'SIGTERM'); } catch (e) {}
   await new Promise(r => setTimeout(r, 1000));
-  try { await execPromise(`taskkill /F /PID ${pid}`); } catch (e) {}
+  try { await execPromise('taskkill /F /PID ' + pid); } catch (e) {}
 }
 
 async function killServiceProcesses() {
@@ -71,18 +71,25 @@ async function killServiceProcesses() {
   return killed;
 }
 
-async function killProcessByPort(port) {
+async function getPortPids(port) {
+  const pids = new Set();
   try {
-    const { stdout } = await execPromise(`netstat -ano | findstr :${port}`);
-    const lines = stdout.split('\n').filter(Boolean);
-    for (const line of lines) {
+    const { stdout } = await execPromise('netstat -ano | findstr :' + port);
+    for (const line of stdout.split('\n').filter(Boolean)) {
       const parts = line.trim().split(/\s+/);
       const pid = parts[parts.length - 1];
-      if (pid && !isNaN(parseInt(pid))) {
-        await execPromise(`taskkill /F /PID ${pid}`);
-      }
+      if (pid && !isNaN(parseInt(pid))) pids.add(parseInt(pid));
     }
   } catch (e) {}
+  return [...pids];
+}
+
+async function killProcessByPort(port) {
+  const pids = await getPortPids(port);
+  for (const pid of pids) {
+    if (pid === process.pid) continue;
+    try { await execPromise('taskkill /F /PID ' + pid); } catch (e) {}
+  }
 }
 
 async function killAria2() {
@@ -91,47 +98,55 @@ async function killAria2() {
 
 async function checkPortFree(port) {
   try {
-    const { stdout } = await execPromise(`netstat -ano | findstr :${port}`);
+    const { stdout } = await execPromise('netstat -ano | findstr :' + port);
     return !stdout.trim();
   } catch (e) { return true; }
 }
 
-async function killAndCleanup() {
+async function killAndCleanup(includeOrchestrator = false) {
   controlState = 'stopped';
   log.info('STOP/RESTART: iniciando rotina de cleanup...');
-  // 1. Mata servicos gerenciados
   const killed = await killServiceProcesses();
-  // 2. Mata por porta (zumbis), exceto a porta do proprio orchestrator
   for (const [name, port] of Object.entries(PORTS)) {
-    if (name === 'ORCHESTRATOR') continue;
+    if (name === 'ORCHESTRATOR' && !includeOrchestrator) continue;
     await killProcessByPort(port);
   }
-  // 3. Mata aria2c
   await killAria2();
-  // 4. Aguarda portas liberarem
+  await new Promise(r => setTimeout(r, 3000));
+  const servicePorts = Object.entries(PORTS).filter(([name]) => name !== 'ORCHESTRATOR').map(([, port]) => port);
   let attempts = 0;
-  while (attempts < 10) {
-    const allFree = (await Promise.all(Object.values(PORTS).map(checkPortFree))).every(Boolean);
+  while (attempts < 30) {
+    const allFree = (await Promise.all(servicePorts.map(checkPortFree))).every(Boolean);
     if (allFree) break;
+    for (const [name, port] of Object.entries(PORTS)) {
+      if (name === 'ORCHESTRATOR' && !includeOrchestrator) continue;
+      await killProcessByPort(port);
+    }
     await new Promise(r => setTimeout(r, 1000));
     attempts++;
   }
-  // 5. Limpa in_progress
   const cleaned = cleanupInProgress();
-  log.info(`STOP/RESTART: ${killed.length} servicos mortos, ${cleaned} in_progress limpos`);
-  return { killed, cleaned, portsFree: attempts < 10 };
+  log.info('STOP/RESTART: ' + killed.length + ' servicos mortos, ' + cleaned + ' in_progress limpos');
+  return { killed, cleaned, portsFree: attempts < 30 };
+}
+
+function shutdownOrchestrator(delay = 1000) {
+  setTimeout(() => {
+    log.info('STOP/RESTART: encerrando orchestrator.');
+    process.exit(0);
+  }, delay);
 }
 
 function startService(name, script) {
   if (controlState === 'stopped') return;
   const proc = spawn('node', [script], { cwd: ROOT });
   services[name] = proc;
-  proc.stdout.on('data', d => { try { log.info(`[${name}] ${d.toString().trim()}`); } catch (e) {} });
+  proc.stdout.on('data', d => { try { log.info('[' + name + '] ' + d.toString().trim()); } catch (e) {} });
   proc.stdout.on('error', () => {});
-  proc.stderr.on('data', d => { try { log.error(`[${name}] ${d.toString().trim()}`); } catch (e) {} });
+  proc.stderr.on('data', d => { try { log.error('[' + name + '] ' + d.toString().trim()); } catch (e) {} });
   proc.stderr.on('error', () => {});
   proc.on('exit', (code) => {
-    log.warn(`[${name}] saiu com code ${code}.`);
+    log.warn('[' + name + '] saiu com code ' + code + '.');
     delete services[name];
     if (controlState !== 'stopped') {
       setTimeout(() => startService(name, script), 30000);
@@ -141,7 +156,7 @@ function startService(name, script) {
 
 async function serviceGet(port, endpoint) {
   try {
-    const res = await axios.get(`http://127.0.0.1:${port}${endpoint}`, { timeout: 3000 });
+    const res = await axios.get('http://127.0.0.1:' + port + endpoint, { timeout: 3000 });
     return res.data;
   } catch (e) {
     return { error: e.message };
@@ -150,7 +165,7 @@ async function serviceGet(port, endpoint) {
 
 async function servicePost(port, endpoint, body) {
   try {
-    const res = await axios.post(`http://127.0.0.1:${port}${endpoint}`, body, { timeout: 3000 });
+    const res = await axios.post('http://127.0.0.1:' + port + endpoint, body, { timeout: 3000 });
     return res.data;
   } catch (e) {
     return { error: e.message };
@@ -207,10 +222,12 @@ app.get('/api/control/:action', async (req, res) => {
     await servicePost(PORTS.QUEUE, '/resume', {});
     res.json({ ok: true, state: controlState });
   } else if (action === 'stop') {
-    const result = await killAndCleanup();
+    const result = await killAndCleanup(false);
     res.json({ ok: true, state: 'stopped', result });
+    shutdownOrchestrator(500);
   } else if (action === 'restart') {
-    const result = await killAndCleanup();
+    const result = await killAndCleanup(false);
+    res.json({ ok: true, state: 'restarting', result });
     setTimeout(() => {
       controlState = 'running';
       startService('queue', 'services/queue/index.js');
@@ -218,7 +235,6 @@ app.get('/api/control/:action', async (req, res) => {
       startService('download', 'services/download/index.js');
       startService('chd', 'services/chd/index.js');
     }, 2000);
-    res.json({ ok: true, state: 'restarting', result });
   }
 });
 
@@ -236,21 +252,21 @@ async function checkAutoReprocess() {
     const active = (q.pending || 0) + (q.searching || 0) + (q.ready || 0) + (q.downloading || 0);
     const failed = q.failed || 0;
     if (active === 0 && failed > 0) {
-      log.info(`Fila ativa vazia (${failed} falhas). Reprocessando falhas automaticamente...`);
+      log.info('Fila ativa vazia (' + failed + ' falhas). Reprocessando falhas automaticamente...');
       await servicePost(PORTS.QUEUE, '/reprocess-failures', {});
     }
   } catch (e) {
-    log.error(`Auto-reprocess check failed: ${e.message}`);
+    log.error('Auto-reprocess check failed: ' + e.message);
   }
 }
 
 setInterval(checkAutoReprocess, 30000);
 
-process.on('uncaughtException', (e) => log.error(`uncaught: ${e.message}`));
-process.on('unhandledRejection', (e) => log.error(`rejection: ${e.message}`));
+process.on('uncaughtException', (e) => log.error('uncaught: ' + e.message));
+process.on('unhandledRejection', (e) => log.error('rejection: ' + e.message));
 
 app.listen(PORTS.ORCHESTRATOR, '127.0.0.1', () => {
-  log.info(`Orchestrator em http://127.0.0.1:${PORTS.ORCHESTRATOR}`);
+  log.info('Orchestrator em http://127.0.0.1:' + PORTS.ORCHESTRATOR);
   startService('queue', 'services/queue/index.js');
   startService('search', 'services/search/index.js');
   startService('download', 'services/download/index.js');
