@@ -1,0 +1,4 @@
+.devin/safe_point/
+.devin/backups/
+node_modules/
+*.log
