@@ -670,7 +670,12 @@ async function processOneWithPreferredSource(preferredSite) {
     return false; // nao pegou item, loop espera 3s e re-tenta
   }
   // Pega item ready com fonte preferida via queue service
-  const res = await queueRequest('post', '/queue/next-ready', { preferredSite });
+  // RR workers: tenta fonte dedicada primeiro, fallback para 'any' apos 2 tentativas
+  let res = await queueRequest('post', '/queue/next-ready', { preferredSite });
+  if ((!res || !res.item) && preferredSite && preferredSite !== 'any') {
+    // Fallback: pega qualquer item ready (worker nao fica ocioso)
+    res = await queueRequest('post', '/queue/next-ready', { preferredSite: 'any' });
+  }
   if (!res || !res.item) return false;
   const item = res.item;
 
