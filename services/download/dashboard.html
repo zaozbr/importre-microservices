@@ -33,7 +33,9 @@ async function render(){
   `;
 
   const q = await Dashboard.fetchJSON('/queue-proxy');
-  const items = (q.queue||[]).filter(i=>i.status==='downloading').slice(0,50);
+  const items = (q.queue||[]).filter(i=>i.status==='downloading')
+    .sort((a,b)=>((b.progress||{}).percent||0)-((a.progress||{}).percent||0))
+    .slice(0,50);
   const table = document.getElementById('table');
   if(!items.length){ table.innerHTML='<p class="muted">nenhum download ativo</p>'; return; }
   table.innerHTML = `<table class="site-table"><tr><th>Serial</th><th>Jogo</th><th>Origem</th><th>Progresso</th><th>Velocidade</th></tr>`+

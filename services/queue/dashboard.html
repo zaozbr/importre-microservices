@@ -33,7 +33,16 @@ async function render(){
   const data = await Dashboard.fetchJSON('/status');
 
   const q = await Dashboard.fetchJSON('/queue');
-  const items = (q.queue||[]).filter(i=>['pending','searching','ready','downloading'].includes(i.status)).slice(0,50);
+  const items = (q.queue||[]).filter(i=>['pending','searching','ready','downloading'].includes(i.status))
+    .sort((a,b)=>{
+      // Downloads ativos primeiro, ordenados por % (maior primeiro)
+      const pa=((a.progress||{}).percent||0), pb=((b.progress||{}).percent||0);
+      if(a.status==='downloading'&&b.status==='downloading') return pb-pa;
+      if(a.status==='downloading') return -1;
+      if(b.status==='downloading') return 1;
+      return (b.priority||0)-(a.priority||0);
+    })
+    .slice(0,50);
   const table = document.getElementById('table');
   if(!items.length){ table.innerHTML='<p class="muted">vazio</p>'; return; }
   table.innerHTML = `<table class="site-table"><tr><th>Serial</th><th>Título</th><th>Status</th><th>%</th><th>Velocidade</th><th>Retry</th></tr>`+

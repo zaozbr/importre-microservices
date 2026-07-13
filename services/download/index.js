@@ -289,7 +289,7 @@ function sortSourcesBySpeed(sources) {
 
 async function resolveAndDownload(item, sources, preferredSite) {
   if (!sources || !sources.length) throw new Error('sem sources');
-  const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img'];
+  const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img', '.chd'];
   // Se tem fonte preferida, coloca ela primeiro ANTES do sort
   if (preferredSite && preferredSite !== 'any') {
     const pref = sources.find(s => s.site === preferredSite || s.site === preferredSite.replace('.', '_'));
@@ -491,7 +491,7 @@ process.on('unhandledRejection', (e) => {
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/queue-proxy', async (req, res) => {
   try {
-    const r = await axios.get(`http://127.0.0.1:${PORTS.QUEUE}/queue`, { timeout: 3000 });
+    const r = await axios.get(`http://127.0.0.1:${PORTS.QUEUE}/queue`, { timeout: 15000 });
     res.json(r.data);
   } catch (e) { res.json({ error: e.message }); }
 });
