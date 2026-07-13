@@ -13,7 +13,8 @@
 }
 body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--txt)}
 .hdr{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--bg2);border-bottom:2px solid var(--red);box-shadow:0 4px 20px rgba(0,0,0,.6);padding:8px 16px}
-.hdr-r1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hdr-r1,.hdr-r2{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hdr-r2{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
 .hdr-title{font-size:17px;font-weight:800;color:var(--red);letter-spacing:1px}
 .hdr-spacer{flex:1}
 .srv-status{padding:3px 10px;border-radius:5px;font-weight:700;font-size:10px}
@@ -30,7 +31,14 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
 .btn-restart{background:var(--blue);color:var(--bg)}
 .btn-stop{background:#da3633;color:#fff}
 .hdr-update{font-size:10px;color:var(--txt2);margin-left:auto}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:82px 8px 8px;height:calc(100vh - 82px);grid-auto-rows:1fr}
+.stat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;flex:1;min-width:280px;max-width:600px}
+.stat{background:var(--bg);padding:5px 4px;border-radius:6px;text-align:center;border:1px solid var(--border)}
+.stat .n{font-size:15px;font-weight:800;color:var(--blue)}
+.stat .n.ok{color:var(--green)}
+.stat .n.fail{color:#f44336}
+.stat .l{font-size:8px;color:var(--txt2);text-transform:uppercase}
+@media(max-width:900px){.stat-grid{grid-template-columns:repeat(3,1fr)}}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:120px 8px 8px;height:calc(100vh - 120px);grid-auto-rows:1fr}
 .widget-frame{width:100%;height:100%;min-height:0;border:none;border-radius:8px;display:block}
 .widget-frame.full{grid-column:1/-1}
 .widget-frame.tall{grid-row:span 2}
@@ -50,6 +58,16 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
     <button class="btn btn-stop" onclick="control('stop')">STOP</button>
     <button class="btn btn-go" onclick="reprocessFailures()" title="Reseta retry de falhas e move para o fim da fila">REPROCESSAR FALHAS</button>
     <div class="hdr-update" id="hdr-update">atualizando...</div>
+  </div>
+  <div class="hdr-r2">
+    <div class="stat-grid" id="hdr-stats">
+      <div class="stat"><div class="n">-</div><div class="l">Pendentes</div></div>
+      <div class="stat"><div class="n">-</div><div class="l">Buscando</div></div>
+      <div class="stat"><div class="n">-</div><div class="l">Prontos</div></div>
+      <div class="stat"><div class="n">-</div><div class="l">Downloads</div></div>
+      <div class="stat"><div class="n ok">-</div><div class="l">OK</div></div>
+      <div class="stat"><div class="n fail">-</div><div class="l">Falhas</div></div>
+    </div>
   </div>
 </div>
 <div class="grid">
@@ -114,6 +132,18 @@ async function loadStatus(){
     document.getElementById('ctrl-state').textContent = (data.control||'running').toUpperCase();
     document.getElementById('ctrl-state').className = 'ctrl-state st-'+(data.control||'running');
     document.getElementById('hdr-update').textContent = 'atualizado '+new Date().toLocaleTimeString('pt-BR');
+    const q = data.queue || {};
+    const stats = document.getElementById('hdr-stats');
+    if (stats) {
+      stats.innerHTML = `
+        <div class="stat"><div class="n">${q.pending||0}</div><div class="l">Pendentes</div></div>
+        <div class="stat"><div class="n">${q.searching||0}</div><div class="l">Buscando</div></div>
+        <div class="stat"><div class="n">${q.ready||0}</div><div class="l">Prontos</div></div>
+        <div class="stat"><div class="n">${q.downloading||0}</div><div class="l">Downloads</div></div>
+        <div class="stat"><div class="n ok">${q.completed||0}</div><div class="l">OK</div></div>
+        <div class="stat"><div class="n fail">${q.failed||0}</div><div class="l">Falhas</div></div>
+      `;
+    }
   }catch(e){ console.error(e); }
 }
 async function loadLog(){
