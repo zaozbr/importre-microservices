@@ -152,13 +152,15 @@ async function performanceWatchdog() {
     await new Promise(r => setTimeout(r, ARIA2.SPEED_CHECK_INTERVAL_MS));
     let totalMbps = 0;
     let slowCount = 0;
+    const bySource = {};
     for (const d of activeDownloads.values()) {
       const mbps = speedToMbps(d.speed);
       totalMbps += mbps;
       if (mbps < ARIA2.MIN_SPEED_MBPS) slowCount++;
+      bySource[d.source] = (bySource[d.source] || 0) + 1;
     }
     const active = activeDownloads.size;
-    log.info(`[WATCHDOG] downloads=${active} total=${totalMbps.toFixed(2)}MB/s alvo=${ARIA2.TOTAL_SPEED_MBPS}MB/s lentos=${slowCount}`);
+    log.info(`[WATCHDOG] downloads=${active} total=${totalMbps.toFixed(2)}MB/s alvo=${ARIA2.TOTAL_SPEED_MBPS}MB/s lentos=${slowCount} bySource=${JSON.stringify(bySource)}`);
     if (active > 0 && totalMbps < ARIA2.TOTAL_SPEED_MBPS) {
       log.warn(`[WATCHDOG] velocidade total abaixo do alvo: ${totalMbps.toFixed(2)} < ${ARIA2.TOTAL_SPEED_MBPS} MB/s`);
       if (active < WORKERS.DOWNLOAD) {
