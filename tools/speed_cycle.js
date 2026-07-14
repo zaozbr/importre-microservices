@@ -18,7 +18,7 @@ const TARGET_MBPS = 40;
 const LOG_FILE = 'F:\\importre\\logs\\speed_cycle.log';
 
 const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 4, timeout: 30000 });
-const rpc = axios.create({ timeout: 20000, httpAgent });
+const rpc = axios.create({ timeout: 30000, httpAgent });
 let rpcId = 1;
 
 let consecutiveHits = 0;
@@ -67,8 +67,13 @@ async function cycle() {
     Object.entries(byHost).sort((a, b) => b[1].speed - a[1].speed).forEach(([h, v]) =>
       log(`  ${h}: ${v.count} dl, ${v.speed.toFixed(2)} MB/s`));
 
-    // Remover stalled (0MB/s, 1 conn, 0 bytes)
-    const stalled = downloads.filter(d => parseInt(d.downloadSpeed) === 0 && parseInt(d.connections) <= 1 && parseInt(d.totalLength) === 0);
+    // Remover stalled (0MB/s, 1 conn, 0 bytes) - size=0 significa que nunca comecou
+    const stalled = downloads.filter(d => {
+      const speed = parseInt(d.downloadSpeed);
+      const conn = parseInt(d.connections);
+      const size = parseInt(d.totalLength);
+      return speed === 0 && conn <= 1 && size === 0;
+    });
     let removed = 0;
     for (const d of stalled) {
       try { await call('aria2.forceRemove', [d.gid]); removed++; } catch {}
