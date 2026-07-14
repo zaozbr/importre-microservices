@@ -49,7 +49,7 @@ module.exports = {
     'archive_org_jp': 4,
     'archive.org-extra': 3,
     'archive_extra': 3,
-    'coolrom': 5,
+    'coolrom': 4,
     'vimm': 3,
     'retrostic': 3,
     'romsdl': 3,
@@ -63,14 +63,16 @@ module.exports = {
     'consoleroms': 2,
     'freeroms': 2,
     'cdromance': 2,
-    'romsfun': 3
+    'romsfun': 3,
+    'archive_chd_jp': 3,
+    'archive_redump_jp': 2
   },
-  // Alocação obrigatória: 2 archive.org + 2 archive.org-jp + 5 coolrom + 10 RR
-  // Total: 19 workers, mínimo 10 fontes diferentes ativas
+  // Alocação obrigatória: 2 archive.org + 2 archive.org-jp + 0 coolrom (desativado) + 16 RR
+  // Total: 20 workers, mínimo 10 fontes diferentes ativas
   WORKER_ALLOCATION: {
     'archive.org': 2,
     'archive.org-jp': 2,
-    'coolrom': 5,
-    'round_robin': 11
+    'coolrom': 0,
+    'round_robin': 16
   }
 };

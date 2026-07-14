@@ -20,7 +20,7 @@ function pluginPriority(name) {
 
 function isLocalCache(name) {
   const p = plugins[name];
-  return p && (p.name === 'archive.org' || p.name === 'archive.org-jp' || p.name === 'archive-extra' || p.name === 'coolrom' || p.name === 'myrient' || p.name === 'homebrew' || p.name === 'psxdatacenter' || p.name === 'retroiso' || p.name === 'romsdl' || p.name === 'retrostic' || p.name === 'vimm' || p.name === 'hexrom' || p.name === 'romulation');
+  return p && (p.name === 'archive.org' || p.name === 'archive.org-jp' || p.name === 'archive-extra' || p.name === 'coolrom' || p.name === 'myrient' || p.name === 'homebrew' || p.name === 'psxdatacenter' || p.name === 'retroiso' || p.name === 'romsdl' || p.name === 'retrostic' || p.name === 'vimm' || p.name === 'hexrom' || p.name === 'romulation' || p.name === 'archive-chd-jp' || p.name === 'archive-redump-jp');
 }
 
 async function searchWithTimeout(pluginName, serial, title, ms) {
@@ -36,7 +36,7 @@ async function searchAll(serial, title) {
   const names = Object.keys(plugins).sort((a, b) => pluginPriority(a) - pluginPriority(b));
 
   // 1. Cache local puro (muito rapido, 1.5s)
-  const pureCacheNames = names.filter(n => pluginPriority(n) < 50 && isLocalCache(n) && isEnabled(n) && ['archive_org', 'archive_org_jp', 'archive_extra', 'myrient', 'homebrew', 'coolrom', 'romsdl', 'retrostic', 'vimm', 'psxdatacenter'].includes(n));
+  const pureCacheNames = names.filter(n => pluginPriority(n) < 50 && isLocalCache(n) && isEnabled(n) && ['archive_org', 'archive_org_jp', 'archive_extra', 'myrient', 'homebrew', 'coolrom', 'romsdl', 'retrostic', 'vimm', 'psxdatacenter', 'archive_chd_jp', 'archive_redump_jp'].includes(n));
   const cachePromises = pureCacheNames.map(async name => {
     try { return await searchWithTimeout(name, serial, title, 1500); } catch (e) { return []; }
   });

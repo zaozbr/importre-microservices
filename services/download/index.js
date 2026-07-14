@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS } = require('../../shared/config');
-const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { [ARCHIVE_ORG]: 2, [ARCHIVE_ORG_JP]: 2, 'coolrom': 5, 'round_robin': 5 };
+const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { [ARCHIVE_ORG]: 2, [ARCHIVE_ORG_JP]: 2, 'coolrom': 4, 'round_robin': 12 };
 const Logger = require('../../shared/logger');
 const { aria2Download } = require('./aria2');
 
@@ -471,7 +471,7 @@ function sortSourcesBySpeed(sources) {
   const speedMap = {
     // Fontes diretas rapidas (prioridade alta)
     'vimm': 10, 'romsdl': 10, 'retrostic': 10, 'romspedia': 10, 'romsgames': 10,
-    'retromania': 10, 'romspure': 10, 'romsretro': 10, 'blueroms': 10, 'consoleroms': 10,
+    'retromania': 10, 'romspure': 10, 'romsretro': 10, 'blueroms': 10, 'consoleroms': 10, 'archive_chd_jp': 8, 'archive_redump_jp': 7,
     'hexrom': 10, 'freeroms': 10, 'classicgames': 10, 'oldiesnest': 10, 'playretrogames': 10,
     'roms2000': 10, 'romulation': 10, 'retrogames_cc': 10, 'retrogames_games': 10,
     'myrient': 10, 'homebrew': 10, 'retroiso': 10, 'romsfun': 10, 'cdromance': 10,
@@ -589,7 +589,7 @@ async function resolveAndDownload(item, sources, preferredSite) {
 }
 
 // === Workers dedicados por fonte ===
-// Garante diversificacao: 2 archive.org + 2 archive.org-jp + 5 coolrom + 10 RR (cada um numa fonte diferente)
+// Garante diversificacao: 2 archive.org + 2 archive.org-jp + 4 coolrom + 12 RR (cada um numa fonte diferente)
 // Meta: mínimo 10 fontes diferentes ativas sempre
 
 // Cooldown global por fonte (ex: vimm 429 rate limit)
@@ -606,7 +606,7 @@ function setSourceCooldown(site, ms) {
   log.warn(`Fonte ${site} em cooldown por ${ms/1000}s (rate limit)`);
 }
 
-// 14 fontes para os 14 RR workers (cada worker fixo numa fonte)
+// 15 fontes para os 15 RR workers (cada worker fixo numa fonte) - coolrom removido
 const rrSources = [
   'archive.org-extra',  // RR 0
   'vimm',               // RR 1
@@ -620,8 +620,9 @@ const rrSources = [
   'myrient',            // RR 8
   'homebrew',           // RR 9
   'romsfun',            // RR 10
-  'coolrom',            // RR 11
-  'consoleroms'         // RR 12
+  'archive_chd_jp',     // RR 11
+  'archive_redump_jp',  // RR 12
+  'consoleroms'         // RR 13
 ];
 
 async function executeDownloadWithRetry(item, preferredSite, maxAttempts) {
@@ -735,8 +736,8 @@ async function loop() {
   for (let i = 0; i < (alloc[ARCHIVE_ORG_JP] || 2); i++) {
     workers.push(dedicatedWorkerLoop(id++, ARCHIVE_ORG_JP));
   }
-  // Workers dedicados para coolrom (5)
-  for (let i = 0; i < (alloc['coolrom'] || 5); i++) {
+  // Workers dedicados para coolrom (0 - desativado por bug de volume)
+  for (let i = 0; i < (alloc['coolrom'] || 0); i++) {
     workers.push(dedicatedWorkerLoop(id++, 'coolrom'));
   }
   // Workers RR fixos em fontes unicas (10)
@@ -747,7 +748,7 @@ async function loop() {
   }
   
   const fontesUnicas = 3 + Math.min(rrCount, rrSources.length); // archive.org + archive.org-jp + coolrom + RR unicos
-  log.info(`Iniciando ${workers.length} workers: ${alloc[ARCHIVE_ORG]||2} ${ARCHIVE_ORG} + ${alloc[ARCHIVE_ORG_JP]||2} ${ARCHIVE_ORG_JP} + ${alloc['coolrom']||5} coolrom + ${rrCount} RR fixos. Meta: ${fontesUnicas} fontes unicas`);
+  log.info(`Iniciando ${workers.length} workers: ${alloc[ARCHIVE_ORG]||2} ${ARCHIVE_ORG} + ${alloc[ARCHIVE_ORG_JP]||2} ${ARCHIVE_ORG_JP} + ${alloc['coolrom']||4} coolrom + ${rrCount} RR fixos. Meta: ${fontesUnicas} fontes unicas`);
   await Promise.all(workers);
 }
 
