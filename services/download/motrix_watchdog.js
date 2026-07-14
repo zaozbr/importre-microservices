@@ -1,7 +1,7 @@
 /**
  * motrix_watchdog.js
  *
- * Observabilidade do daemon aria2c do Motrix (porta 16800).
+ * Observabilidade do daemon aria2c do Motrix (porta 16802).
  * - Monitora downloads ativos, parados e em espera via RPC
  * - Detecta downloads com erro e devolve o serial para a fila de busca
  * - Detecta downloads travados (stalled) e remove
@@ -14,10 +14,10 @@ const { PORTS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
 
 const log = new Logger('motrix-watchdog');
-const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
+const RPC_URL = 'http://127.0.0.1:16802/jsonrpc';
 const QUEUE_URL = `http://127.0.0.1:${PORTS.QUEUE}`;
 const POLL_INTERVAL_MS = 15000; // 15s
-const STALL_THRESHOLD_MS = 180000; // 3min sem progresso = stalled
+const STALL_THRESHOLD_MS = 300000; // 5min sem progresso = stalled
 const ARIA2C_EXE = 'F:\\importre\\Motrix\\app\\resources\\engine\\aria2c.exe';
 const SESSION_DIR = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\session';
 
@@ -85,7 +85,9 @@ async function isMotrixAlive() {
 async function ensureMotrixRunning() {
   const alive = await isMotrixAlive();
   if (alive) return true;
-  log.warn('Motrix daemon nao responde. Tentando reiniciar aria2c...');
+  log.warn('Motrix daemon nao responde. O ariang_watchdog cuida do restart - nao duplicar.');
+  return false;
+  /* Restart desativado - o ariang_watchdog.js cuida de manter o daemon vivo
   try {
     const { spawn } = require('child_process');
     const fs = require('fs');
@@ -95,7 +97,7 @@ async function ensureMotrixRunning() {
     const sessionFile = path.join(SESSION_DIR, 'download.session');
     if (!fs.existsSync(sessionFile)) fs.writeFileSync(sessionFile, '');
     spawn(aria2c, [
-      '--enable-rpc=true', '--rpc-listen-port=16800', '--rpc-allow-origin-all=true', '--rpc-listen-all=true',
+      '--enable-rpc=true', '--rpc-listen-port=16802', '--rpc-allow-origin-all=true', '--rpc-listen-all=true',
       '--check-certificate=false', '--dir=D:\\roms\\library\\roms\\psx',
       `--save-session=${sessionFile}`, '--save-session-interval=10',
       '--max-concurrent-downloads=20', '--max-connection-per-server=16', '--split=16', '--min-split-size=1M',
@@ -117,6 +119,7 @@ async function ensureMotrixRunning() {
     log.error(`Erro reiniciando aria2c: ${e.message}`);
     return false;
   }
+  */
 }
 
 /**

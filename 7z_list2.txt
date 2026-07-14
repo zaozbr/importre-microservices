@@ -1,0 +1,10 @@
+
+7-Zip 26.02 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-06-25
+
+Scanning the drive for archives:
+1 file, 0 bytes
+
+Listing archive: D:\roms\library\roms\psx\SLPS-00383.7z
+
+
+Errors: 1

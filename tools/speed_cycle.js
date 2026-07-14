@@ -11,7 +11,7 @@ const axios = require('axios');
 const http = require('http');
 const fs = require('fs');
 
-const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
+const RPC_URL = 'http://127.0.0.1:16802/jsonrpc';
 const QUEUE_URL = 'http://127.0.0.1:9001';
 const CYCLE_MS = 2 * 60 * 1000; // 2 min
 const TARGET_MBPS = 40;

@@ -1,0 +1,147 @@
+const fs = require('fs');
+const file = 'C:\\AriaNg-Web\\index.html';
+let html = fs.readFileSync(file, 'utf8');
+
+if (html.includes('ariaNgResilience')) {
+  console.log('Hack já existe, removendo versão antiga...');
+  html = html.replace(/<!-- ariaNgResilience START -->[\s\S]*?<!-- ariaNgResilience END -->/, '');
+}
+
+const hack = `<!-- ariaNgResilience START -->
+<script>
+(function(){
+  'use strict';
+  var RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
+  var MAX_RETRIES = 999;
+  var BASE_DELAY = 500;
+  var MAX_DELAY = 10000;
+  var connected = false;
+  var retryCount = 0;
+  var lastPurge = 0;
+
+  var badge = document.createElement('div');
+  badge.id = 'ariaNgResilienceBadge';
+  badge.style.cssText = 'position:fixed;top:5px;right:5px;z-index:99999;padding:4px 12px;border-radius:4px;font-size:12px;font-family:monospace;font-weight:bold;color:#fff;transition:all 0.3s;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+  badge.textContent = 'Conectando...';
+  badge.style.background = '#f39c12';
+  document.addEventListener('DOMContentLoaded', function(){
+    document.body.appendChild(badge);
+  });
+
+  function setBadge(text, color) {
+    badge.textContent = text;
+    badge.style.background = color;
+  }
+
+  function rpcCall(method, params, cb) {
+    var attempt = 0;
+    function tryCall() {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', RPC_URL, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.timeout = 15000;
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          try {
+            var data = JSON.parse(xhr.responseText);
+            if (data.error) { cb(data.error, null); }
+            else {
+              connected = true;
+              retryCount = 0;
+              setBadge('Conectado', '#27ae60');
+              cb(null, data.result);
+            }
+          } catch(e) { cb(e, null); }
+        } else { retry(); }
+      };
+      xhr.onerror = function() { retry(); };
+      xhr.ontimeout = function() { retry(); };
+      try {
+        xhr.send(JSON.stringify({jsonrpc:'2.0',method:method,id:String(Date.now()),params:params||[]}));
+      } catch(e) { retry(); }
+      function retry() {
+        attempt++;
+        connected = false;
+        if (attempt > MAX_RETRIES) {
+          setBadge('ERRO: Max retries', '#e74c3c');
+          cb(new Error('max retries'), null);
+          return;
+        }
+        var delay = Math.min(BASE_DELAY * Math.pow(1.5, attempt), MAX_DELAY);
+        setBadge('Reconectando (' + attempt + ')', '#e67e22');
+        setTimeout(tryCall, delay);
+      }
+    }
+    tryCall();
+  }
+
+  function autoPurge() {
+    if (!connected) return;
+    var now = Date.now();
+    if (now - lastPurge < 60000) return;
+    lastPurge = now;
+    rpcCall('aria2.purgeDownloadResult', [], function(){});
+  }
+
+  function healthCheck() {
+    rpcCall('aria2.getVersion', [], function(err) {
+      if (err) {
+        connected = false;
+        setBadge('Desconectado', '#e74c3c');
+      } else {
+        connected = true;
+        setBadge('Conectado', '#27ae60');
+        autoPurge();
+      }
+    });
+  }
+
+  var origOpen = XMLHttpRequest.prototype.open;
+  var origSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open = function(method, url) {
+    this._url = url;
+    this._isRpc = url && url.indexOf('jsonrpc') !== -1;
+    return origOpen.apply(this, arguments);
+  };
+  XMLHttpRequest.prototype.send = function() {
+    if (this._isRpc) {
+      this.timeout = 15000;
+      var self = this;
+      this.ontimeout = function() {
+        setBadge('RPC Timeout', '#e67e22');
+      };
+    }
+    return origSend.apply(this, arguments);
+  };
+
+  if (window.fetch) {
+    var origFetch = window.fetch;
+    window.fetch = function(url, opts) {
+      if (url && String(url).indexOf('jsonrpc') !== -1) {
+        return origFetch(url, opts).catch(function(err) {
+          setBadge('Fetch error', '#e67e22');
+          throw err;
+        });
+      }
+      return origFetch(url, opts);
+    };
+  }
+
+  setInterval(healthCheck, 10000);
+  healthCheck();
+
+  window.ariaNgResilience = {
+    rpcCall: rpcCall,
+    isConnected: function() { return connected; },
+    purge: function() { rpcCall('aria2.purgeDownloadResult', [], function(){}); },
+    getStats: function(cb) { rpcCall('aria2.getGlobalStat', [], cb); }
+  };
+
+  console.log('[ariaNgResilience] Hack carregado - auto-reconexão ativa');
+})();
+</script>
+<!-- ariaNgResilience END -->`;
+
+html = html.replace('</body>', hack + '</body>');
+fs.writeFileSync(file, html, 'utf8');
+console.log('Hack injetado em', file);

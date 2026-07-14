@@ -1,11 +1,11 @@
 /**
- * Cliente JSON-RPC para o daemon aria2c do Motrix (porta 16800).
+ * Cliente JSON-RPC para o daemon aria2c do Motrix (porta 16802).
  * Substitui o spawn de processo por chamadas RPC persistentes.
  * Suporta HTTP, magnet links e arquivos .torrent locais.
  */
 const axios = require('axios');
 
-const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
+const RPC_URL = 'http://127.0.0.1:16802/jsonrpc';
 const RPC_TIMEOUT = 15000;
 const POLL_INTERVAL_MS = 8000;
 const DEFAULT_MAX_TIME_MS = 600000; // 10min por download
@@ -83,13 +83,33 @@ async function addDownload(url, dir, filename, opts = {}) {
     ...opts.aria2Options
   };
   if (filename) options.out = filename;
+  // Headers do usuario + cookies automaticos para archive.org
+  const headerArr = [];
   if (opts.headers) {
-    const headerArr = [];
     for (const [k, v] of Object.entries(opts.headers)) {
       headerArr.push(`${k}: ${v}`);
     }
-    options.header = headerArr;
   }
+  // Adicionar cookies do archive.org se a URL for archive.org
+  if (url.includes('archive.org')) {
+    try {
+      const fs = require('fs');
+      const cookieFile = 'F:\\importre\\archive_cookies.txt';
+      if (fs.existsSync(cookieFile)) {
+        const cookies = fs.readFileSync(cookieFile, 'utf8');
+        const cookiePairs = [];
+        for (const line of cookies.split('\n')) {
+          if (line.startsWith('#') || !line.trim()) continue;
+          const parts = line.split('\t');
+          if (parts.length >= 7) cookiePairs.push(`${parts[5]}=${parts[6]}`);
+        }
+        if (cookiePairs.length) {
+          headerArr.push(`Cookie: ${cookiePairs.join('; ')}`);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  if (headerArr.length) options.header = headerArr;
 
   // magnet: ou .torrent local -> addTorrent
   // HTTP/HTTPS -> addUri

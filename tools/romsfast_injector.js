@@ -151,7 +151,7 @@ async function markReadyWithRomsfun(serial, title, directUrl, referer) {
     // 2. Adicionar download DIRETAMENTE ao aria2 (sem esperar o download service)
     try {
       const out = `${serial}.zip`;
-      const rpcRes = await axios.post('http://127.0.0.1:16800/jsonrpc', {
+      const rpcRes = await axios.post('http://127.0.0.1:16802/jsonrpc', {
         jsonrpc: '2.0', method: 'aria2.addUri', id: 'inj', params: [
           [directUrl],
           {

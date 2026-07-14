@@ -2,9 +2,14 @@
  * ariang_watchdog.js
  *
  * Watchdog para garantir 99%+ de uptime do AriaNg + daemon aria2c.
- * - Verifica a cada 30s se o daemon aria2c (porta 16800) responde
+ * - Verifica a cada 60s se o daemon aria2c (porta 16802) responde
  * - Verifica se o servidor web AriaNg (porta 16801) responde
- * - Reinicia automaticamente o que cair
+ * - Antes de reiniciar: coleta diagnostico completo do crash e escreve
+ *   relatorio em logs/crash_reports/crash_<timestamp>.log (RPC state,
+ *   erros ativos/parados, portas, processos, memoria, session, log tail)
+ *   para analise da causa raiz e correcao posterior.
+ * - Remove TODOS os zumbis antes de reerguer o server: aria2c.exe (com
+ *   e sem porta) e node.exe orfaos do ariang_web.js, confirmando a morte.
  * - Mantem o aria2c com todas as configs otimizadas
  * - Nao mata processos se estiverem saudaveis
  */
@@ -13,13 +18,16 @@ const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const http = require('http');
 
-const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
+const RPC_URL = 'http://127.0.0.1:16802/jsonrpc';
 const WEB_URL = 'http://127.0.0.1:16801';
 const CHECK_INTERVAL_MS = 60000; // 60s - menos agressivo
 const ARIA2C_EXE = 'F:\\importre\\Motrix\\app\\resources\\engine\\aria2c.exe';
 const SESSION_DIR = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\session';
 const SYSTEM_JSON = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\system.json';
 const LOG_FILE = 'F:\\importre\\logs\\ariang_watchdog.log';
+const CRASH_REPORT_DIR = 'F:\\importre\\logs\\crash_reports';
+const ARIANG_WEB_SCRIPT = 'F:\\importre\\tools\\ariang_web.js';
+const LOG_TAIL_LINES = 80;
 
 const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 2, timeout: 10000 });
 const rpc = axios.create({ timeout: 15000, httpAgent });
@@ -38,9 +46,155 @@ function log(msg) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+function execSyncSafe(cmd, timeoutMs = 8000) {
+  try { return execSync(cmd, { encoding: 'utf8', timeout: timeoutMs, windowsHide: true }); }
+  catch (e) { return e.stdout || ''; }
+}
+
+// ============================================================
+// DIAGNOSTICO DE CRASH — coleta estado antes de matar/reiniciar
+// Escreve relatorio em logs/crash_reports/crash_<timestamp>.log
+// para analise posterior da causa raiz da queda.
+// ============================================================
+
+async function collectRpcState() {
+  const state = { alive: false, version: null, globalStat: null, activeErrors: [], stoppedErrors: [] };
+  try {
+    const r = await rpc.post(RPC_URL, { jsonrpc: '2.0', method: 'aria2.getVersion', id: 'diag', params: [] },
+      { timeout: 5000, httpAgent: new http.Agent({ keepAlive: false }) });
+    if (r.data.result) { state.alive = true; state.version = r.data.result.version; }
+  } catch (e) { state.getVersionError = e.message; }
+
+  if (!state.alive) return state;
+  try {
+    const r = await rpc.post(RPC_URL, { jsonrpc: '2.0', method: 'aria2.getGlobalStat', id: 'diag', params: [] },
+      { timeout: 5000, httpAgent: new http.Agent({ keepAlive: false }) });
+    state.globalStat = r.data.result;
+  } catch (e) { state.globalStatError = e.message; }
+
+  try {
+    const r = await rpc.post(RPC_URL, { jsonrpc: '2.0', method: 'aria2.tellActive', id: 'diag', params: [0, 100] },
+      { timeout: 5000, httpAgent: new http.Agent({ keepAlive: false }) });
+    for (const d of r.data.result) {
+      if (d.errorCode !== '0') state.activeErrors.push({ gid: d.gid, errorCode: d.errorCode, errorMessage: d.errorMessage });
+    }
+  } catch (e) { state.tellActiveError = e.message; }
+
+  try {
+    const r = await rpc.post(RPC_URL, { jsonrpc: '2.0', method: 'aria2.tellStopped', id: 'diag', params: [0, 50] },
+      { timeout: 5000, httpAgent: new http.Agent({ keepAlive: false }) });
+    for (const d of r.data.result) {
+      if (d.status === 'error') state.stoppedErrors.push({ gid: d.gid, errorCode: d.errorCode, errorMessage: d.errorMessage });
+    }
+  } catch (e) { state.tellStoppedError = e.message; }
+
+  return state;
+}
+
+function collectPortState() {
+  const ports = { 16801: [], 16802: [] };
+  const output = execSyncSafe('netstat -ano');
+  for (const line of output.split('\n')) {
+    for (const p of ['16801', '16802']) {
+      if (line.includes(`:${p}`)) {
+        const m = line.match(/(\S+)\s+(\S+)\s+(\S+)\s+(\d+)/);
+        if (m) ports[p].push({ proto: m[1], local: m[2], state: m[3], pid: m[4] });
+      }
+    }
+  }
+  return ports;
+}
+
+function collectProcessState() {
+  const aria2c = execSyncSafe('tasklist /FI "IMAGENAME eq aria2c.exe" /FO CSV /NH');
+  const node = execSyncSafe('tasklist /FI "IMAGENAME eq node.exe" /FO CSV /NH');
+  return { aria2c: aria2c.trim().split('\n').filter(l => l.includes('aria2c')), node: node.trim().split('\n').filter(l => l.includes('node')) };
+}
+
+function collectSystemState() {
+  const mem = execSyncSafe('wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value');
+  const sessionFile = `${SESSION_DIR}\\download.session`;
+  let sessionInfo = null;
+  try {
+    if (fs.existsSync(sessionFile)) {
+      const stat = fs.statSync(sessionFile);
+      sessionInfo = { size: stat.size, mtime: stat.mtime.toISOString() };
+    } else { sessionInfo = { exists: false }; }
+  } catch (e) { sessionInfo = { error: e.message }; }
+  return { memory: mem.trim(), session: sessionInfo };
+}
+
+function collectLogTail() {
+  try {
+    if (!fs.existsSync(LOG_FILE)) return '(log nao existe)';
+    const data = fs.readFileSync(LOG_FILE, 'utf8');
+    const lines = data.split('\n').filter(l => l.trim());
+    return lines.slice(-LOG_TAIL_LINES).join('\n');
+  } catch (e) { return `(erro lendo log: ${e.message})`; }
+}
+
+async function collectCrashDiagnostics(reason) {
+  const ts = new Date();
+  const stamp = ts.toISOString().replace(/[:.]/g, '-');
+  if (!fs.existsSync(CRASH_REPORT_DIR)) {
+    try { fs.mkdirSync(CRASH_REPORT_DIR, { recursive: true }); } catch {}
+  }
+  const reportFile = `${CRASH_REPORT_DIR}\\crash_${stamp}.log`;
+
+  const rpcState = await collectRpcState();
+  const portState = collectPortState();
+  const procState = collectProcessState();
+  const sysState = collectSystemState();
+  const logTail = collectLogTail();
+
+  const sections = [
+    `=== CRASH REPORT ===`,
+    `Timestamp: ${ts.toISOString()}`,
+    `Reason: ${reason}`,
+    `Consecutive failures: ${consecutiveFailures}`,
+    `Total checks so far: ${totalChecks}`,
+    `Total restarts so far: ${totalRestarts}`,
+    ``,
+    `--- RPC STATE ---`,
+    JSON.stringify(rpcState, null, 2),
+    ``,
+    `--- PORTS (16801 web, 16802 rpc) ---`,
+    JSON.stringify(portState, null, 2),
+    ``,
+    `--- PROCESSES ---`,
+    `aria2c.exe: ${procState.aria2c.length} instancia(s)`,
+    JSON.stringify(procState.aria2c, null, 2),
+    `node.exe: ${procState.node.length} instancia(s)`,
+    JSON.stringify(procState.node, null, 2),
+    ``,
+    `--- SYSTEM ---`,
+    JSON.stringify(sysState, null, 2),
+    ``,
+    `--- LAST ${LOG_TAIL_LINES} LOG LINES ---`,
+    logTail,
+    ``,
+    `=== FIM DO RELATORIO ===`
+  ];
+
+  const content = sections.join('\n');
+  try { fs.writeFileSync(reportFile, content); }
+  catch (e) { log(`Falha escrevendo crash report: ${e.message}`); }
+
+  log(`CRASH REPORT escrito: ${reportFile}`);
+  // Resumo rapido no log principal para diagnostico imediato
+  log(`CRASH SUMMARY: rpcAlive=${rpcState.alive} aria2cProcs=${procState.aria2c.length} nodeProcs=${procState.node.length} activeErrors=${rpcState.activeErrors?.length || 0} stoppedErrors=${rpcState.stoppedErrors?.length || 0}`);
+  if (rpcState.globalStatError) log(`  RPC globalStatError: ${rpcState.globalStatError}`);
+  if (rpcState.getVersionError) log(`  RPC getVersionError: ${rpcState.getVersionError}`);
+  for (const e of (rpcState.stoppedErrors || []).slice(0, 5)) {
+    log(`  stoppedError gid=${e.gid} code=${e.errorCode}: ${e.errorMessage}`);
+  }
+
+  return reportFile;
+}
+
 async function isDaemonAlive() {
   try {
-    const r = await rpc.post(RPC_URL, { jsonrpc: '2.0', method: 'aria2.getVersion', id: '1', params: [] });
+    const r = await rpc.post(RPC_URL, { jsonrpc: '2.0', method: 'aria2.getVersion', id: '1', params: [] }, { timeout: 15000, httpAgent: new (require('http').Agent)({ keepAlive: false }) });
     return !!r.data.result.version;
   } catch { return false; }
 }
@@ -52,23 +206,95 @@ async function isWebAlive() {
   } catch { return false; }
 }
 
-function killAllAria2c() {
-  // Matar apenas os PIDs que estao listening na porta 16800
-  try {
-    const output = execSync('netstat -ano', { encoding: 'utf8', timeout: 5000 });
-    const pids = new Set();
-    for (const line of output.split('\n')) {
-      if (line.includes(':16800') && line.includes('LISTENING')) {
-        const match = line.match(/\s+(\d+)$/);
-        if (match) pids.add(match[1]);
-      }
+// ============================================================
+// MATADOR DE ZUMBIS — remove TODOS os processos orfaos antes
+// de reerguer o server. Mata aria2c.exe (com e sem porta) e
+// node.exe rodando ariang_web.js, depois confirma que morreram.
+// ============================================================
+
+function killPids(pids) {
+  for (const pid of pids) {
+    try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore', windowsHide: true }); }
+    catch {} // ja morto
+  }
+}
+
+function pidsOnPort(port) {
+  const pids = new Set();
+  const output = execSyncSafe('netstat -ano');
+  for (const line of output.split('\n')) {
+    if (line.includes(`:${port}`)) {
+      const m = line.match(/\s+(\d+)\s*$/);
+      if (m) pids.add(m[1]);
     }
-    for (const pid of pids) {
-      try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' }); } catch {}
-    }
-    // Tambem matar processos aria2c sem porta (zumbis)
-    try { execSync('taskkill /F /IM aria2c.exe', { stdio: 'ignore' }); } catch {}
-  } catch {}
+  }
+  return [...pids];
+}
+
+function allAria2cPids() {
+  const pids = new Set();
+  const output = execSyncSafe('wmic process where "name=\'aria2c.exe\'" get ProcessId /value');
+  for (const line of output.split('\n')) {
+    const m = line.match(/ProcessId=(\d+)/);
+    if (m) pids.add(m[1]);
+  }
+  return [...pids];
+}
+
+function ariangWebNodePids() {
+  // Matar apenas node.exe cuja linha de comando contenha ariang_web.js.
+  // wmic /value retorna blocos separados por linha em branco; cada bloco
+  // descreve um processo com suas propriedades (CommandLine, ProcessId).
+  const pids = new Set();
+  const output = execSyncSafe('wmic process where "name=\'node.exe\'" get ProcessId,CommandLine /value');
+  const blocks = output.split(/\r?\n\r?\n/);
+  for (const block of blocks) {
+    const pidM = block.match(/ProcessId=(\d+)/);
+    const cmdM = block.match(/CommandLine=(.*)/);
+    if (pidM && cmdM && cmdM[1].includes('ariang_web.js')) pids.add(pidM[1]);
+  }
+  return [...pids];
+}
+
+function killAllZombies() {
+  log('Limpando todos os zumbis antes do restart...');
+
+  // 1. aria2c na porta 16802 (rpc)
+  const rpcPids = pidsOnPort(16802);
+  if (rpcPids.length) log(`  Zumbis aria2c na porta 16802: PIDs ${rpcPids.join(', ')}`);
+  killPids(rpcPids);
+
+  // 2. aria2c na porta 16801 (web server embutido do aria2, se houver)
+  const webPortPids = pidsOnPort(16801);
+  if (webPortPids.length) log(`  Zumbis na porta 16801: PIDs ${webPortPids.join(', ')}`);
+  killPids(webPortPids);
+
+  // 3. TODOS os aria2c.exe restantes (zumbis sem porta / portas estranhas)
+  const allAria = allAria2cPids();
+  if (allAria.length) log(`  Zumbis aria2c.exe sem porta: PIDs ${allAria.join(', ')}`);
+  killPids(allAria);
+
+  // 4. node.exe rodando ariang_web.js (orfaos do web server)
+  const webNodePids = ariangWebNodePids();
+  if (webNodePids.length) log(`  Zumbis node ariang_web.js: PIDs ${webNodePids.join(', ')}`);
+  killPids(webNodePids);
+}
+
+async function confirmZombiesDead(deadlineMs = 8000) {
+  const deadline = Date.now() + deadlineMs;
+  while (Date.now() < deadline) {
+    const aria = allAria2cPids();
+    const web = ariangWebNodePids();
+    if (aria.length === 0 && web.length === 0) return true;
+    await sleep(500);
+  }
+  const aria = allAria2cPids();
+  const web = ariangWebNodePids();
+  if (aria.length || web.length) {
+    log(`  AVISO: zumbis teimosos ainda vivos apos ${deadlineMs}ms: aria2c=${aria.join(',')} nodeWeb=${web.join(',')}`);
+    return false;
+  }
+  return true;
 }
 
 function startDaemon() {
@@ -80,10 +306,11 @@ function startDaemon() {
   try { trackers = JSON.parse(fs.readFileSync(SYSTEM_JSON, 'utf8'))['bt-tracker'] || ''; } catch {}
 
   const args = [
-    '--enable-rpc=true', '--rpc-listen-port=16800', '--rpc-allow-origin-all=true', '--rpc-listen-all=true',
+    '--enable-rpc=true', '--rpc-listen-port=16802', '--rpc-allow-origin-all=true', '--rpc-listen-all=true',
+    '--rpc-max-request-size=2M',
     '--check-certificate=false', '--dir=D:\\roms\\library\\roms\\psx',
     `--save-session=${sessionFile}`, '--save-session-interval=10',
-    '--max-concurrent-downloads=40', '--max-connection-per-server=16', '--split=16', '--min-split-size=1M',
+    '--max-concurrent-downloads=60', '--max-connection-per-server=16', '--split=16', '--min-split-size=1M',
     '--continue=true', '--file-allocation=none', '--max-tries=0', '--retry-wait=3',
     '--connect-timeout=30', '--timeout=30', '--lowest-speed-limit=0',
     '--seed-time=0', '--seed-ratio=0', '--max-overall-upload-limit=1M', '--max-upload-limit=256K',
@@ -100,16 +327,15 @@ function startDaemon() {
 
 function startWebServer() {
   // Reiniciar servidor web AriaNg
-  const webScript = 'F:\\importre\\tools\\ariang_web.js';
-  if (fs.existsSync(webScript)) {
-    spawn('node', [webScript], { windowsHide: true, detached: true, stdio: 'ignore' }).unref();
+  if (fs.existsSync(ARIANG_WEB_SCRIPT)) {
+    spawn('node', [ARIANG_WEB_SCRIPT], { windowsHide: true, detached: true, stdio: 'ignore' }).unref();
   }
 }
 
 async function applyConfigs() {
   try {
     await rpc.post(RPC_URL, { jsonrpc: '2.0', method: 'aria2.changeGlobalOption', id: '1', params: [{
-      'max-concurrent-downloads': '40',
+      'max-concurrent-downloads': '60',
       'max-connection-per-server': '16',
       'split': '16',
       'min-split-size': '1M',
@@ -155,9 +381,18 @@ async function check() {
       log('Restart muito recente, aguardando...');
       return false;
     }
-    log('Daemon morto. Reiniciando aria2c...');
-    killAllAria2c();
-    await sleep(3000);
+    // Coletar diagnostico ANTES de matar — captura a causa da queda
+    const reason = `daemon morto (webAlive=${webAlive}, falhas=${consecutiveFailures})`;
+    log(`Daemon morto. Coletando diagnostico de crash...`);
+    await collectCrashDiagnostics(reason);
+
+    log('Removendo todos os zumbis...');
+    killAllZombies();
+    const dead = await confirmZombiesDead();
+    if (!dead) log('Zumbis teimosos persistem — tentando restart mesmo assim.');
+    await sleep(2000);
+
+    log('Levantando aria2c...');
     startDaemon();
     lastRestart = Date.now();
     totalRestarts++;
@@ -171,12 +406,17 @@ async function check() {
       log('Configs aplicadas.');
     } else {
       log('ERRO: Daemon nao voltou apos restart!');
+      await collectCrashDiagnostics('daemon nao voltou apos restart');
     }
   }
 
-  // Restart web server se morto
+  // Restart web server se morto (sem matar daemon)
   if (!webAlive) {
-    log('Web server morto. Reiniciando...');
+    log('Web server morto. Removendo zumbis node do ariang_web...');
+    const webNodePids = ariangWebNodePids();
+    killPids(webNodePids);
+    if (webNodePids.length) await sleep(1000);
+    log('Reiniciando web server...');
     startWebServer();
     await sleep(2000);
     const webAlive2 = await isWebAlive();

@@ -1,0 +1,6 @@
+
+ERROR: D:\roms\library\roms\psx\SLPS-00383.7z : opening : O arquivo j  est  sendo usado por outro processo.
+
+
+System ERROR:
+O arquivo j  est  sendo usado por outro processo.
