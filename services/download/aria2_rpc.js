@@ -19,6 +19,7 @@ let rpcId = 1;
 // Mantem uma unica conexao persistente - elimina CLOSE_WAIT completamente
 let ws = null;
 let wsReady = false;
+let wsEverConnected = false; // Track se WS ja conectou alguma vez
 const wsCallbacks = new Map(); // id -> {resolve, reject, timeout}
 
 function connectWs() {
@@ -26,7 +27,7 @@ function connectWs() {
   try {
     ws = new WebSocket(WS_URL);
   } catch { ws = null; wsReady = false; return; }
-  ws.on('open', () => { wsReady = true; });
+  ws.on('open', () => { wsReady = true; wsEverConnected = true; });
   ws.on('message', (data) => {
     try {
       const msg = JSON.parse(data.toString());
@@ -41,13 +42,11 @@ function connectWs() {
   });
   ws.on('close', () => {
     wsReady = false;
-    // Rejeitar todas as callbacks pendentes
     for (const [id, cb] of wsCallbacks) {
       clearTimeout(cb.timeout);
       cb.reject(new Error('WebSocket closed'));
       wsCallbacks.delete(id);
     }
-    // Reconectar apos 3s
     setTimeout(() => connectWs(), 3000);
   });
   ws.on('error', () => { wsReady = false; });
@@ -133,19 +132,20 @@ function getCachedStatus(gid) {
 }
 
 async function rpc(method, params = []) {
-  // Tentar WebSocket primeiro (sem CLOSE_WAIT)
-  // Esperar ate 3s pelo WS estar pronto se ainda conectando
-  for (let i = 0; i < 6; i++) {
-    if (wsReady && ws && ws.readyState === WebSocket.OPEN) break;
-    // Se WS nao existe ou ja falhou (CLOSED), nao esperar
-    if (!ws || ws.readyState === WebSocket.CLOSED) { connectWs(); break; }
-    await new Promise(r => setTimeout(r, 500));
+  // WebSocket apenas - sem HTTP fallback (HTTP causa CLOSE_WAIT no aria2c Windows)
+  // Se WS ja conectou antes, esperar ate 5s para reconectar
+  // Se WS nunca conectou (ex: testes), ir direto para HTTP fallback
+  if (wsEverConnected) {
+    for (let i = 0; i < 10; i++) {
+      if (wsReady && ws && ws.readyState === WebSocket.OPEN) break;
+      if (!ws || ws.readyState === WebSocket.CLOSED) { connectWs(); }
+      await new Promise(r => setTimeout(r, 500));
+    }
   }
   if (wsReady && ws && ws.readyState === WebSocket.OPEN) {
     try {
       return await wsRpc(method, params);
     } catch (e) {
-      // WebSocket falhou - reconectar
       if (!e.message.includes('timeout')) connectWs();
     }
   }
