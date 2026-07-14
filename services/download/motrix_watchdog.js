@@ -18,7 +18,8 @@ const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
 const QUEUE_URL = `http://127.0.0.1:${PORTS.QUEUE}`;
 const POLL_INTERVAL_MS = 10000; // 10s
 const STALL_THRESHOLD_MS = 180000; // 3min sem progresso = stalled
-const MOTRIX_EXE = 'F:\\importre\\Motrix\\app\\Motrix.exe';
+const ARIA2C_EXE = 'C:\\Motrix\\resources\\engine\\aria2c.exe';
+const SESSION_DIR = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\session';
 
 let rpcId = 1;
 
@@ -80,21 +81,36 @@ async function isMotrixAlive() {
 async function ensureMotrixRunning() {
   const alive = await isMotrixAlive();
   if (alive) return true;
-  log.warn('Motrix daemon nao responde. Tentando reiniciar...');
+  log.warn('Motrix daemon nao responde. Tentando reiniciar aria2c...');
   try {
     const { spawn } = require('child_process');
-    spawn(MOTRIX_EXE, [], { windowsHide: false, detached: true, stdio: 'ignore' }).unref();
-    log.info('Motrix reiniciado. Aguardando 10s...');
-    await sleep(10000);
+    const fs = require('fs');
+    const path = require('path');
+    const aria2c = fs.existsSync(ARIA2C_EXE) ? ARIA2C_EXE : 'F:\\importre\\Motrix\\app\\resources\\engine\\aria2c.exe';
+    if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
+    const sessionFile = path.join(SESSION_DIR, 'download.session');
+    if (!fs.existsSync(sessionFile)) fs.writeFileSync(sessionFile, '');
+    spawn(aria2c, [
+      '--enable-rpc=true', '--rpc-listen-port=16800', '--rpc-allow-origin-all=true', '--rpc-listen-all=true',
+      '--check-certificate=false', '--dir=D:\\roms\\library\\roms\\psx',
+      `--save-session=${sessionFile}`, '--save-session-interval=10',
+      '--max-concurrent-downloads=30', '--max-connection-per-server=64', '--split=64', '--min-split-size=1M',
+      '--continue=true', '--file-allocation=none', '--max-tries=0', '--retry-wait=5',
+      '--seed-time=0', '--seed-ratio=0', '--enable-dht=true', '--enable-peer-exchange=true',
+      '--bt-enable-lpd=true', '--bt-max-peers=128', '--listen-port=6881-6999', '--dht-listen-port=26701',
+      '--console-log-level=warn'
+    ], { windowsHide: true, detached: true, stdio: 'ignore' }).unref();
+    log.info('aria2c daemon reiniciado. Aguardando 8s...');
+    await sleep(8000);
     const alive2 = await isMotrixAlive();
     if (alive2) {
-      log.info('Motrix voltou!');
+      log.info('aria2c voltou!');
       return true;
     }
-    log.error('Motrix nao voltou apos restart');
+    log.error('aria2c nao voltou apos restart');
     return false;
   } catch (e) {
-    log.error(`Erro reiniciando Motrix: ${e.message}`);
+    log.error(`Erro reiniciando aria2c: ${e.message}`);
     return false;
   }
 }

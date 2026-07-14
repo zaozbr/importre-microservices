@@ -6,8 +6,8 @@
 const axios = require('axios');
 
 const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
-const RPC_TIMEOUT = 10000;
-const POLL_INTERVAL_MS = 2000;
+const RPC_TIMEOUT = 15000;
+const POLL_INTERVAL_MS = 3000;
 const DEFAULT_MAX_TIME_MS = 600000; // 10min por download
 
 let rpcId = 1;
@@ -50,6 +50,7 @@ async function addDownload(url, dir, filename, opts = {}) {
     'min-split-size': '1M',
     'continue': 'true',
     'file-allocation': 'none',
+    'check-certificate': 'false',
     'max-tries': String(opts.maxTries || 5),
     'retry-wait': '5',
     'timeout': '60',
@@ -205,7 +206,12 @@ async function rpcDownload(url, outputPath, options = {}) {
 
     let status;
     try { status = await tellStatus(gid); }
-    catch (e) { logProgress(`RPC erro obtendo status gid=${gid}: ${e.message}`); break; }
+    catch (e) {
+      logProgress(`RPC erro obtendo status gid=${gid}: ${e.message}. Retry em 5s...`);
+      await sleep(5000);
+      try { status = await tellStatus(gid); }
+      catch (e2) { logProgress(`RPC retry falhou gid=${gid}: ${e2.message}. Abortando.`); throw new Error(`RPC indisponivel: ${e2.message}`); }
+    }
 
     const result = handleStatus(status, gid, outputPath, isBt, options);
     if (result.done) return result.value;
@@ -213,7 +219,6 @@ async function rpcDownload(url, outputPath, options = {}) {
 
     updateProgressTracking(ctx, status, options);
   }
-  throw new Error('download terminou sem status claro');
 }
 
 function buildAddOpts(options, isBt) {
