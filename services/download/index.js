@@ -8,6 +8,8 @@ const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS } = require('../../shared/
 const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { [ARCHIVE_ORG]: 2, [ARCHIVE_ORG_JP]: 2, 'coolrom': 4, 'round_robin': 12 };
 const Logger = require('../../shared/logger');
 const { aria2Download } = require('./aria2');
+const motrixWatchdog = require('./motrix_watchdog');
+const aria2Rpc = require('./aria2_rpc');
 
 const log = new Logger('download-service');
 
@@ -95,6 +97,9 @@ async function resolvePageDownload(pageUrl, siteHint) {
     const dl = resolveRomsretro($);
     if (dl) return dl;
   }
+  if (siteHint === 'romsfun' || pageUrl.includes('romsfun.com/download/')) {
+    return resolveRomsfun($, res, pageUrl, headers);
+  }
   return resolveGenericLink($, pageUrl);
 }
 
@@ -147,6 +152,35 @@ function extractCookieStr(res) {
     ? (Array.isArray(setCookies) ? setCookies : [setCookies])
         .map(c => c.split(';')[0]).join('; ')
     : '';
+}
+
+// romsfun: pagina de download tem link para sto.romsfast.com com token
+// A pagina mostra "Please wait 7 seconds" e depois "Download Now"
+// O link direto esta no HTML: href="https://sto.romsfast.com/...?token=..."
+async function resolveRomsfun($, res, pageUrl, headers) {
+  // Procura link direto para sto.romsfast.com ou similar com extensao de ROM
+  const html = res.data;
+  const dlMatch = html.match(/href="(https?:\/\/sto\.romsfast\.com\/[^"]*\.(7z|zip|rar|iso|bin|chd)[^"]*)"/i);
+  if (dlMatch) {
+    return { url: dlMatch[1], headers: { 'Referer': pageUrl } };
+  }
+  // Procura qualquer link externo com extensao de ROM
+  const extMatch = html.match(/href="(https?:\/\/(?!romsfun\.com)[^"]*\.(7z|zip|rar|iso|bin|chd)[^"]*)"/i);
+  if (extMatch) {
+    return { url: extMatch[1], headers: { 'Referer': pageUrl } };
+  }
+  // Tenta mirrors /1, /2, /3
+  for (let mirror = 1; mirror <= 3; mirror++) {
+    try {
+      const mirrorUrl = pageUrl.endsWith('/') ? pageUrl + mirror : pageUrl + '/' + mirror;
+      const mRes = await axios.get(mirrorUrl, { headers, timeout: 15000 });
+      const mMatch = mRes.data.match(/href="(https?:\/\/sto\.romsfast\.com\/[^"]*\.(7z|zip|rar|iso|bin|chd)[^"]*)"/i);
+      if (mMatch) return { url: mMatch[1], headers: { 'Referer': mirrorUrl } };
+      const mExt = mRes.data.match(/href="(https?:\/\/(?!romsfun\.com)[^"]*\.(7z|zip|rar|iso|bin|chd)[^"]*)"/i);
+      if (mExt) return { url: mExt[1], headers: { 'Referer': mirrorUrl } };
+    } catch (e) { /* tenta proximo mirror */ }
+  }
+  throw new Error('romsfun: link de download nao encontrado');
 }
 
 function extractFormData($, formSelector) {
@@ -374,87 +408,41 @@ async function performanceWatchdog() {
   }
 }
 
+function buildDownloadOptions(url, item, isBt) {
+  const isArchive = url.includes(ARCHIVE_ORG);
+  return {
+    connections: ARIA2.CONNECTIONS,
+    split: ARIA2.SPLIT,
+    ...(isBt ? { minSpeedMbps: 0.1 } : isArchive ? {} : { minSpeedMbps: ARIA2.MIN_SPEED_MBPS }),
+    slowThresholdMs: isBt ? 120000 : ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS,
+    stalledThresholdMs: isBt ? 180000 : ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS + 30000,
+    maxTimeMs: isBt ? 900000 : 600000,
+    onProgress: (p) => { updateProgress(item.serial, p); },
+    extraHeaders: null
+  };
+}
+
 async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = null) {
-  const ext = path.extname(new URL(url).pathname) || '.7z';
+  const isMagnet = url.startsWith('magnet:');
+  const isTorrent = url.endsWith('.torrent') && !url.startsWith('http');
+  const isBt = isMagnet || isTorrent;
+  const ext = isBt ? '.chd' : (path.extname(new URL(url).pathname) || '.7z');
   const tmpPath = path.join(PSX_DIR, `${item.serial}${ext}`);
   await acquireSourceSlot(source.site);
   startDownloadTracking(item.serial, source.site);
   try {
-    log.info(`aria2 start ${item.serial} fonte #${sourceIndex + 1} (${source.site}): ${url}`);
-    await aria2Download(url, tmpPath, {
-      connections: ARIA2.CONNECTIONS,
-      split: ARIA2.SPLIT,
-      // minSpeedMbps: nao passar para archive.org (aria2.js usa 0.25 default)
-      ...(url.includes(ARCHIVE_ORG) ? {} : { minSpeedMbps: ARIA2.MIN_SPEED_MBPS }),
-      slowThresholdMs: ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS,
-      stalledThresholdMs: ARIA2.SLOW_DOWNLOAD_THRESHOLD_MS + 30000,
-      onProgress: (p) => { updateProgress(item.serial, p); },
-      extraHeaders
-    });
+    log.info(`aria2 start ${item.serial} fonte #${sourceIndex + 1} (${source.site}): ${url.substring(0, 80)}...`);
+    const opts = buildDownloadOptions(url, item, isBt);
+    opts.extraHeaders = extraHeaders;
+    await aria2Download(url, tmpPath, opts);
   } catch (e) {
+    if (isBt) {
+      try { fs.unlinkSync(tmpPath); } catch (e2) {}
+      throw e;
+    }
     log.warn(`aria2 falhou ${item.serial}: ${e.message}. Tentando fallback axios.`);
-    const writer = fs.createWriteStream(tmpPath);
     try {
-      const isArchive = url.includes(ARCHIVE_ORG);
-      const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate, br',
-      };
-      if (isArchive) {
-        const { getArchiveHeaders } = require('../../shared/archive_auth');
-        const archHdrs = getArchiveHeaders();
-        headers['Referer'] = archHdrs['Referer'];
-        if (archHdrs['Cookie']) headers['Cookie'] = archHdrs['Cookie'];
-      }
-      // Headers extras do resolver (vimm cookies, etc)
-      if (extraHeaders) Object.assign(headers, extraHeaders);
-      const response = await axios({
-        method: 'get',
-        url,
-        responseType: 'stream',
-        timeout: 30000,          // 30s para headers (era 600000)
-        maxRedirects: 5,
-        headers
-      });
-      response.data.pipe(writer);
-      // Stream timeout: 120s + kill se speed < 0.3MB/s por 120s
-      const STREAM_TIMEOUT_MS = 120000;
-      const SLOW_SPEED_THRESHOLD = 0.3; // MB/s
-      const SLOW_SPEED_MS = 120000;
-      let streamSlowSince = 0;
-      let lastStreamSpeed = 0;
-      // Monitora bytes recebidos para detectar speed baixo
-      let lastBytesRead = 0;
-      let lastBytesCheck = Date.now();
-      response.data.on('data', (chunk) => {
-        lastBytesRead += chunk.length;
-      });
-      const streamMonitor = setInterval(() => {
-        const now = Date.now();
-        const elapsed = (now - lastBytesCheck) / 1000;
-        if (elapsed > 0) {
-          const bytesPerSec = (lastBytesRead / elapsed);
-          lastStreamSpeed = bytesPerSec / 1048576; // MB/s
-          lastBytesRead = 0;
-          lastBytesCheck = now;
-          if (lastStreamSpeed < SLOW_SPEED_THRESHOLD) {
-            if (!streamSlowSince) streamSlowSince = now;
-            else if (now - streamSlowSince > SLOW_SPEED_MS) {
-              writer.destroy();
-              clearInterval(streamMonitor);
-            }
-          } else {
-            streamSlowSince = 0;
-          }
-        }
-      }, 5000);
-      await new Promise((resolve, reject) => {
-        const cleanup = () => clearInterval(streamMonitor);
-        writer.on('finish', () => { cleanup(); resolve(); });
-        writer.on('error', (err) => { cleanup(); reject(err); });
-        setTimeout(() => { cleanup(); writer.destroy(); reject(new Error('axios stream timeout 120s')); }, STREAM_TIMEOUT_MS);
-      });
+      await axiosFallbackDownload(url, tmpPath, extraHeaders);
     } catch (axiosErr) {
       try { fs.unlinkSync(tmpPath); } catch (e2) {}
       throw new Error(`aria2 + axios falharam: ${e.message} | ${axiosErr.message}`);
@@ -466,22 +454,82 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
   return tmpPath;
 }
 
+async function axiosFallbackDownload(url, tmpPath, extraHeaders) {
+  const writer = fs.createWriteStream(tmpPath);
+  const isArchive = url.includes(ARCHIVE_ORG);
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+    'Accept-Encoding': 'gzip, deflate, br',
+  };
+  if (isArchive) {
+    const { getArchiveHeaders } = require('../../shared/archive_auth');
+    const archHdrs = getArchiveHeaders();
+    headers['Referer'] = archHdrs['Referer'];
+    if (archHdrs['Cookie']) headers['Cookie'] = archHdrs['Cookie'];
+  }
+  if (extraHeaders) Object.assign(headers, extraHeaders);
+  const response = await axios({ method: 'get', url, responseType: 'stream', timeout: 30000, maxRedirects: 5, headers });
+  response.data.pipe(writer);
+  const STREAM_TIMEOUT_MS = 120000;
+  const SLOW_SPEED_THRESHOLD = 0.3;
+  const SLOW_SPEED_MS = 120000;
+  let streamSlowSince = 0;
+  let lastStreamSpeed = 0;
+  let lastBytesRead = 0;
+  let lastBytesCheck = Date.now();
+  response.data.on('data', (chunk) => { lastBytesRead += chunk.length; });
+  const streamMonitor = setInterval(() => {
+    const now = Date.now();
+    const elapsed = (now - lastBytesCheck) / 1000;
+    if (elapsed > 0) {
+      const bytesPerSec = (lastBytesRead / elapsed);
+      lastStreamSpeed = bytesPerSec / 1048576;
+      lastBytesRead = 0;
+      lastBytesCheck = now;
+      if (lastStreamSpeed < SLOW_SPEED_THRESHOLD) {
+        if (!streamSlowSince) streamSlowSince = now;
+        else if (now - streamSlowSince > SLOW_SPEED_MS) {
+          writer.destroy();
+          clearInterval(streamMonitor);
+        }
+      } else { streamSlowSince = 0; }
+    }
+  }, 5000);
+  await new Promise((resolve, reject) => {
+    const cleanup = () => clearInterval(streamMonitor);
+    writer.on('finish', () => { cleanup(); resolve(); });
+    writer.on('error', (err) => { cleanup(); reject(err); });
+    setTimeout(() => { cleanup(); writer.destroy(); reject(new Error('axios stream timeout 120s')); }, STREAM_TIMEOUT_MS);
+  });
+}
+
 function sortSourcesBySpeed(sources) {
-  // Prioriza fontes diretas e rapidas; diversifica para nao saturar uma so fonte
+  // PRIORIZA TORRENT/MAGNET - depois fontes diretas rapidas
   const speedMap = {
+    // TORRENT/MAGNET - prioridade maxima (nao sofre throttling por IP)
+    'archive-centuron-psx-torrent': 20,
+    'archive-sony-play-station-japan-non-redump-torrent': 20,
+    'archive-chd-jp-torrent': 20,
+    'archive-gamelist-202205-torrent': 20,
+    'archive-ps1-eu-chd-arquivista-torrent': 20,
+    'archive-psximagefiles-torrent': 20,
+    'archive-redumpsonyplaystationamerica20160617-torrent': 20,
+    'archive-sony-playstation-part1-torrent': 20,
     // Fontes diretas rapidas (prioridade alta)
     'vimm': 10, 'romsdl': 10, 'retrostic': 10, 'romspedia': 10, 'romsgames': 10,
-    'retromania': 10, 'romspure': 10, 'romsretro': 10, 'blueroms': 10, 'consoleroms': 10, 'archive_chd_jp': 8, 'archive_redump_jp': 7,
+    'retromania': 10, 'romspure': 10, 'romsretro': 10, 'blueroms': 10, 'consoleroms': 10, 'archive_chd_jp': 8, 'archive_redump_jp': 7, 'archive-gamelist-202205': 6, 'archive-ps1-eu-chd-arquivista': 6, 'archive-psximagefiles': 6, 'archive-sony-playstation-part1': 6, 'archive-centuron-psx': 6, 'archive-redumpsonyplaystationamerica20160617': 6, 'archive-2024-sony-playstation-usa-hearto-1g1r-collection': 6, 'archive-sony-play-station-japan-non-redump': 6,
     'hexrom': 10, 'freeroms': 10, 'classicgames': 10, 'oldiesnest': 10, 'playretrogames': 10,
     'roms2000': 10, 'romulation': 10, 'retrogames_cc': 10, 'retrogames_games': 10,
     'myrient': 10, 'homebrew': 10, 'retroiso': 10, 'romsfun': 10, 'cdromance': 10,
+    'psxdatacenter': 8,
     // CoolROM: rapido mas satura (prioridade media)
     'coolrom': 7,
     // archive.org: lento por arquivo mas estavel (prioridade baixa-media)
     [ARCHIVE_ORG]: 5, [ARCHIVE_ORG_JP]: 5, 'archive_extra': 5, 'archive_org': 5, 'archive_org_jp': 5,
     'archive.org-extra': 5,
     // Fallback web (ultima opcao)
-    'google_fallback': 1, 'google-fallback': 1
+    'google_fallback': 3, 'google-fallback': 3
   };
   // Embaralha fontes com mesma prioridade para diversificar
   const shuffled = [...sources].sort(() => Math.random() - 0.5);
@@ -496,9 +544,12 @@ function orderSources(sources, preferredSite) {
   return sortSourcesBySpeed(sources);
 }
 
-const RESOLVER_SITES = ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro'];
+const RESOLVER_SITES = ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro', 'romsfun'];
 
 async function tryResolveUrl(source, directExts) {
+  // Magnet links e .torrent locais nao precisam resolver pagina
+  if (source.url.startsWith('magnet:')) return null;
+  if (source.url.endsWith('.torrent') && !source.url.startsWith('http')) return null;
   // Remove query string antes de checar extensao (URLs com token: file.zip?token=...)
   const urlNoQuery = source.url.split('?')[0].toLowerCase();
   const isDirect = directExts.some(e => urlNoQuery.endsWith(e));
@@ -606,23 +657,43 @@ function setSourceCooldown(site, ms) {
   log.warn(`Fonte ${site} em cooldown por ${ms/1000}s (rate limit)`);
 }
 
-// 15 fontes para os 15 RR workers (cada worker fixo numa fonte) - coolrom removido
+// 28 fontes para os 28 RR workers - inclui torrent + 6 fontes novas
 const rrSources = [
-  'archive.org-extra',  // RR 0
-  'vimm',               // RR 1
-  'vimm',               // RR 1b (segundo worker vimm - rate limit precisa de 2)
-  'retrostic',          // RR 2
-  'romsdl',             // RR 3
-  'romsretro',          // RR 4
-  'cdromance',          // RR 5
-  'romspedia',          // RR 6
-  'romsgames',          // RR 7
-  'myrient',            // RR 8
-  'homebrew',           // RR 9
-  'romsfun',            // RR 10
-  'archive_chd_jp',     // RR 11
-  'archive_redump_jp',  // RR 12
-  'consoleroms'         // RR 13
+  // === TORRENT/MAGNET (prioridade maxima) ===
+  'archive-centuron-psx-torrent',                    // RR 0
+  'archive-sony-play-station-japan-non-redump-torrent', // RR 1
+  'archive-chd-jp-torrent',                          // RR 2
+  'archive-redumpsonyplaystationamerica20160617-torrent', // RR 3
+  'archive-sony-playstation-part1-torrent',          // RR 4
+  'archive-psximagefiles-torrent',                   // RR 5
+  'archive-ps1-eu-chd-arquivista-torrent',           // RR 6
+  'archive-gamelist-202205-torrent',                 // RR 7
+  // === HTTP direto (fontes web) ===
+  'vimm',                        // RR 8
+  'retrostic',                   // RR 9
+  'romsdl',                      // RR 10
+  'romsretro',                   // RR 11
+  'cdromance',                   // RR 12
+  'romspedia',                   // RR 13
+  'romsgames',                   // RR 14
+  'myrient',                     // RR 15
+  'romsfun',                     // RR 16
+  'consoleroms',                 // RR 17
+  'romulation',                  // RR 18
+  'freeroms',                    // RR 19
+  // === HTTP archive.org (colecoes) ===
+  'archive_chd_jp',              // RR 20
+  'archive_redump_jp',           // RR 21
+  'archive.org-extra',           // RR 22
+  'homebrew',                    // RR 23
+  'archive_sony_playstation_part1', // RR 24
+  'archive_psximagefiles',       // RR 25
+  'archive_ps1_eu_chd_arquivista', // RR 26
+  'archive_gamelist_202205',     // RR 27
+  // === Novas fontes (psxdatacenter, retromania, romspure) ===
+  'psxdatacenter',               // RR 28
+  'retromania',                  // RR 29
+  'romspure'                     // RR 30
 ];
 
 async function executeDownloadWithRetry(item, preferredSite, maxAttempts) {
@@ -727,7 +798,21 @@ async function loop() {
   const alloc = WORKER_ALLOCATION;
   const workers = [];
   let id = 0;
-  
+
+  // Iniciar watchdog do Motrix em background
+  motrixWatchdog.watchdogLoop().catch(e => log.warn(`Watchdog erro: ${e.message}`));
+  log.info('Motrix watchdog iniciado em background');
+
+  // Garantir que Motrix esta rodando
+  const motrixAwake = await motrixWatchdog.ensureMotrixRunning();
+  if (motrixAwake) {
+    log.info('Motrix RPC ativo na porta 16800 - downloads via JSON-RPC');
+    // Configurar seed-time=0 globalmente
+    try { await aria2Rpc.changeGlobalOption({ 'seed-time': '0', 'max-concurrent-downloads': '50' }); } catch {}
+  } else {
+    log.warn('Motrix indisponivel - fallback para spawn de aria2c.exe');
+  }
+
   // Workers dedicados para archive.org (2)
   for (let i = 0; i < (alloc[ARCHIVE_ORG] || 2); i++) {
     workers.push(dedicatedWorkerLoop(id++, ARCHIVE_ORG));
@@ -740,15 +825,15 @@ async function loop() {
   for (let i = 0; i < (alloc['coolrom'] || 0); i++) {
     workers.push(dedicatedWorkerLoop(id++, 'coolrom'));
   }
-  // Workers RR fixos em fontes unicas (10)
-  const rrCount = alloc['round_robin'] || 10;
+  // Workers RR fixos em fontes unicas (28 - inclui 8 torrent)
+  const rrCount = alloc['round_robin'] || 28;
   for (let i = 0; i < rrCount; i++) {
     const source = rrSources[i % rrSources.length];
     workers.push(rrWorkerLoop(id++, source));
   }
-  
-  const fontesUnicas = 3 + Math.min(rrCount, rrSources.length); // archive.org + archive.org-jp + coolrom + RR unicos
-  log.info(`Iniciando ${workers.length} workers: ${alloc[ARCHIVE_ORG]||2} ${ARCHIVE_ORG} + ${alloc[ARCHIVE_ORG_JP]||2} ${ARCHIVE_ORG_JP} + ${alloc['coolrom']||4} coolrom + ${rrCount} RR fixos. Meta: ${fontesUnicas} fontes unicas`);
+
+  const fontesUnicas = 4 + Math.min(rrCount, rrSources.length); // archive.org + archive.org-jp + coolrom + RR unicos
+  log.info(`Iniciando ${workers.length} workers: ${alloc[ARCHIVE_ORG]||2} ${ARCHIVE_ORG} + ${alloc[ARCHIVE_ORG_JP]||2} ${ARCHIVE_ORG_JP} + ${alloc['coolrom']||0} coolrom + ${rrCount} RR fixos. Meta: ${fontesUnicas} fontes unicas`);
   await Promise.all(workers);
 }
 

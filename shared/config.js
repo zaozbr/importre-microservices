@@ -43,36 +43,57 @@ module.exports = {
     SLOW_DOWNLOAD_THRESHOLD_MS: 60000
   },
   SOURCE_LIMITS: {
-    'archive.org': 6,
-    'archive.org-jp': 4,
-    'archive_org': 6,
-    'archive_org_jp': 4,
-    'archive.org-extra': 3,
-    'archive_extra': 3,
+    'archive.org': 2,
+    'archive.org-jp': 2,
+    'archive_org': 2,
+    'archive_org_jp': 2,
+    'archive.org-extra': 2,
+    'archive_extra': 2,
     'coolrom': 4,
-    'vimm': 3,
-    'retrostic': 3,
-    'romsdl': 3,
-    'romsretro': 2,
-    'romspedia': 2,
-    'romsgames': 2,
+    'vimm': 6,
+    'retrostic': 6,
+    'romsdl': 4,
+    'romsretro': 4,
+    'romspedia': 4,
+    'romsgames': 4,
     'homebrew': 2,
-    'myrient': 2,
+    'myrient': 4,
     'psxdatacenter': 2,
-    'romulation': 2,
-    'consoleroms': 2,
-    'freeroms': 2,
-    'cdromance': 2,
-    'romsfun': 3,
-    'archive_chd_jp': 3,
-    'archive_redump_jp': 2
+    'romulation': 4,
+    'consoleroms': 4,
+    'freeroms': 4,
+    'cdromance': 4,
+    'romsfun': 4,
+    'archive_chd_jp': 2,
+    'archive_redump_jp': 2,
+    'archive_gamelist_202205': 2,
+    'archive_ps1_eu_chd_arquivista': 2,
+    'archive_psximagefiles': 2,
+    'archive_sony_playstation_part1': 2,
+    'archive_centuron_psx': 2,
+    'archive_redumpsonyplaystationamerica20160617': 2,
+    'archive_2024_sony_playstation_usa_hearto_1g1r_collection': 2,
+    'archive_sony_play_station_japan_non_redump': 2,
+    // Torrent/magnet sources (limite 3 - BitTorrent nao sofre throttling)
+    'archive-centuron-psx-torrent': 3,
+    'archive-sony-play-station-japan-non-redump-torrent': 3,
+    'archive-chd-jp-torrent': 3,
+    'archive-redumpsonyplaystationamerica20160617-torrent': 3,
+    'archive-sony-playstation-part1-torrent': 3,
+    'archive-psximagefiles-torrent': 3,
+    'archive-ps1-eu-chd-arquivista-torrent': 3,
+    'archive-gamelist-202205-torrent': 3,
+    // Novas fontes web
+    'retromania': 4,
+    'romspure': 4,
+    'google_fallback': 2
   },
-  // Alocação obrigatória: 2 archive.org + 2 archive.org-jp + 0 coolrom (desativado) + 16 RR
-  // Total: 20 workers, mínimo 10 fontes diferentes ativas
+  // Alocação: 2 archive.org + 2 archive.org-jp + 0 coolrom + 28 RR (inclui 8 torrent)
+  // Total: 32 workers, mínimo 15 fontes diferentes ativas
   WORKER_ALLOCATION: {
     'archive.org': 2,
     'archive.org-jp': 2,
     'coolrom': 0,
-    'round_robin': 16
+    'round_robin': 28
   }
 };

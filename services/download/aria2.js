@@ -1,6 +1,13 @@
+/**
+ * aria2.js - Wrapper de download que usa Motrix (RPC porta 16800) como primario
+ * e spawn de aria2c.exe como fallback se RPC estiver indisponivel.
+ *
+ * Suporta: HTTP, HTTPS, magnet links, arquivos .torrent locais.
+ */
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const rpc = require('./aria2_rpc');
 
 const ARIA2C = path.join(__dirname, '..', '..', 'aria2c.exe');
 
@@ -45,14 +52,70 @@ function speedToMbps(speedStr) {
   return val / 1048576; // bytes
 }
 
-function aria2Download(url, outputPath, options = {}) {
+/**
+ * Download via Motrix RPC (primario) ou spawn (fallback).
+ * Interface mantida compativel com a versao anterior.
+ *
+ * @param {string} url - HTTP, magnet ou path .torrent local
+ * @param {string} outputPath - path completo do arquivo de saida
+ * @param {object} options - { connections, split, minSpeedMbps, slowThresholdMs, stalledThresholdMs, onProgress, extraHeaders, maxTimeMs }
+ * @returns {Promise<string>} outputPath
+ */
+async function aria2Download(url, outputPath, options = {}) {
+  // Tentar via RPC do Motrix primeiro
+  const useRpc = await rpc.isAlive().catch(() => false);
+  if (useRpc) {
+    return rpcDownload(url, outputPath, options);
+  }
+  // Fallback: spawn de aria2c.exe (codigo original)
+  return spawnDownload(url, outputPath, options);
+}
+
+/**
+ * Download via Motrix RPC.
+ */
+async function rpcDownload(url, outputPath, options = {}) {
+  const isArchiveOrg = url.includes('archive.org');
+  const isMagnet = url.startsWith('magnet:');
+  const isTorrent = url.endsWith('.torrent') && !url.startsWith('http');
+  const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.25 : 1.0);
+
+  // Headers para archive.org
+  let headers = null;
+  if (isArchiveOrg && !isMagnet && !isTorrent) {
+    try {
+      const { getArchiveHeaders } = require('../../shared/archive_auth');
+      const hdrs = getArchiveHeaders();
+      headers = { Referer: 'https://archive.org/', Accept: '*/*' };
+      if (hdrs['Cookie']) headers['Cookie'] = hdrs['Cookie'];
+    } catch { /* sem auth, prossegue */ }
+  }
+  // Headers extras do resolver (vimm cookies, retrostic referer, etc)
+  if (options.extraHeaders) {
+    headers = headers || {};
+    Object.assign(headers, options.extraHeaders);
+  }
+
+  return rpc.rpcDownload(url, outputPath, {
+    connections: options.connections || (isArchiveOrg ? 64 : 16),
+    split: options.split || (isArchiveOrg ? 64 : 16),
+    minSpeedMbps,
+    slowThresholdMs: options.slowThresholdMs || 60000,
+    stalledThresholdMs: options.stalledThresholdMs || 90000,
+    onProgress: options.onProgress,
+    headers,
+    maxTimeMs: options.maxTimeMs || 600000
+  });
+}
+
+/**
+ * Fallback: spawn de aria2c.exe (codigo original preservado).
+ */
+function spawnDownload(url, outputPath, options = {}) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(ARIA2C)) return reject(new Error('aria2c.exe nao encontrado'));
     const isArchiveOrg = url.includes('archive.org');
     const isCoolrom = url.includes('coolrom');
-    // CoolROM: 32 conexoes para compensar lentidao por conexao
-    // archive.org: 64 conexoes (limite por IP baixo)
-    // outros: 16 (padrao)
     const connections = options.connections || (isArchiveOrg ? 64 : isCoolrom ? 32 : 16);
     const split = options.split || (isArchiveOrg ? 64 : isCoolrom ? 32 : 16);
     const args = [
@@ -80,17 +143,15 @@ function aria2Download(url, outputPath, options = {}) {
     ];
     if (options.maxTime) args.push('--max-download-result=' + options.maxTime);
     if (options.header) args.push('--header=' + options.header);
-    // Headers para archive.org (evita 403) com cookies de login
     if (isArchiveOrg) {
-      const { getArchiveHeaders } = require('../../shared/archive_auth');
-      const hdrs = getArchiveHeaders();
-      args.push('--header=Referer: https://archive.org/');
-      args.push('--header=Accept: */*');
-      if (hdrs['Cookie']) {
-        args.push('--header=Cookie: ' + hdrs['Cookie']);
-      }
+      try {
+        const { getArchiveHeaders } = require('../../shared/archive_auth');
+        const hdrs = getArchiveHeaders();
+        args.push('--header=Referer: https://archive.org/');
+        args.push('--header=Accept: */*');
+        if (hdrs['Cookie']) args.push('--header=Cookie: ' + hdrs['Cookie']);
+      } catch { /* sem auth */ }
     }
-    // Headers extras do resolver (vimm cookies, retrostic referer, etc)
     if (options.extraHeaders) {
       for (const [key, value] of Object.entries(options.extraHeaders)) {
         args.push(`--header=${key}: ${value}`);
@@ -127,9 +188,7 @@ function aria2Download(url, outputPath, options = {}) {
           proc.kill('SIGTERM');
           reject(new Error(`download muito lento: ${lastProgress.speed || '0'} por ${slowThresholdMs/1000}s (min ${minSpeedMbps}MB/s)`));
         }
-      } else {
-        slowSince = 0;
-      }
+      } else { slowSince = 0; }
       if (lastProgress.speed === null && lastProgress.percent < 100) {
         if (!stalledSince) stalledSince = Date.now();
         else if (Date.now() - stalledSince > stalledThresholdMs) {
@@ -137,9 +196,7 @@ function aria2Download(url, outputPath, options = {}) {
           proc.kill('SIGTERM');
           reject(new Error(`download travado por ${stalledThresholdMs/1000}s`));
         }
-      } else {
-        stalledSince = 0;
-      }
+      } else { stalledSince = 0; }
     }, 5000);
 
     proc.on('exit', (code) => {

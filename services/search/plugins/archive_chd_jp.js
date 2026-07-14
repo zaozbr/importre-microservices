@@ -3,6 +3,7 @@
 // URL: https://archive.org/download/chd_psx_jap/CHD-PSX-JAP/{nome}.chd
 const axios = require('axios');
 const { normalize, titleScore, buildSource } = require('./_base');
+const { getMagnetByCollection } = require('./magnet_cache');
 
 const HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
 const COLLECTION = 'chd_psx_jap';
@@ -93,8 +94,13 @@ module.exports = {
     }
 
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, 3).map(f =>
+    const results = scored.slice(0, 3).map(f =>
       buildSource('archive-chd-jp', f.url, title, { score: f.score, size: f.size })
     );
+    const magnet = getMagnetByCollection(COLLECTION);
+    if (magnet) {
+      results.push(buildSource('archive-chd-jp-torrent', magnet, title, { score: 0.8, size: 0 }));
+    }
+    return results;
   }
 };
