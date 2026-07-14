@@ -98,7 +98,7 @@ async function ensureMotrixRunning() {
       '--enable-rpc=true', '--rpc-listen-port=16800', '--rpc-allow-origin-all=true', '--rpc-listen-all=true',
       '--check-certificate=false', '--dir=D:\\roms\\library\\roms\\psx',
       `--save-session=${sessionFile}`, '--save-session-interval=10',
-      '--max-concurrent-downloads=30', '--max-connection-per-server=16', '--split=16', '--min-split-size=1M',
+      '--max-concurrent-downloads=20', '--max-connection-per-server=16', '--split=16', '--min-split-size=1M',
       '--continue=true', '--file-allocation=none', '--max-tries=0', '--retry-wait=5',
       '--seed-time=0', '--seed-ratio=0', '--enable-dht=true', '--enable-peer-exchange=true',
       '--bt-enable-lpd=true', '--bt-max-peers=128', '--listen-port=6881-6999', '--dht-listen-port=26701',

@@ -807,8 +807,8 @@ async function loop() {
   const motrixAwake = await motrixWatchdog.ensureMotrixRunning();
   if (motrixAwake) {
     log.info('Motrix RPC ativo na porta 16800 - downloads via JSON-RPC');
-    // Configurar seed-time=0 globalmente
-    try { await aria2Rpc.changeGlobalOption({ 'seed-time': '0', 'max-concurrent-downloads': '50' }); } catch {}
+    // Configurar opcoes globais (max-concurrent=20 para estabilidade)
+    try { await aria2Rpc.changeGlobalOption({ 'seed-time': '0', 'max-concurrent-downloads': '20', 'max-connection-per-server': '16', 'split': '16', 'min-split-size': '1M', 'file-allocation': 'none', 'check-certificate': 'false' }); } catch {}
   } else {
     log.warn('Motrix indisponivel - fallback para spawn de aria2c.exe');
   }
