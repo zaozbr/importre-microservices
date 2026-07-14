@@ -48,7 +48,7 @@ module.exports = {
   matchType: 'title',
   needsMultiChunk: true,
   priority: 9,
-  enabled: true,
+  enabled: false, // 403 banned
   async search(serial, title) {
     if (!title) return [];
     try {

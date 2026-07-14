@@ -62,13 +62,10 @@ function speedToMbps(speedStr) {
  * @returns {Promise<string>} outputPath
  */
 async function aria2Download(url, outputPath, options = {}) {
-  // Tentar via RPC do Motrix primeiro
-  const useRpc = await rpc.isAlive().catch(() => false);
-  if (useRpc) {
-    return rpcDownload(url, outputPath, options);
-  }
-  // Fallback: spawn de aria2c.exe (codigo original)
-  return spawnDownload(url, outputPath, options);
+  // RPC direto - sem isAlive check, sem spawn fallback
+  // O daemon aria2c deve ser mantido vivo externamente (ariang_watchdog)
+  // Se RPC falhar, o retry do download service cuida de tentar novamente
+  return rpcDownload(url, outputPath, options);
 }
 
 /**

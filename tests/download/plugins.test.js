@@ -21,7 +21,8 @@ describe('Plugins: romsfun e consoleroms', () => {
     it('romsfun deve ter prioridade e enabled corretos', () => {
       const p = plugins['romsfun'];
       expect(p.priority).to.be.a('number');
-      expect(p.enabled).to.be.true;
+      // romsfun desabilitado por retornar 403 (banido)
+      expect(p.enabled).to.be.false;
       expect(p.matchType).to.equal('title');
       expect(p.needsMultiChunk).to.be.true;
     });
@@ -149,7 +150,7 @@ describe('Plugins: romsfun e consoleroms', () => {
   });
 
   describe('romsfun: extracao de extensao', () => {
-    it('URLs de download devem ter extensao de ROM (.zip, .7z, .rar, .iso)', async () => {
+    it.skip('URLs de download devem ter extensao de ROM (.zip, .7z, .rar, .iso) - SKIP: romsfun banido (403)', async () => {
       const result = await plugins['romsfun'].search('SCUS-94900', 'Crash Bandicoot');
       for (const s of result) {
         const hasExt = /\.(zip|7z|rar|iso|bin|cue|img|chd)/i.test(s.url);
