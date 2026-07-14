@@ -18,8 +18,8 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 
 const QUEUE_URL = 'http://127.0.0.1:9001';
-const INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
-const MAX_ITEMS_PER_CYCLE = 15;
+const INTERVAL_MS = 3 * 60 * 1000; // 3 minutos (token expira em ~4min)
+const MAX_ITEMS_PER_CYCLE = 30;
 const TOKEN_FRESH_MS = 4 * 60 * 1000; // token valido por ~4min
 
 const HEADERS = {
@@ -48,12 +48,17 @@ async function getPendingItems() {
     const r = await axios.get(`${QUEUE_URL}/queue`, { timeout: 30000 });
     const queue = r.data;
     if (!queue.queue) return [];
-    // Filtra pending e in_progress que nao tem source romsfun
-    return queue.queue.filter(item => {
-      if (item.status !== 'pending' && item.status !== 'searching') return false;
+    // Filtra apenas pending e searching (ready ja tem sources de outras fontes)
+    // Prioriza US/EU (romsfun tem esses) sobre JP
+    const candidates = queue.queue.filter(item => {
+      if (!['pending', 'searching'].includes(item.status)) return false;
       const hasRomsfun = item.sources && item.sources.some(s => s.site === 'romsfun');
       return !hasRomsfun;
-    }).slice(0, MAX_ITEMS_PER_CYCLE);
+    });
+    // Priorizar US/EU (SLUS, SLES, SCES) sobre JP
+    const usEu = candidates.filter(i => i.serial.startsWith('SLUS') || i.serial.startsWith('SLES') || i.serial.startsWith('SCES'));
+    const jp = candidates.filter(i => !usEu.includes(i));
+    return [...usEu, ...jp].slice(0, MAX_ITEMS_PER_CYCLE);
   } catch (e) {
     log(`Erro buscando queue: ${e.message}`);
     return [];
@@ -125,10 +130,12 @@ async function resolveDirectUrl(downloadPageUrl) {
 }
 
 /**
- * Marca item como ready com source romsfun fresca.
+ * Marca item como ready com source romsfun fresca E adiciona download diretamente ao aria2.
+ * Isso elimina o tempo de espera entre injecao e download, evitando que o token expire.
  */
 async function markReadyWithRomsfun(serial, title, directUrl, referer) {
   try {
+    // 1. Marcar como ready na queue
     const sources = [{
       site: 'romsfun',
       url: directUrl,
@@ -140,7 +147,34 @@ async function markReadyWithRomsfun(serial, title, directUrl, referer) {
       expiresAt: Date.now() + TOKEN_FRESH_MS
     }];
     await axios.post(`${QUEUE_URL}/queue/ready`, { serial, sources }, { timeout: 10000 });
-    log(`READY: ${serial} -> ${directUrl.substring(0, 80)}...`);
+
+    // 2. Adicionar download DIRETAMENTE ao aria2 (sem esperar o download service)
+    try {
+      const out = `${serial}.zip`;
+      const rpcRes = await axios.post('http://127.0.0.1:16800/jsonrpc', {
+        jsonrpc: '2.0', method: 'aria2.addUri', id: 'inj', params: [
+          [directUrl],
+          {
+            dir: 'D:\\roms\\library\\roms\\psx',
+            out: out,
+            header: [`Referer: ${referer}`],
+            'user-agent': HEADERS['User-Agent'],
+            'max-connection-per-server': '16',
+            'split': '16',
+            'min-split-size': '1M',
+            'max-tries': '0',
+            'retry-wait': '3',
+            'connect-timeout': '20',
+            'timeout': '20',
+            'check-certificate': 'false'
+          }
+        ]
+      }, { timeout: 10000 });
+      const gid = rpcRes.data.result;
+      log(`READY+ARIA2: ${serial} -> gid=${gid} | ${directUrl.substring(0, 60)}...`);
+    } catch (ariaErr) {
+      log(`READY (sem aria2): ${serial} -> ${directUrl.substring(0, 80)}... | aria err: ${ariaErr.message}`);
+    }
     return true;
   } catch (e) {
     log(`Erro marcando ready ${serial}: ${e.message}`);
@@ -162,12 +196,16 @@ async function cycle() {
 
   let injected = 0;
   let failed = 0;
+  let noLinks = 0;
+  let noDlPage = 0;
+  let noToken = 0;
   for (const item of items) {
     const { serial, title } = item;
     try {
       // 1. Buscar pagina do jogo no romsfun
-      const gameLinks = await findDownloadPage(title || serial);
-      if (!gameLinks.length) { failed++; continue; }
+      const searchTitle = (title || serial).split('(')[0].split('[')[0].trim();
+      const gameLinks = await findDownloadPage(searchTitle);
+      if (!gameLinks.length) { failed++; noLinks++; if (noLinks <= 3) log(`semLinks: ${serial} | titulo: "${searchTitle}"`); continue; }
 
       // 2. Extrair pagina de download
       let dlPageUrl = null;
@@ -177,11 +215,11 @@ async function cycle() {
           if (dlPageUrl) break;
         } catch { /* tenta proximo */ }
       }
-      if (!dlPageUrl) { failed++; continue; }
+      if (!dlPageUrl) { failed++; noDlPage++; continue; }
 
       // 3. Resolver token fresco
       const resolved = await resolveDirectUrl(dlPageUrl);
-      if (!resolved) { failed++; continue; }
+      if (!resolved) { failed++; noToken++; continue; }
 
       // 4. Inserir como ready na fila
       const ok = await markReadyWithRomsfun(serial, title, resolved.url, resolved.referer);
@@ -192,6 +230,7 @@ async function cycle() {
       failed++;
     }
   }
+  log(`Detalhamento: semLinks=${noLinks} semDlPage=${noDlPage} semToken=${noToken} injetados=${injected}`);
   log(`=== CICLO FIM === Injetados: ${injected} | Falharam: ${failed} | Total: ${items.length}`);
 }
 
