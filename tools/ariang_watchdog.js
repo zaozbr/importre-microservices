@@ -83,7 +83,7 @@ function startDaemon() {
     '--enable-rpc=true', '--rpc-listen-port=16800', '--rpc-allow-origin-all=true', '--rpc-listen-all=true',
     '--check-certificate=false', '--dir=D:\\roms\\library\\roms\\psx',
     `--save-session=${sessionFile}`, '--save-session-interval=10',
-    '--max-concurrent-downloads=20', '--max-connection-per-server=16', '--split=16', '--min-split-size=1M',
+    '--max-concurrent-downloads=40', '--max-connection-per-server=16', '--split=16', '--min-split-size=1M',
     '--continue=true', '--file-allocation=none', '--max-tries=0', '--retry-wait=3',
     '--connect-timeout=30', '--timeout=30', '--lowest-speed-limit=0',
     '--seed-time=0', '--seed-ratio=0', '--max-overall-upload-limit=1M', '--max-upload-limit=256K',
@@ -109,7 +109,7 @@ function startWebServer() {
 async function applyConfigs() {
   try {
     await rpc.post(RPC_URL, { jsonrpc: '2.0', method: 'aria2.changeGlobalOption', id: '1', params: [{
-      'max-concurrent-downloads': '20',
+      'max-concurrent-downloads': '40',
       'max-connection-per-server': '16',
       'split': '16',
       'min-split-size': '1M',
