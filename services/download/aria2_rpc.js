@@ -7,18 +7,27 @@ const axios = require('axios');
 
 const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
 const RPC_TIMEOUT = 15000;
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_MS = 5000;
 const DEFAULT_MAX_TIME_MS = 600000; // 10min por download
 
 let rpcId = 1;
 
+// Reutilizar conexao HTTP com keepalive para reduzir overhead
+const http = require('http');
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 10, timeout: 30000 });
+const rpcAxios = axios.create({
+  timeout: RPC_TIMEOUT,
+  httpAgent,
+  headers: { 'Connection': 'keep-alive' }
+});
+
 async function rpc(method, params = []) {
-  const r = await axios.post(RPC_URL, {
+  const r = await rpcAxios.post(RPC_URL, {
     jsonrpc: '2.0',
     method,
     id: String(rpcId++),
     params
-  }, { timeout: RPC_TIMEOUT });
+  });
   if (r.data.error) throw new Error(`RPC error: ${r.data.error.message} (code ${r.data.error.code})`);
   return r.data.result;
 }

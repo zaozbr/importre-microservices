@@ -16,17 +16,21 @@ const Logger = require('../../shared/logger');
 const log = new Logger('motrix-watchdog');
 const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
 const QUEUE_URL = `http://127.0.0.1:${PORTS.QUEUE}`;
-const POLL_INTERVAL_MS = 10000; // 10s
+const POLL_INTERVAL_MS = 15000; // 15s
 const STALL_THRESHOLD_MS = 180000; // 3min sem progresso = stalled
 const ARIA2C_EXE = 'F:\\importre\\Motrix\\app\\resources\\engine\\aria2c.exe';
 const SESSION_DIR = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\session';
 
 let rpcId = 1;
 
+const http = require('http');
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 4, timeout: 30000 });
+const rpcAxios = axios.create({ timeout: 10000, httpAgent });
+
 async function rpc(method, params = []) {
-  const r = await axios.post(RPC_URL, {
+  const r = await rpcAxios.post(RPC_URL, {
     jsonrpc: '2.0', method, id: String(rpcId++), params
-  }, { timeout: 5000 });
+  });
   if (r.data.error) throw new Error(`RPC: ${r.data.error.message}`);
   return r.data.result;
 }
