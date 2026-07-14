@@ -7,14 +7,14 @@ const axios = require('axios');
 
 const RPC_URL = 'http://127.0.0.1:16800/jsonrpc';
 const RPC_TIMEOUT = 15000;
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 8000;
 const DEFAULT_MAX_TIME_MS = 600000; // 10min por download
 
 let rpcId = 1;
 
 // Reutilizar conexao HTTP com keepalive para reduzir overhead
 const http = require('http');
-const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 10, timeout: 30000 });
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 4, timeout: 60000 });
 const rpcAxios = axios.create({
   timeout: RPC_TIMEOUT,
   httpAgent,
@@ -30,6 +30,21 @@ async function rpc(method, params = []) {
   });
   if (r.data.error) throw new Error(`RPC error: ${r.data.error.message} (code ${r.data.error.code})`);
   return r.data.result;
+}
+
+/**
+ * Multicall - agrupa multiplas chamadas RPC em uma so requisicao.
+ * Reduz drasticamente o overhead no daemon aria2.
+ */
+async function multicall(calls) {
+  const r = await rpcAxios.post(RPC_URL, {
+    jsonrpc: '2.0',
+    method: 'system.multicall',
+    id: String(rpcId++),
+    params: [calls.map(c => ({ methodName: c.method, params: c.params }))]
+  });
+  if (r.data.error) throw new Error(`RPC multicall error: ${r.data.error.message}`);
+  return r.data.result.map(item => item[0] !== undefined ? item[0] : null);
 }
 
 /**
@@ -333,6 +348,7 @@ function logProgress(msg) {
 
 module.exports = {
   rpc,
+  multicall,
   isAlive,
   addDownload,
   tellStatus,
