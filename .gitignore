@@ -4,3 +4,13 @@ node_modules/
 *.log
 shared/archive_auth.json
 _tmp/
+AriaNg-AllInOne.zip
+AriaNg_Native-*.exe
+Motrix-*.exe
+Motrix/
+aria2-1.37.0*/
+aria2c.exe.bak*
+aria2-1.37.0-win-64bit.zip
+_rename_log.txt
+_rename_progress.json
+_source_hunter_state.json
