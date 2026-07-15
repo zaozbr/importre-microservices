@@ -159,3 +159,36 @@ O `ariang_web.js` expõe endpoint `/rpc-port` que retorna a porta descoberta. O 
 **Correção:** Encontrado workflow completo em `E:\workspace\.devin\workflows\commit.md` (projeto Zee-Fighters) com 7 passos: DOCUMENTAR, BACKUP, SAFE POINT, STAGE, COMMIT, PUSH, CONTEXTO. Adaptado e fixado em `F:\importre\knowledge\workflows\commit.md`.
 
 **Regra OBRIGATORIA:** O workflow `commit!` sempre executa os 7 passos completos. Nunca improvisar versão reduzida.
+
+## 16. Diversificacao de fontes para evitar rate-limiting
+
+**Problema:** Apenas 2 fontes (archive.org + retrostic.com) estavam ativas em 60 downloads, de 34 plugins disponiveis. Quando archive.org rate-limitava, toda a velocidade despencava (100MB/s -> 1MB/s). 26 de 30 RR workers ficavam parados esperando itens de fontes que nao tinham URLs na queue.
+
+**Correcao:**
+1. RR workers ociosos apos 2 ciclos (6s) pegam itens de qualquer fonte (`processOneWithPreferredSource('any')`)
+2. Queue faz round-robin entre fontes no modo `any` (agrupa por source, rotaciona `rrCounter`)
+3. Isso distribui a carga entre archive.org, vimm, retrostic, romsdl simultaneamente
+
+**Regra:** Quando ha poucas fontes ativas, workers ociosos devem pegar de qualquer fonte em vez de ficar parados. Diversificacao e mais importante que fidelidade a uma fonte.
+
+## 17. Subagent pode usar Copy-Item em vez de Rename-Item
+
+**Problema:** Subagent do lote 3 (renomeacao CHD) usou `Copy-Item` em vez de `Rename-Item`, criando 18 duplicatas. Cada arquivo existia tanto com o serial original quanto com o nome do jogo.
+
+**Correcao:** Verificar duplicatas apos renomeacao por subagent. Para cada par:
+- Se tamanho igual: deletar original (renomeado ja existe)
+- Se tamanho diferente: manter o maior, deletar o menor, renomear
+
+**Regra:** Ao delegar renomeacao a subagents, sempre verificar duplicatas depois. Especificar `Rename-Item -LiteralPath` explicitamente e nao confiar que o subagent vai usar o comando certo.
+
+## 18. Cookie archive.org via ia configure (internetarchive CLI)
+
+**Problema:** Extrair cookie HttpOnly do archive.org e dificil porque:
+- `document.cookie` nao acessa HttpOnly
+- Chrome bloqueia leitura do SQLite de cookies (EBUSY)
+- `curl` nao consegue renderizar o formulario React SPA
+- Playwright MCP usa `--remote-debugging-pipe` (nao porta CDP)
+
+**Correcao:** Usar `ia configure` (CLI oficial do internetarchive) que faz login via API interna `xauthn` e salva cookies em `~/.config/internetarchive/ia.ini`. Extrair de la e salvar em formato Netscape.
+
+**Regra:** Para extrair cookies HttpOnly de servicos com CLI oficial, usar a CLI em vez de tentar ler o banco de cookies do browser.

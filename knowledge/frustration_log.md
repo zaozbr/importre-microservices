@@ -55,3 +55,24 @@
 - **Contexto:** O `ariang_watchdog.js` verificava porta 16802 enquanto o aria2 rodava em 16810. O watchdog nao encontrava o daemon e reiniciava, interrompendo downloads ativos. Lista hardcoded de portas candidatas nao incluia a porta correta ou falhava na ordem.
 - **Impacto:** Reinicios desnecessarios do aria2, downloads interrompidos, usuario precisou investigar logs para entender por que o daemon caia.
 - **Acao corretiva:** Descoberta de porta 100% dinamica via netstat + PIDs de aria2c.exe. Zero listas hardcoded. Documentado em lessons_learned item 13.
+
+## 9. IA nao documenta knowledge antes de commitar
+
+- **Data:** 2026-07-15
+- **Contexto:** Apos `commit!`, usuario perguntou "e a parte da documentacao de knowledge, frustration e outros relatorios?". A IA havia feito apenas lint+test+commit+push, pulando os passos 1 (documentar), 2 (backup), 3 (safe point) e 7 (contexto) do workflow. Isso aconteceu MESMO apos a IA ter lido o workflow completo em `knowledge/workflows/commit.md` na sessao anterior e documentado a licao #15 sobre nunca pular passos.
+- **Impacto:** Conhecimento da sessao (diversificacao de fontes, renomeacao CHD, cookie renovado) quase perdido. Frustracao do usuario por ter que lembrar a IA de seguir o workflow que ela mesma documentou como "inegociavel".
+- **Acao corretiva:** Reexecutar workflow completo agora. Regra: reabsorver `knowledge/workflows/commit.md` ANTES de processar `commit!` — nao apenas lembrar que existe, mas ler e executar cada passo.
+
+## 10. Subagent usou Copy-Item em vez de Rename-Item
+
+- **Data:** 2026-07-15
+- **Contexto:** Subagent do lote 3 (renomeacao CHD) recebeu instrucao para renomear 30 arquivos. Em vez de `Rename-Item`, usou `Copy-Item`, criando 18 duplicatas. Cada arquivo existia com ambos os nomes (serial original + nome do jogo).
+- **Impacto:** 18 arquivos duplicados ocupando espaco extra em D: (HDD ja lento). Usuario nao percebeu ate a IA verificar manualmente. Demorou 3 ciclos de verificacao para encontrar e corrigir todas as duplicatas.
+- **Acao corretiva:** Corrigido manualmente: deletar original se tamanho igual, manter maior se diferente. Documentado em lessons_learned item 17. Regra: especificar `Rename-Item -LiteralPath` explicitamente e verificar duplicatas apos subagent.
+
+## 11. D: (HDD) extremamente lento para operacoes de listagem
+
+- **Data:** 2026-07-15
+- **Contexto:** Operacoes `Get-ChildItem` em `D:\roms\library\roms\psx` com mais de 1500 arquivos .chd frequentemente travavam por 30-60s ou nao retornavam. Verificacoes de renomeacao levavam minutos.
+- **Impacto:** Verificacao de duplicatas apos renomeacao era dolorosamente lenta. Monitor de downloads nao conseguia contar CHDs novos em tempo real.
+- **Acao corretiva:** Usar comandos mais leves (`Test-Path` individual em vez de `Get-ChildItem` completo). Evitar `Get-ChildItem -Recurse` em D:. Operacoes pesadas em background com timeout.
