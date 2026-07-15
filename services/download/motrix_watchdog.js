@@ -1,7 +1,8 @@
 /**
  * motrix_watchdog.js
  *
- * Observabilidade do daemon aria2c do Motrix (porta 16802).
+ * Observabilidade do daemon aria2c do Motrix.
+ * - DESCOBRE a porta RPC dinamicamente via netstat (PIDs de aria2c.exe)
  * - Monitora downloads ativos, parados e em espera via RPC
  * - Detecta downloads com erro e devolve o serial para a fila de busca
  * - Detecta downloads travados (stalled) e remove
@@ -10,25 +11,121 @@
  * - Reporta para o dashboard do download service
  */
 const axios = require('axios');
+const { execSync } = require('child_process');
+const fs = require('fs');
 const { PORTS } = require('../../shared/config');
 const Logger = require('../../shared/logger');
 
 const log = new Logger('motrix-watchdog');
-const RPC_URL = 'http://127.0.0.1:16802/jsonrpc';
 const QUEUE_URL = `http://127.0.0.1:${PORTS.QUEUE}`;
 const POLL_INTERVAL_MS = 15000; // 15s
 const STALL_THRESHOLD_MS = 300000; // 5min sem progresso = stalled
-const ARIA2C_EXE = 'F:\\importre\\Motrix\\app\\resources\\engine\\aria2c.exe';
-const SESSION_DIR = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\session';
+const SYSTEM_JSON = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\system.json';
+const ARIA2_DEFAULT_PORT = 6800;
 
 let rpcId = 1;
+let discoveredPort = null;
 
 const http = require('http');
 const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 4, timeout: 30000 });
 const rpcAxios = axios.create({ timeout: 10000, httpAgent });
 
+function rpcUrl(port) { return `http://127.0.0.1:${port}/jsonrpc`; }
+
+function execSyncSafe(cmd, timeoutMs = 8000) {
+  try { return execSync(cmd, { encoding: 'utf8', timeout: timeoutMs, windowsHide: true }); }
+  catch (e) { return e.stdout || ''; }
+}
+
+/** PIDs de todos os aria2c.exe rodando. */
+function allAria2cPids() {
+  const pids = new Set();
+  const output = execSyncSafe('wmic process where "name=\'aria2c.exe\'" get ProcessId /value');
+  for (const line of output.split('\n')) {
+    const m = line.match(/ProcessId=(\d+)/);
+    if (m) pids.add(m[1]);
+  }
+  return [...pids];
+}
+
+/** Portas em LISTENING pertencentes aos PIDs dados. */
+function portsForPids(pids) {
+  if (!pids.length) return [];
+  const pidSet = new Set(pids);
+  const ports = new Set();
+  const output = execSyncSafe('netstat -ano');
+  for (const line of output.split('\n')) {
+    if (!line.includes('LISTENING')) continue;
+    const m = line.match(/:\d+\s+\S+\s+\S+\s+(\d+)\s*$/);
+    if (m && pidSet.has(m[1])) {
+      const portMatch = line.match(/:(\d+)\s/);
+      if (portMatch) ports.add(parseInt(portMatch[1]));
+    }
+  }
+  return [...ports];
+}
+
+/** Le rpc-listen-port do system.json do Motrix. */
+function readConfiguredPort() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(SYSTEM_JSON, 'utf8'));
+    if (cfg['rpc-listen-port']) return parseInt(cfg['rpc-listen-port']);
+  } catch { /* sem config */ }
+  return ARIA2_DEFAULT_PORT;
+}
+
+async function probePort(port) {
+  try {
+    const r = await rpcAxios.post(rpcUrl(port), { jsonrpc: '2.0', method: 'aria2.getVersion', id: 'probe', params: [] }, { timeout: 3000 });
+    if (r.data.result && r.data.result.version) return port;
+  } catch { /* morto */ }
+  return null;
+}
+
+/**
+ * Descobre a porta RPC dinamicamente:
+ * 1. Porta ja conhecida
+ * 2. netstat: PIDs de aria2c.exe -> portas em LISTENING -> probe
+ * 3. system.json rpc-listen-port
+ * 4. Fallback: 6800
+ */
+async function discoverPort() {
+  if (discoveredPort) {
+    const p = await probePort(discoveredPort);
+    if (p) return p;
+  }
+  // netstat: encontra portas que aria2c.exe esta ouvindo
+  const pids = allAria2cPids();
+  if (pids.length) {
+    const ports = portsForPids(pids);
+    for (const port of ports) {
+      if (port === discoveredPort) continue;
+      const p = await probePort(port);
+      if (p) {
+        if (discoveredPort !== p) log.info(`Porta RPC descoberta via netstat: ${p}`);
+        discoveredPort = p;
+        return p;
+      }
+    }
+  }
+  // system.json
+  const cfgPort = readConfiguredPort();
+  if (cfgPort !== discoveredPort) {
+    const p = await probePort(cfgPort);
+    if (p) { discoveredPort = p; return p; }
+  }
+  // fallback
+  if (ARIA2_DEFAULT_PORT !== cfgPort && ARIA2_DEFAULT_PORT !== discoveredPort) {
+    const p = await probePort(ARIA2_DEFAULT_PORT);
+    if (p) { discoveredPort = p; return p; }
+  }
+  return null;
+}
+
 async function rpc(method, params = []) {
-  const r = await rpcAxios.post(RPC_URL, {
+  const port = discoveredPort || await discoverPort();
+  if (!port) throw new Error('daemon aria2c nao encontrado');
+  const r = await rpcAxios.post(rpcUrl(port), {
     jsonrpc: '2.0', method, id: String(rpcId++), params
   });
   if (r.data.error) throw new Error(`RPC: ${r.data.error.message}`);
@@ -87,39 +184,6 @@ async function ensureMotrixRunning() {
   if (alive) return true;
   log.warn('Motrix daemon nao responde. O ariang_watchdog cuida do restart - nao duplicar.');
   return false;
-  /* Restart desativado - o ariang_watchdog.js cuida de manter o daemon vivo
-  try {
-    const { spawn } = require('child_process');
-    const fs = require('fs');
-    const path = require('path');
-    const aria2c = fs.existsSync(ARIA2C_EXE) ? ARIA2C_EXE : 'F:\\importre\\Motrix\\app\\resources\\engine\\aria2c.exe';
-    if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
-    const sessionFile = path.join(SESSION_DIR, 'download.session');
-    if (!fs.existsSync(sessionFile)) fs.writeFileSync(sessionFile, '');
-    spawn(aria2c, [
-      '--enable-rpc=true', '--rpc-listen-port=16802', '--rpc-allow-origin-all=true', '--rpc-listen-all=true',
-      '--check-certificate=false', '--dir=D:\\roms\\library\\roms\\psx',
-      `--save-session=${sessionFile}`, '--save-session-interval=10',
-      '--max-concurrent-downloads=20', '--max-connection-per-server=16', '--split=16', '--min-split-size=1M',
-      '--continue=true', '--file-allocation=none', '--max-tries=0', '--retry-wait=5',
-      '--seed-time=0', '--seed-ratio=0', '--enable-dht=true', '--enable-peer-exchange=true',
-      '--bt-enable-lpd=true', '--bt-max-peers=128', '--listen-port=6881-6999', '--dht-listen-port=26701',
-      '--console-log-level=warn'
-    ], { windowsHide: true, detached: true, stdio: 'ignore' }).unref();
-    log.info('aria2c daemon reiniciado. Aguardando 8s...');
-    await sleep(8000);
-    const alive2 = await isMotrixAlive();
-    if (alive2) {
-      log.info('aria2c voltou!');
-      return true;
-    }
-    log.error('aria2c nao voltou apos restart');
-    return false;
-  } catch (e) {
-    log.error(`Erro reiniciando aria2c: ${e.message}`);
-    return false;
-  }
-  */
 }
 
 /**
