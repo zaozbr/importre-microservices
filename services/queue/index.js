@@ -219,7 +219,25 @@ app.post('/queue/next-ready', (req, res) => {
       return res.json({ item: null });
     }
   } else {
-    ready = ready.sort(sortByProgress);
+    // Modo 'any': round-robin entre fontes para diversificar
+    // Agrupa por primeira fonte, rotaciona a cada chamada
+    const bySource = new Map();
+    ready.forEach(i => {
+      const src = (i.sources && i.sources[0] && i.sources[0].site) || 'unknown';
+      if (!bySource.has(src)) bySource.set(src, []);
+      bySource.get(src).push(i);
+    });
+    // Ordenar cada grupo por progresso
+    bySource.forEach(arr => arr.sort(sortByProgress));
+    // Round-robin: pegar do grupo que tem mais itens primeiro, mas rotacionar
+    const sources = [...bySource.keys()].sort((a, b) => bySource.get(b).length - bySource.get(a).length);
+    if (sources.length > 0) {
+      const rrIdx = (q.rrCounter || 0) % sources.length;
+      q.rrCounter = (q.rrCounter || 0) + 1;
+      ready = bySource.get(sources[rrIdx]);
+    } else {
+      ready = ready.sort(sortByProgress);
+    }
   }
   
   if (!ready.length) return res.json({ item: null });

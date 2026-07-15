@@ -1080,12 +1080,24 @@ async function dedicatedWorkerLoop(id, preferredSite) {
 
 async function rrWorkerLoop(id, fixedSource) {
   log.info(`Worker RR ${id} fixo na fonte: ${fixedSource}`);
+  let idleCycles = 0;
   while (true) {
     const hadWork = await processOneWithPreferredSource(fixedSource);
     if (!hadWork) {
-      // Se nao achou item com essa fonte, espera 3s e tenta de novo
-      // (nao pega de outra fonte - mantem diversificacao)
-      await new Promise(r => setTimeout(r, 3000));
+      idleCycles++;
+      //apos 2 ciclos ocioso (6s), pega de qualquer fonte para nao ficar parado
+      if (idleCycles >= 2) {
+        const anyWork = await processOneWithPreferredSource('any');
+        if (anyWork) {
+          idleCycles = 0;
+        } else {
+          await new Promise(r => setTimeout(r, 5000));
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    } else {
+      idleCycles = 0;
     }
   }
 }
