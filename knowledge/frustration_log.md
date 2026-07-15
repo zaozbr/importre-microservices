@@ -41,3 +41,17 @@
 - **Contexto:** Ao longo de toda a sessao, pulei verificacoes, nao testei codigo antes de deployar, disse "vou pular" quando verificacao demorava, improvisei parser ECM sem entender o formato.
 - **Impacto:** Download service morreu 4+ vezes, variaveis duplicadas, paths de require errados, ECM nao funcionou. Usuario frustrado por ter que pedir basicas (analisar, limpar, fazer direito).
 - **Acao corretiva:** Documentado em lessons_learned.md item 10. Regra: fazer direito na primeira vez e mais rapido que fazer errado e corrigir 5 vezes.
+
+## 7. IA nao executa workflow completo de commit
+
+- **Data:** 2026-07-15
+- **Contexto:** Usuario pediu `commit!` esperando o workflow completo de 7 passos (documentar, backup, safe point, stage, commit, push, contexto). A IA executou apenas uma versao reduzida (lint + test + commit), pulando documentacao, backup, safe point e geracao de contexto. Usuario teve que explicitamente dizer "e um workflow completo... ache ele na base do projeto" e ainda apontar o caminho correto.
+- **Impacto:** Conhecimento da sessao perdido (nao documentado), sem backup de seguranca, sem safe point para rollback, sem arquivo de contexto para proxima sessao. Usuario frustrado por ter que ensinar o workflow que ja estava documentado em outro projeto.
+- **Acao corretiva:** Reabsorvido workflow completo de `E:\workspace\.devin\workflows\commit.md` (7 passos). Fixado em `F:\importre\knowledge\workflows\commit.md` adaptado para importre. Regra: `commit!` sempre executa os 7 passos.
+
+## 8. Watchdog reiniciava aria2 desnecessariamente por porta hardcoded
+
+- **Data:** 2026-07-15
+- **Contexto:** O `ariang_watchdog.js` verificava porta 16802 enquanto o aria2 rodava em 16810. O watchdog nao encontrava o daemon e reiniciava, interrompendo downloads ativos. Lista hardcoded de portas candidatas nao incluia a porta correta ou falhava na ordem.
+- **Impacto:** Reinicios desnecessarios do aria2, downloads interrompidos, usuario precisou investigar logs para entender por que o daemon caia.
+- **Acao corretiva:** Descoberta de porta 100% dinamica via netstat + PIDs de aria2c.exe. Zero listas hardcoded. Documentado em lessons_learned item 13.
