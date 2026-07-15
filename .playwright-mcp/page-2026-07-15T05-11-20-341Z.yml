@@ -1,0 +1,161 @@
+- generic [ref=f218e3]:
+  - banner [ref=f218e4]:
+    - generic [ref=f218e5]:
+      - paragraph [ref=f218e6]: Now Available on
+      - link [ref=f218e7] [cursor=pointer]:
+        - /url: https://play.google.com/store/apps/details?id=com.emailnator
+      - link [ref=f218e9] [cursor=pointer]:
+        - /url: https://apps.apple.com/app/id6443654899
+    - navigation [ref=f218e11]:
+      - generic [ref=f218e13]:
+        - generic [ref=f218e14]:
+          - link "Home" [ref=f218e15] [cursor=pointer]:
+            - /url: /
+          - link "10 Minute Mail" [ref=f218e16] [cursor=pointer]:
+            - /url: /10minutemail
+          - link "Bulk Emails" [ref=f218e17] [cursor=pointer]:
+            - /url: /bulk-emails
+        - link [ref=f218e19] [cursor=pointer]:
+          - /url: /
+          - img "Gmailnator" [ref=f218e20]
+        - generic [ref=f218e21]:
+          - button "About" [ref=f218e23] [cursor=pointer]
+          - link "Temp Number" [ref=f218e24] [cursor=pointer]:
+            - /url: https://smsnator.online/
+          - link "API" [ref=f218e25] [cursor=pointer]:
+            - /url: /api
+          - link "Premium" [ref=f218e26] [cursor=pointer]:
+            - /url: /premium
+          - link "Login" [ref=f218e27] [cursor=pointer]:
+            - /url: https://premium.emailnator.com/login
+  - main [ref=f218e30]:
+    - img "Gmailnator" [ref=f218e31]:
+      - generic [ref=f218e34]:
+        - insertion [ref=f218e36]:
+          - iframe [ref=f218e38]:
+            
+        - generic [ref=f218e39]:
+          - heading "Disposable Email Address" [level=5] [ref=f218e40]
+          - generic [ref=f218e41]:
+            - textbox "Email Address" [ref=f218e43]: y.aku.z.aya.ya207@gmail.com
+            - insertion [ref=f218e45]:
+              - iframe [ref=f218e47]:
+                
+            - button "Go !" [ref=f218e49] [cursor=pointer]
+            - generic [ref=f218e50]:
+              - generic [ref=f218e51] [cursor=pointer]:
+                - checkbox "Domain" [checked] [ref=f218e52]
+                - generic [ref=f218e53]: Domain
+              - generic [ref=f218e54] [cursor=pointer]:
+                - checkbox "+Gmail" [checked] [ref=f218e55]
+                - generic [ref=f218e56]: +Gmail
+              - generic [ref=f218e57] [cursor=pointer]:
+                - checkbox ".Gmail" [checked] [ref=f218e58]
+                - generic [ref=f218e59]: .Gmail
+              - generic [ref=f218e60] [cursor=pointer]:
+                - checkbox "GoogleMail" [checked] [ref=f218e61]
+                - generic [ref=f218e62]: GoogleMail
+            - generic [ref=f218e64]:
+              - button "Generate New" [ref=f218e65] [cursor=pointer]
+              - generic [ref=f218e68]:
+                - link "Click here for 10 minute mail" [ref=f218e70] [cursor=pointer]:
+                  - /url: /10minutemail
+                - generic [ref=f218e71]: Click here for custom email.
+    - generic [ref=f218e74]:
+      - generic [ref=f218e75]:
+        - heading "What is Gmailnator" [level=1] [ref=f218e77]
+        - generic [ref=f218e78]: Gmailnator is a free service that allows getting instant temporary email it is also known as "tempmail", "10 minute mail", "throw away mail", "disposable mail", fake email, and "trash mail". It is used to prevent spam into your personal email address. Most of the sites require to register in order to view content, post comments,or download files like forums, blogs, public WI-FI spots, etc. you can use gmailnator to get instant email without using your real email address.Never use temporary mail for important information. It is a public email and can be accessed by anyone and your mail address is only temporary.
+        - separator [ref=f218e81]
+      - generic [ref=f218e82]:
+        - heading "Features" [level=2] [ref=f218e83]
+        - generic [ref=f218e84]:
+          - generic [ref=f218e85]: Gmail Mail
+          - generic [ref=f218e88]: GMAILINATOR can generate millions of Gmail email inboxes. You can use anyone you want.
+        - generic [ref=f218e89]:
+          - generic [ref=f218e90]: Prevent Spam
+          - generic [ref=f218e93]: Protect your personal data and privacy by not allowing spam in your personal email.
+        - generic [ref=f218e94]:
+          - generic [ref=f218e95]: Works in any Website
+          - generic [ref=f218e98]: Most of the big companies not allowed to use temporary email service on their website registration it will detect as spam mail and you can't proceed to registration. Gmailnator uses a real Gmail address so you never get the tag as spam email and can be used in any websites.
+        - generic [ref=f218e99]:
+          - generic [ref=f218e100]: Email Auto-Deletes
+          - generic [ref=f218e103]: GMAILINATOR email messages are auto-deleted after 24 hours and has a 7 Days Backup of all Emails.
+    - generic [ref=f218e106]:
+      - heading "Instant Disposable Gmail Generator" [level=1] [ref=f218e107]
+      - generic [ref=f218e108]:
+        - text: Do you experience trouble with your Gmail account having too many spam notifications from subscribing on different websites? Are you having difficulties with finding your important email messages because of too many alerts and updates from sites you do not need? No need to worry, Gmailnator is here to provide instant service for your problems.
+        - strong [ref=f218e109]: Gmailnator
+        - text: is the solution for your SPAM FREE inbox. No registrations, no 7-day trials, and no requirement for a real email address because this is a FREE generator to help keep your essential emails clean and secure!
+      - heading "Why Should I Use a Temporary Gmail Generator?" [level=2] [ref=f218e110]
+      - paragraph [ref=f218e111]: In a virtually skilled society, the use of emails became one of the dominant communication tools for socialization, education, and business. This medium is where we provide our transactions, merchandise, and other relationship-based contents that contain confidential information that must be kept in private. However, almost all the applications and websites require email addresses to sign up for their services. If this is the case, are you confident that your data is still safe after sharing your information with these services?
+      - paragraph [ref=f218e112]: "To help you guard your safety, here are the things you need to know before risking your email addresses to other service providers:"
+      - heading "What is an Email Address?" [level=2] [ref=f218e113]
+      - paragraph [ref=f218e114]: Email address represents account identification used in sending and receiving messages. Similarly, physical mailing uses home address and name, whereas this feature provides the name of the user and the domain component, such as .com, .org, and .gov. This medium can be used on different networks to send and receive messages that can be transmitted within a fraction of a second, having its message information stored in the email address inbox. Although email address quickly stores all the emails sent and received, there are email messages that are unnecessary to obtain due to its redundancy and uselessness.
+      - paragraph [ref=f218e115]: You may ask, what are these unnecessary messages that I receive in my inbox?
+      - heading "Spam Messages" [level=2] [ref=f218e116]
+      - paragraph [ref=f218e117]: These are the junk mails that are unwanted and often sent as bulk messages generated by automated programs that use email address distribution lists. This list came from users who provided their email addresses to create an account for the site's services and programs. Spam messages are the most prevalent and most threatening emails because they can be a gateway for scammers to steal personal information.
+      - paragraph [ref=f218e118]: What should I do to protect my personal email online?
+      - heading "Use Gmailnator, and you will be free from security concerns." [level=2] [ref=f218e119]
+      - paragraph [ref=f218e120]: Use Gmailnator, and you will be free from security concerns. Gmailnator is your user-friendly website that can provide a customized Gmail address. You can also choose from a wide variety of Gmail addresses that we offered for FREE. If that does not suit you, there is also an option where you can create your own Gmail address in just a click. How convenient is that?
+      - heading "Gmailnator is the BEST temporary Gmail generator." [level=2] [ref=f218e121]
+      - paragraph [ref=f218e122]:
+        - strong [ref=f218e123]: What makes Gmailnator different from other temporary email services?
+        - text: Most of the largest companies that provide social networks and online services such as Facebook, Google, Twitter, and Amazon automatically detect fraudulence when an individual uses a temporary email coming from service providers that generate disposable email addresses. When a person attempts to register using an unauthorized email address, the fraud team will likely lock the account or ban the individual from proceeding to registration. Gmailnator will not exploit a user to experience the risk of being recognized as a fraud operator. The site only utilizes REAL Gmail addresses to prevent commotion from the security platforms of any websites.
+      - heading "Advantages of Disposable Gmail address" [level=2] [ref=f218e124]
+      - paragraph [ref=f218e125]: Gmailnator has the benefits of creating your own Gmail address without any registration of your data. Unlike creating a regular email address on Google, which takes a couple of minutes to complete, Gmailnator provides a Gmail address in only seconds. You can also create a bundle of disposable Gmail addresses for over a THOUSAND. This feature will help individuals secure their privacy, especially on testing and developing applications or websites requiring email notification and inbox monitoring.
+      - paragraph [ref=f218e126]: Customizable Gmail Address
+      - paragraph [ref=f218e129]: Hassle-Free
+      - paragraph [ref=f218e132]: No Registration required
+      - heading [level=2] [ref=f218e135]:
+        - text: Generate your temporary Gmail address
+        - link "now!" [ref=f218e136] [cursor=pointer]:
+          - /url: "#disposable-email"
+  - contentinfo [ref=f218e137]:
+    - generic [ref=f218e139]:
+      - generic [ref=f218e140]:
+        - generic [ref=f218e141]:
+          - text: "Email :"
+          - link "support@emailnator.com" [ref=f218e144] [cursor=pointer]:
+            - /url: mailto:support@emailnator.com
+        - link [ref=f218e145] [cursor=pointer]:
+          - /url: https://www.facebook.com/gmailnator
+        - link [ref=f218e148] [cursor=pointer]:
+          - /url: https://www.facebook.com/gmailnator
+        - link [ref=f218e151] [cursor=pointer]:
+          - /url: https://discord.gg/K68g52HCWt
+      - generic [ref=f218e154]:
+        - generic [ref=f218e155]: Copyright © 2018-22 emailnator.com
+        - link "Gmailnator Premium" [ref=f218e157] [cursor=pointer]:
+          - /url: /premium
+        - generic [ref=f218e158]:
+          - link "AI Tools |" [ref=f218e159] [cursor=pointer]:
+            - /url: https://tools-ai.online/
+          - link "10 Minute Mail |" [ref=f218e160] [cursor=pointer]:
+            - /url: /10minutemail
+          - link "Compose Message" [ref=f218e161] [cursor=pointer]:
+            - /url: /compose-mail
+        - generic [ref=f218e162]:
+          - link "About |" [ref=f218e163] [cursor=pointer]:
+            - /url: /disposable-gmail-generator
+          - link "How to use |" [ref=f218e164] [cursor=pointer]:
+            - /url: /how-to-use
+          - link "FAQ |" [ref=f218e165] [cursor=pointer]:
+            - /url: /faq
+          - link "Contact" [ref=f218e166] [cursor=pointer]:
+            - /url: /contact-us
+        - generic [ref=f218e167]:
+          - link "Privacy/Policy |" [ref=f218e168] [cursor=pointer]:
+            - /url: /privacy-policy
+          - link "Term of Use" [ref=f218e169] [cursor=pointer]:
+            - /url: /term-of-use
+      - generic [ref=f218e171]:
+        - generic [ref=f218e172]: Donate
+        - button [ref=f218e174] [cursor=pointer]
+        - button [ref=f218e177] [cursor=pointer]
+        - button [ref=f218e179] [cursor=pointer]
+  - paragraph [ref=f218e182]:
+    - text: This site uses cookies. By continuing to browse the site you are agreeing to our use of cookies (
+    - link "Read more" [ref=f218e183] [cursor=pointer]:
+      - /url: /cookies
+    - text: )
+    - button "Close" [ref=f218e184] [cursor=pointer]

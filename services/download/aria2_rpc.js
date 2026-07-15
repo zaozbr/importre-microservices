@@ -1,5 +1,5 @@
 /**
- * Cliente JSON-RPC para o daemon aria2c do Motrix (porta 16802).
+ * Cliente JSON-RPC para o daemon aria2c do Motrix (porta 16810).
  * Usa WebSocket como transporte primario (conexao unica persistente, 0 CLOSE_WAIT).
  * HTTP axios como fallback se WebSocket falhar.
  * Suporta HTTP, magnet links e arquivos .torrent locais.
@@ -7,10 +7,10 @@
 const axios = require('axios');
 const WebSocket = require('ws');
 
-const RPC_URL = 'http://127.0.0.1:16802/jsonrpc';
-const WS_URL = 'ws://127.0.0.1:16802/jsonrpc';
+const RPC_URL = 'http://127.0.0.1:16810/jsonrpc';
+const WS_URL = 'ws://127.0.0.1:16810/jsonrpc';
 const RPC_TIMEOUT = 15000;
-const POLL_INTERVAL_MS = 15000;
+const POLL_INTERVAL_MS = 5000;
 const DEFAULT_MAX_TIME_MS = 600000; // 10min por download
 
 let rpcId = 1;

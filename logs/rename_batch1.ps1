@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Continue'
 $dir = 'D:\roms\library\roms\psx'
 $logFile = 'F:\importre\logs\rename.log'
 $errorLog = 'F:\importre\logs\rename_errors.log'
-$dryRun = $true  # Set to false to actually rename
+$dryRun = $false  # ACTUAL RENAME MODE
 
 # Known PSX serial prefixes
 $serialPrefixes = 'SLES|SLUS|SLPS|SLPM|SCPS|SCES|SCUS|SLED|SCED|SIPS|SLKA|PAPX|PCPX|SCAJ|SCAR|SCPM|SLPH|SLKO|SLHI|SABE'
@@ -167,18 +167,33 @@ function To-TitleCase {
     
     foreach ($word in $words) {
         if ($word -match '^\d+$') {
+            # Pure number - keep as is
             $result += $word
         }
         elseif ($romanPatterns -contains $word.ToUpper()) {
+            # Roman numerals - uppercase
             $result += $word.ToUpper()
         }
         elseif ($word.Length -le 1) {
             $result += $word.ToUpper()
         }
-        elseif ($word -match '^[A-Z0-9]+$') {
+        elseif ($word -cmatch '^[A-Z0-9]+$') {
+            # All uppercase (case-sensitive) - keep as-is (acronyms like 3D, CD, DVD)
             $result += $word
         }
+        elseif ($word -cmatch '^\d') {
+            # Word starts with digit - capitalize first LETTER, lowercase rest
+            # e.g., 2xtreme -> 2Xtreme, 3d -> 3D, 3x3 -> 3X3
+            $letterMatch = [regex]::Match($word, '[a-zA-Z]')
+            if ($letterMatch.Success) {
+                $pos = $letterMatch.Index
+                $result += $word.Substring(0, $pos) + $word.Substring($pos, 1).ToUpper() + $word.Substring($pos + 1).ToLower()
+            } else {
+                $result += $word
+            }
+        }
         else {
+            # Standard Title Case: capitalize first letter, lowercase rest
             $result += $word.Substring(0,1).ToUpper() + $word.Substring(1).ToLower()
         }
     }
@@ -235,20 +250,20 @@ foreach ($file in $toRename) {
     if ($disc) { $newName += "-Disc$disc" }
     $newName += ".chd"
     
-    if ($newName -eq $oldName) {
+    if ($newName -ceq $oldName) {
         $skipped++
         continue
     }
     
     # Handle duplicates
     $newNameLower = $newName.ToLower()
-    if ($newNames.ContainsKey($newNameLower) -or ($existingNames.ContainsKey($newNameLower) -and $newName -ne $oldName)) {
+    if ($newNames.ContainsKey($newNameLower) -or ($existingNames.ContainsKey($newNameLower) -and $newName -cne $oldName)) {
         $counter = 1
         $baseName = $newName -replace '\.chd$', ''
         while ($true) {
             $testName = "${baseName}($counter).chd"
             $testNameLower = $testName.ToLower()
-            if (!$newNames.ContainsKey($testNameLower) -and !($existingNames.ContainsKey($testNameLower) -and $testName -ne $oldName)) {
+            if (!$newNames.ContainsKey($testNameLower) -and !($existingNames.ContainsKey($testNameLower) -and $testName -cne $oldName)) {
                 $newName = $testName
                 $newNameLower = $testNameLower
                 break

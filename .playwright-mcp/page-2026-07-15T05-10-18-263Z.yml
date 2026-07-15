@@ -1,0 +1,156 @@
+- generic [ref=f77e1]:
+  - generic [active] [ref=f77e2]:
+    - link "Skip to main content" [ref=f77e3] [cursor=pointer]:
+      - /url: "#maincontent"
+    - banner [ref=f77e4]:
+      - generic [ref=f77e5]:
+        - navigation [ref=f77e8]:
+          - link "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f77e10] [cursor=pointer]:
+            - /url: /
+            - img "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f77e11]
+          - navigation [ref=f77e37]:
+            - generic [ref=f77e38]:
+              - link [ref=f77e39] [cursor=pointer]:
+                - /url: https://web.archive.org
+                - img "Web icon An illustration of a computer application window" [ref=f77e41]
+              - link [ref=f77e43] [cursor=pointer]:
+                - /url: /details/texts
+                - img "Texts icon An illustration of an open book." [ref=f77e45]
+              - link [ref=f77e47] [cursor=pointer]:
+                - /url: /details/movies
+                - img "Video icon An illustration of two cells of a film strip." [ref=f77e49]
+              - link [ref=f77e51] [cursor=pointer]:
+                - /url: /details/audio
+                - img "Audio icon An illustration of an audio speaker." [ref=f77e53]
+              - link [ref=f77e58] [cursor=pointer]:
+                - /url: /details/software
+                - img "Software icon An illustration of a 3.5\" floppy disk." [ref=f77e60]
+              - link [ref=f77e62] [cursor=pointer]:
+                - /url: /details/image
+                - img "Images icon An illustration of two photographs." [ref=f77e64]
+          - search [ref=f77e69]:
+            - generic [ref=f77e70]:
+              - button "Toggle options All" [ref=f77e74] [cursor=pointer]:
+                - generic [ref=f77e75]: Toggle options
+                - generic [ref=f77e76]: All
+              - generic [ref=f77e85]:
+                - generic [ref=f77e86]: Search the Archive. Filters and Advanced Search available below.
+                - textbox "Search the Archive. Filters and Advanced Search available below." [ref=f77e87]:
+                  - /placeholder: Search
+              - button "Search" [ref=f77e88] [cursor=pointer]
+          - generic [ref=f77e89]:
+            - generic [ref=f77e92]:
+              - button "Toggle login menu" [ref=f77e93] [cursor=pointer]:
+                - img "User icon An illustration of a person's head and chest." [ref=f77e94]
+              - generic [ref=f77e96]:
+                - link "Sign up" [ref=f77e97] [cursor=pointer]:
+                  - /url: /signup
+                - text: "|"
+                - link "Log in" [ref=f77e98] [cursor=pointer]:
+                  - /url: /login
+            - link "Upload icon An illustration of a horizontal line over an up pointing arrow. Upload" [ref=f77e99] [cursor=pointer]:
+              - /url: /upload
+              - img "Upload icon An illustration of a horizontal line over an up pointing arrow." [ref=f77e100]
+              - generic [ref=f77e102]: Upload
+        - navigation [ref=f77e105]:
+          - list [ref=f77e106]:
+            - listitem [ref=f77e107]:
+              - link [ref=f77e108] [cursor=pointer]:
+                - /url: /signup
+                - text: Sign up for free
+            - listitem [ref=f77e109]:
+              - link [ref=f77e110] [cursor=pointer]:
+                - /url: /login
+                - text: Log in
+        - list [ref=f77e112]:
+          - listitem [ref=f77e113]:
+            - link "About" [ref=f77e114] [cursor=pointer]:
+              - /url: /about/
+          - listitem [ref=f77e115]:
+            - link "Blog" [ref=f77e116] [cursor=pointer]:
+              - /url: https://blog.archive.org
+          - listitem [ref=f77e117]:
+            - link "Events" [ref=f77e118] [cursor=pointer]:
+              - /url: /events
+          - listitem [ref=f77e119]:
+            - link "Projects" [ref=f77e120] [cursor=pointer]:
+              - /url: /projects/
+          - listitem [ref=f77e121]:
+            - link "Help" [ref=f77e122] [cursor=pointer]:
+              - /url: /about/faqs.php
+          - listitem [ref=f77e123]:
+            - link "Donate Donate icon An illustration of a heart shape" [ref=f77e124] [cursor=pointer]:
+              - /url: /donate?origin=iawww-TopNavDonateButton
+              - text: Donate
+              - img "Donate icon An illustration of a heart shape" [ref=f77e125]
+          - listitem [ref=f77e127]:
+            - link "Contact" [ref=f77e128] [cursor=pointer]:
+              - /url: /about/contact
+          - listitem [ref=f77e129]:
+            - link "Jobs" [ref=f77e130] [cursor=pointer]:
+              - /url: /about/jobs
+          - listitem [ref=f77e131]:
+            - link "Volunteer" [ref=f77e132] [cursor=pointer]:
+              - /url: /about/volunteer-positions
+    - main [ref=f77e136]:
+      - generic [ref=f77e141]:
+        - img "Internet Archive Logo" [ref=f77e142]
+        - heading "Sign up for an account" [level=1] [ref=f77e143]
+        - paragraph [ref=f77e144]:
+          - text: Get your virtual library card and access 65+ million free and borrowable books, movies, audio, images, software, and more! Already have one?
+          - link "Log in!" [ref=f77e145] [cursor=pointer]:
+            - /url: /login
+        - generic [ref=f77e147]:
+          - generic [ref=f77e149]:
+            - iframe [ref=f77e221]:
+              - button "Fazer Login com o Google. Abre em uma nova guia" [ref=f80e3] [cursor=pointer]:
+                - generic [ref=f80e5]: Fazer Login com o Google
+            - paragraph
+          - button "Email me a code to sign up" [ref=f77e169] [cursor=pointer]
+          - generic [ref=f77e175]: Or
+        - generic [ref=f77e179]:
+          - generic [ref=f77e180]:
+            - generic [ref=f77e181]: Enter your email address
+            - generic [ref=f77e182]: Up to 127 characters
+            - generic [ref=f77e183]:
+              - textbox [ref=f77e184]: s.hen.aty.4.3@googlemail.com
+              - status "Error" [ref=f77e238]
+            - generic [ref=f77e240]:
+              - text: s.hen.aty.4.3@googlemail.com (or an alias) is already taken.
+              - link "Click here if this is your email." [ref=f77e241] [cursor=pointer]:
+                - /url: /account/login?username=s.hen.aty.4.3%40googlemail.com
+          - generic [ref=f77e185]:
+            - generic [ref=f77e186]: Choose a screen name
+            - generic [ref=f77e187]: 3 to 40 characters
+            - generic [ref=f77e188]:
+              - textbox [ref=f77e189]: impcoll2026
+              - status "Success" [ref=f77e242]
+          - generic [ref=f77e190]:
+            - generic [ref=f77e191]:
+              - generic [ref=f77e192]: Choose a password
+              - generic [ref=f77e193]: 8 to 100 characters
+            - generic [ref=f77e194]:
+              - textbox "Choose a password 8 to 100 characters" [ref=f77e195]: Arch2026xK9!mp
+              - button "Show password" [ref=f77e197] [cursor=pointer]
+          - generic [ref=f77e205]:
+            - generic [ref=f77e206]: Choose announcements
+            - generic [ref=f77e207]:
+              - 'checkbox "Best of the Archive: Useful resources, unique stories, and fun finds from our collections" [ref=f77e208]'
+              - generic [ref=f77e209]: "Best of the Archive: Useful resources, unique stories, and fun finds from our collections"
+            - generic [ref=f77e210]:
+              - 'checkbox "Event Notices: Invitations to and news about our events" [ref=f77e211]'
+              - generic [ref=f77e212]: "Event Notices: Invitations to and news about our events"
+          - button "Sign up" [ref=f77e214] [cursor=pointer]
+          - generic [ref=f77e216]:
+            - text: By signing up, you agree to the Internet Archive's
+            - link "Terms of Service" [ref=f77e217] [cursor=pointer]:
+              - /url: /about/terms
+  - iframe [ref=f77e220]:
+    - generic [ref=f78e5]:
+      - generic [ref=f78e6]:
+        - text: protegido por
+        - strong [ref=f78e7]: reCAPTCHA
+      - generic [ref=f78e9]:
+        - text: Os Termos de Serviço do reCAPTCHA estão mudando.
+        - link "Acesse." [ref=f78e10] [cursor=pointer]:
+          - /url: https://google.com/recaptcha/admin/migrate

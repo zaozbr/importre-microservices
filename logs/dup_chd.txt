@@ -1,0 +1,72 @@
+SCPS-45125	SCPS-45125.chd
+SLPM-86760	SLPM-86760.chd
+SLPS-00254	Wolf-Fang-SLPS-00254_1.chd
+SLPS-01632	SLPS-01632.chd
+SLPS-01685	SLPS-01685.chd
+SLPS-03065	SLPS-03065.chd
+SLPS-01238	SLPS-01238.chd
+SCPS-45379	SCPS-45379.chd
+SCPS-10067	Yarudora-Series-Vol.3-Sanpaguita-[Disc1of2]-SCPS-10067_1.chd
+SLPM-87131	Bakuten-Shoot-Beyblade-2002-Bey-Battle-Tournament-2-SLPM-87131(1).chd
+SLPS-02847	Chakushin-Melody-Damon-Gold-SLPS-02847(1).chd | Chakushin-Melody-Damon-Gold-SLPS-02847.chd
+SLPS-00094	Interactive-Movie-Action-Thunderstorm-&-Roadblaster-[Disc1of2]-SLPS-00094_1.chd
+SLPS-00067	Jikkyou-Powerfull-Pro-Baseball-'95-Opening-Printing-SLPS-00067_1.chd
+SLPS-01752	Tsuwadou-Keiryuu-Mizuumihen-SLPS-01752.cue | Tsuwadou-Keiryuu-Mizuumihen-SLPS-01752_1.chd
+SLPS-01966	Wakupuyo-Dungeon-Expert-[Disc1of2]-SLPS-01966_1.chd | Wakupuyo-Dungeon-Expert-[Disc1of2]-SLPS-01966_2.chd
+SLPS-00006	Hot-Blooded-Family-(Thermal-Blood-Parent-and-Child)-Nekketsu-Oyako-SLPS-00006_1.chd | Hot-Blooded-Family-(Thermal-Blood-Parent-and-Child)-Nekketsu-Oyako-SLPS-00006_2.chd | Hot-Blooded-Family-(Thermal-Blood-Parent-and-Child)-Nekketsu-Oyako-SLPS-00006_3.chd | Hot-Blooded-Family-(Thermal-Blood-Parent-and-Child)-Nekketsu-Oyako-SLPS-00006_4.chd
+SLUS-00012	Revolution-X-Music-Is-the-Weapon-SLUS-00012_1.chd
+SLUS-00797	Ridge-Racer-Type-4-SLUS-00797_1.chd
+SLUS-00787	T'ai Fu - Wrath of the Tiger-SLUS-00787.bin | T'ai Fu - Wrath of the Tiger-SLUS-00787.cue | T'ai-Fu-Wrath-of-the-Tiger-SLUS-00787.chd
+SCUS-94607	Tail of the Sun-SCUS-94607.cue | Tail-of-the-Sun-Wild,-Pure,-Simple-Life-SCUS-94607.chd
+SLUS-00006	TEKKEN-SLUS-00006.chd | Tekken-SLUS-00006.cue
+SLUS-00283	Tempest X3-SLUS-00283.cue | TEMPEST-X3-SLUS-00283.chd
+SLUS-01054	Tiger Woods PGA Tour 2000-SLUS-01054.cue | TIGER-WOODS-PGA-TOUR-2000-SLUS-01054.chd
+SLUS-00980	TNN Motorsports HardCore TR-SLUS-00980.cue | TNN-Motorsports-Hardcore-TR-SLUS-00980.chd
+SLUS-00152	Tomb Raider-SLUS-00152.cue | TOMB-RAIDER-SLUS-00152.chd
+SLUS-00618	Triple Play 99-SLUS-00618.cue | Triple-Play-'99-SLUS-00618.chd
+SLUS-01345	Triple Play Baseball-SLUS-01345.cue | Triple-Play-Baseball-SLUS-01345.chd
+SLUS-00480	WarCraft II - The Dark Saga-SLUS-00480.cue | Warcraft-II-The-Dark-Saga-SLUS-00480.chd
+SLUS-00779	WCW-nWo Thunder-SLUS-00779.cue | WCW-NWO-Thunder-SLUS-00779.chd
+SCUS-94644	Who Wants to Be a Millionaire - 3rd Edition-SCUS-94644.cue | Who-Wants-To-Be-a-Millionaire-3rd-Edition-SCUS-94644.chd
+SLUS-00865	WipEout 3-SLUS-00865.cue | Wipeout-3-SLUS-00865.chd
+SLUS-00013	WWF-Wrestlemania-The-Arcade-Game-SLUS-00013_1.chd
+SLPS-02639	Waneba-Island-World-Neverland-Series-SLPS-02639_1.chd
+SCPS-18007	Stolen-Song-A-Virtual-Music-Adventure-Tomoyash-Hotli-(Limited-Edition)-[Disc1of2]-SCPS-18007_1.chd
+SLPS-02427	Jinguji-Saburo-Tomoshibi-Ga-Kienumani-SLPS-02427_1.chd
+SLPS-00485	Battle-Arena-Nitoshinden-SLPS-00485_1.chd
+SCUS-94502	Adidas-Power-Soccer-SCUS-94502.chd
+SLES-02563	Anstoss-Premier-Manager-SLES-02563_1.chd
+SLES-00882	SLES-00882.chd | SLES-00882.cue
+SLUS-00169	SLUS-00169.chd
+SLUS-01255	Arc-the-Lad-Monster-Tournament-Battle-Arena-SLUS-01255.chd
+SLUS-00449	Arcade's-Greatest-Hits-The-Atari-Collection-2-SLUS-00449.cue | Arcade's-Greatest-Hits-The-Atari-Collection-2-SLUS-00449_1.chd
+SLUS-01022	Armorines-Project-Swarm-SLUS-01022.chd
+SLUS-01327	Army-Men-World-War-Final-Front-SLUS-01327(1).chd
+SLUS-00946	Barbie-Super-Sports-SLUS-00946(1).chd
+SLUS-01207	Batman-Beyond-Return-Of-The-Joker-SLUS-01207(1).chd
+SLUS-01141	Batman-Gotham-City-Racer-SLUS-01141(1).chd
+SCUS-94702	Beyond-The-Beyond-SCUS-94702(1).chd
+SLUS-00171	SLUS-00171.chd
+SLUS-00726	Brave-Fencer-Musashi-SLUS-00726(1).chd
+SLUS-00488	Bravo-Air-Race-SLUS-00488(1).chd
+SLUS-00687	Brigandine-Legend-of-Forsena-SLUS-00687_1.chd
+SLUS-00485	SLUS-00485.chd
+SCUS-94426	Crash-Team-Racing-SCUS-94426_1.chd
+SLUS-00900	Final-Fantasy-Anthology-Final-Fantasy-VI-SLUS-00900_1.chd | Final-Fantasy-Anthology-Final-Fantasy-VI-SLUS-00900_2.chd
+SLUS-00925	FOX-Sports-NHL-Championship-2000-SLUS-00925.chd
+SLUS-00544	SLUS-00544.chd
+SLUS-00172	In the Hunt-SLUS-00172.cue | In-The-Hunt-SLUS-00172.chd
+SLUS-01014	ISS Pro Evolution [SLUS-01014].cue | ISS Pro Evolution-SLUS-01014.cue | ISS-Pro-Evolution-SLUS-01014.chd
+SLUS-00854	Jade-Cocoon-Legend-of-Tamamayu-SLUS-00854.cue | SLUS_00854_Jade_Cocoon_Press_Beta_FR_Oct_99-SLUS-00854.chd
+SLUS-00975	007 - Tomorrow Never Dies-SLUS-00975.bin | 007-Tomorrow-Never-Dies-SLUS-00975.chd
+SCUS-94205	King-of-Fighters-'95-SCUS-94205.cue | King-of-Fighters-'95-SCUS-94205_1.chd | King-of-Fighters-'95-SCUS-94205_1.cue | The King of Fighters '95-SCUS-94205.cue | The King of Fighters '95-SCUS-94205.img
+SLUS-00581	Lego-Racers-SLUS-00581.chd
+SLUS-01239	SLUS-01239.chd
+SLUS-00793	SLUS-00793.chd
+SLUS-00464	Overblood-SLUS-00464.chd | OverBlood-SLUS-00464.cue
+SLUS-01354	Point-Blank-3-[Game-only]-SLUS-01354.chd
+SLUS-00625	Powerboat-Racing-SLUS-00625.chd | VR Sports Powerboat Racing-SLUS-00625.cue
+SLUS-00904	Q-Bert-SLUS-00904.chd | Q-bert-SLUS-00904.cue
+SLUS-01561	Qix Neo-SLUS-01561.cue | Qix-Neo-SLUS-01561.chd | Qix-Neo-SLUS-01561.chd
+SLUS-00757	Quake II-SLUS-00757.cue | QUAKE-II-SLUS-00757.chd | QUAKE-II-SLUS-00757_1.chd
+SLES-03960	SLES-03960.chd

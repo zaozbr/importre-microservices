@@ -1,0 +1,226 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - paragraph [ref=e6]: Now Available on
+      - link [ref=e7] [cursor=pointer]:
+        - /url: https://play.google.com/store/apps/details?id=com.emailnator
+      - link [ref=e9] [cursor=pointer]:
+        - /url: https://apps.apple.com/app/id6443654899
+    - navigation [ref=e11]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - link "Home" [ref=e15] [cursor=pointer]:
+            - /url: /
+          - link "10 Minute Mail" [ref=e16] [cursor=pointer]:
+            - /url: /10minutemail
+          - link "Bulk Emails" [ref=e17] [cursor=pointer]:
+            - /url: /bulk-emails
+        - link [ref=e19] [cursor=pointer]:
+          - /url: /
+          - img "Gmailnator" [ref=e20]
+        - generic [ref=e21]:
+          - button "About" [ref=e23] [cursor=pointer]
+          - link "Temp Number" [ref=e24] [cursor=pointer]:
+            - /url: https://smsnator.online/
+          - link "API" [ref=e25] [cursor=pointer]:
+            - /url: /api
+          - link "Premium" [ref=e26] [cursor=pointer]:
+            - /url: /premium
+          - link "Login" [ref=e27] [cursor=pointer]:
+            - /url: https://premium.emailnator.com/login
+  - main [ref=e30]:
+    - img "Gmailnator" [ref=e31]:
+      - generic [ref=e34]:
+        - insertion [ref=e36]:
+          - iframe [ref=e38]:
+            - generic [ref=f9e1]:
+              - generic [ref=f9e6]:
+                - generic [ref=f9e8]:
+                  - generic [ref=f9e10]:
+                    - generic "Microsoft" [ref=f9e11]:
+                      - link "Microsoft" [ref=f9e12] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=CLD24FxZXasuTF_SW9cYPhb7P2ATqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE0wFP0DGnPAVT7OxI8hflFZVEYQLkBsrajYhzo5J0rE844Ra76LAeILpksaI808z0OR3X8RE1yqCruH7gsxNFtpyHt0tzro9qPJgKqjSinIgRNXe020ARYttGdWzyRSeH8A3luFHEM1fO4mvAddsqnYagch7nWY_n13yfzs_VqiKyRxxJL1TgRDYwaPb_prCdAq2fniWKQLaYLT3Bie6rlMNHTsJDKRDqmHce6V4nBH9XibnboS3UaAlg6YM95xgb7zSnwXiHunwcDygbLI_D7Xf_furJwASp17Pv2gWIBYnisaNYgAf3786JAagHp8yxAqgH4tixAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpYgOLYpvXTlQNgAbEJF_W-FE_Cdl6ACgGKCtoBaHR0cHM6Ly81MzUwLnhnNGtlbi5jb20vdHJrL3YxP3Byb2Y9NDM5JmNhbXA9MTc4MDg0JmtjdD1nb29nbGUma2NoaWQ9NzQyNzk1MTI5MSZjcml0ZXJpYWlkPSZjYW1wYWlnbmlkPTIzNjk2NDkzMzEwJmxvY3BoeT05MjI5NzE5JmFkZ3JvdXBpZD0mYWRwb3M9JmNpZD0mbmV0d29ya1R5cGU9Jmtkdj1jJmtleHQ9JmthZHR5cGU9JmttYz0ma3BpZD0mdXJsPXt1bmVzY2FwZWRscHVybH2YCwHICwHgCwGiDAOQAQGqDQJCUsgNAeoNEwjH_9im9dOVAxV0S90CHQXfE0vwDQKIDgmwDoeRr_cY2BMM0BUBmBYByhYCCgD4FgGAFwGyFxAYASoKNDI2OTM3NzU2M1AGuhcCOAGqGBcJAAAAAFjzEEESCjQyNjkzNzc1NjMYAbIYCRICi1QYASIBANAYAegYAcIZAggB&ae=1&gclid=EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE&num=1&cid=CAQSiwIAEQoqgXR_y-URcGXLrk7heDP4ZOUjVgtGN_PcXZRXXVX4BaypGjXVAGsaS12IeswQU9giCIPKNpeSIkIBzgmt549wIh5LP9STLG5nIiWYqJiTJfny-jVXS4IKhHIdZiQOEFnMRtht89EdRxrQkhCZ54_MPcUJOU-jrt8GzpXTm5XdEiyWGpPcgg5M2ehppY2WZnKcnSqTeJk2UPiUeGo9raA_ZRmnpdv5zwOHTCOZt66xprLTITnSKw68pxIlx_f9eObghgGGKQrrtMf2-C2y3reyh6sEM3yMLJFjiec3WIRsV4oYlhAT13cz0LOWcmOwrURdgK8B3yl7wAQErQ1jUpqX1e-k5pwedQkYAQ&sig=AOD64_2SQJHEXpM8E4tYEJsvaOaU2QWcdw&client=ca-pub-2044622973026891&rf=1&nb=1&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE
+                    - generic "Microsoft" [ref=f9e13]:
+                      - link "Keep Your Data and Code Safe" [ref=f9e14] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=CLD24FxZXasuTF_SW9cYPhb7P2ATqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE0wFP0DGnPAVT7OxI8hflFZVEYQLkBsrajYhzo5J0rE844Ra76LAeILpksaI808z0OR3X8RE1yqCruH7gsxNFtpyHt0tzro9qPJgKqjSinIgRNXe020ARYttGdWzyRSeH8A3luFHEM1fO4mvAddsqnYagch7nWY_n13yfzs_VqiKyRxxJL1TgRDYwaPb_prCdAq2fniWKQLaYLT3Bie6rlMNHTsJDKRDqmHce6V4nBH9XibnboS3UaAlg6YM95xgb7zSnwXiHunwcDygbLI_D7Xf_furJwASp17Pv2gWIBYnisaNYgAf3786JAagHp8yxAqgH4tixAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpYgOLYpvXTlQNgAbEJF_W-FE_Cdl6ACgGKCtoBaHR0cHM6Ly81MzUwLnhnNGtlbi5jb20vdHJrL3YxP3Byb2Y9NDM5JmNhbXA9MTc4MDg0JmtjdD1nb29nbGUma2NoaWQ9NzQyNzk1MTI5MSZjcml0ZXJpYWlkPSZjYW1wYWlnbmlkPTIzNjk2NDkzMzEwJmxvY3BoeT05MjI5NzE5JmFkZ3JvdXBpZD0mYWRwb3M9JmNpZD0mbmV0d29ya1R5cGU9Jmtkdj1jJmtleHQ9JmthZHR5cGU9JmttYz0ma3BpZD0mdXJsPXt1bmVzY2FwZWRscHVybH2YCwHICwHgCwGiDAOQAQGqDQJCUsgNAeoNEwjH_9im9dOVAxV0S90CHQXfE0vwDQKIDgmwDoeRr_cY2BMM0BUBmBYByhYCCgD4FgGAFwGyFxAYASoKNDI2OTM3NzU2M1AGuhcCOAGqGBcJAAAAAFjzEEESCjQyNjkzNzc1NjMYAbIYCRICi1QYASIBANAYAegYAcIZAggB&ae=1&gclid=EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE&num=1&cid=CAQSiwIAEQoqgXR_y-URcGXLrk7heDP4ZOUjVgtGN_PcXZRXXVX4BaypGjXVAGsaS12IeswQU9giCIPKNpeSIkIBzgmt549wIh5LP9STLG5nIiWYqJiTJfny-jVXS4IKhHIdZiQOEFnMRtht89EdRxrQkhCZ54_MPcUJOU-jrt8GzpXTm5XdEiyWGpPcgg5M2ehppY2WZnKcnSqTeJk2UPiUeGo9raA_ZRmnpdv5zwOHTCOZt66xprLTITnSKw68pxIlx_f9eObghgGGKQrrtMf2-C2y3reyh6sEM3yMLJFjiec3WIRsV4oYlhAT13cz0LOWcmOwrURdgK8B3yl7wAQErQ1jUpqX1e-k5pwedQkYAQ&sig=AOD64_2SQJHEXpM8E4tYEJsvaOaU2QWcdw&client=ca-pub-2044622973026891&rf=1&nb=0&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE
+                  - generic "Microsoft" [ref=f9e17]:
+                    - link "End-to-end Azure security from code to cloud." [ref=f9e18] [cursor=pointer]:
+                      - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=CLD24FxZXasuTF_SW9cYPhb7P2ATqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE0wFP0DGnPAVT7OxI8hflFZVEYQLkBsrajYhzo5J0rE844Ra76LAeILpksaI808z0OR3X8RE1yqCruH7gsxNFtpyHt0tzro9qPJgKqjSinIgRNXe020ARYttGdWzyRSeH8A3luFHEM1fO4mvAddsqnYagch7nWY_n13yfzs_VqiKyRxxJL1TgRDYwaPb_prCdAq2fniWKQLaYLT3Bie6rlMNHTsJDKRDqmHce6V4nBH9XibnboS3UaAlg6YM95xgb7zSnwXiHunwcDygbLI_D7Xf_furJwASp17Pv2gWIBYnisaNYgAf3786JAagHp8yxAqgH4tixAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpYgOLYpvXTlQNgAbEJF_W-FE_Cdl6ACgGKCtoBaHR0cHM6Ly81MzUwLnhnNGtlbi5jb20vdHJrL3YxP3Byb2Y9NDM5JmNhbXA9MTc4MDg0JmtjdD1nb29nbGUma2NoaWQ9NzQyNzk1MTI5MSZjcml0ZXJpYWlkPSZjYW1wYWlnbmlkPTIzNjk2NDkzMzEwJmxvY3BoeT05MjI5NzE5JmFkZ3JvdXBpZD0mYWRwb3M9JmNpZD0mbmV0d29ya1R5cGU9Jmtkdj1jJmtleHQ9JmthZHR5cGU9JmttYz0ma3BpZD0mdXJsPXt1bmVzY2FwZWRscHVybH2YCwHICwHgCwGiDAOQAQGqDQJCUsgNAeoNEwjH_9im9dOVAxV0S90CHQXfE0vwDQKIDgmwDoeRr_cY2BMM0BUBmBYByhYCCgD4FgGAFwGyFxAYASoKNDI2OTM3NzU2M1AGuhcCOAGqGBcJAAAAAFjzEEESCjQyNjkzNzc1NjMYAbIYCRICi1QYASIBANAYAegYAcIZAggB&ae=1&gclid=EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE&num=1&cid=CAQSiwIAEQoqgXR_y-URcGXLrk7heDP4ZOUjVgtGN_PcXZRXXVX4BaypGjXVAGsaS12IeswQU9giCIPKNpeSIkIBzgmt549wIh5LP9STLG5nIiWYqJiTJfny-jVXS4IKhHIdZiQOEFnMRtht89EdRxrQkhCZ54_MPcUJOU-jrt8GzpXTm5XdEiyWGpPcgg5M2ehppY2WZnKcnSqTeJk2UPiUeGo9raA_ZRmnpdv5zwOHTCOZt66xprLTITnSKw68pxIlx_f9eObghgGGKQrrtMf2-C2y3reyh6sEM3yMLJFjiec3WIRsV4oYlhAT13cz0LOWcmOwrURdgK8B3yl7wAQErQ1jUpqX1e-k5pwedQkYAQ&sig=AOD64_2SQJHEXpM8E4tYEJsvaOaU2QWcdw&client=ca-pub-2044622973026891&rf=1&nb=7&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE
+                      - text: End-to-end Azure security from code tocloud.
+                - link [ref=f9e20] [cursor=pointer]:
+                  - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=CLD24FxZXasuTF_SW9cYPhb7P2ATqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE0wFP0DGnPAVT7OxI8hflFZVEYQLkBsrajYhzo5J0rE844Ra76LAeILpksaI808z0OR3X8RE1yqCruH7gsxNFtpyHt0tzro9qPJgKqjSinIgRNXe020ARYttGdWzyRSeH8A3luFHEM1fO4mvAddsqnYagch7nWY_n13yfzs_VqiKyRxxJL1TgRDYwaPb_prCdAq2fniWKQLaYLT3Bie6rlMNHTsJDKRDqmHce6V4nBH9XibnboS3UaAlg6YM95xgb7zSnwXiHunwcDygbLI_D7Xf_furJwASp17Pv2gWIBYnisaNYgAf3786JAagHp8yxAqgH4tixAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpYgOLYpvXTlQNgAbEJF_W-FE_Cdl6ACgGKCtoBaHR0cHM6Ly81MzUwLnhnNGtlbi5jb20vdHJrL3YxP3Byb2Y9NDM5JmNhbXA9MTc4MDg0JmtjdD1nb29nbGUma2NoaWQ9NzQyNzk1MTI5MSZjcml0ZXJpYWlkPSZjYW1wYWlnbmlkPTIzNjk2NDkzMzEwJmxvY3BoeT05MjI5NzE5JmFkZ3JvdXBpZD0mYWRwb3M9JmNpZD0mbmV0d29ya1R5cGU9Jmtkdj1jJmtleHQ9JmthZHR5cGU9JmttYz0ma3BpZD0mdXJsPXt1bmVzY2FwZWRscHVybH2YCwHICwHgCwGiDAOQAQGqDQJCUsgNAeoNEwjH_9im9dOVAxV0S90CHQXfE0vwDQKIDgmwDoeRr_cY2BMM0BUBmBYByhYCCgD4FgGAFwGyFxAYASoKNDI2OTM3NzU2M1AGuhcCOAGqGBcJAAAAAFjzEEESCjQyNjkzNzc1NjMYAbIYCRICi1QYASIBANAYAegYAcIZAggB&ae=1&gclid=EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE&num=1&cid=CAQSiwIAEQoqgXR_y-URcGXLrk7heDP4ZOUjVgtGN_PcXZRXXVX4BaypGjXVAGsaS12IeswQU9giCIPKNpeSIkIBzgmt549wIh5LP9STLG5nIiWYqJiTJfny-jVXS4IKhHIdZiQOEFnMRtht89EdRxrQkhCZ54_MPcUJOU-jrt8GzpXTm5XdEiyWGpPcgg5M2ehppY2WZnKcnSqTeJk2UPiUeGo9raA_ZRmnpdv5zwOHTCOZt66xprLTITnSKw68pxIlx_f9eObghgGGKQrrtMf2-C2y3reyh6sEM3yMLJFjiec3WIRsV4oYlhAT13cz0LOWcmOwrURdgK8B3yl7wAQErQ1jUpqX1e-k5pwedQkYAQ&sig=AOD64_2SQJHEXpM8E4tYEJsvaOaU2QWcdw&client=ca-pub-2044622973026891&rf=1&nb=8&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIi_vYpvXTlQMVdEvdAh0F3xNLEAEYASAAEgKouPD_BwE
+              - button [ref=f9e31] [cursor=pointer]
+        - generic [ref=e39]:
+          - heading [level=5] [ref=e40]:
+            - text: Disposable
+            - link "Email Address" [ref=e41] [cursor=pointer]:
+              - /url: "#"
+          - generic [ref=e44]:
+            - textbox "Email Address" [ref=e46]: s.hen.aty.4.3@googlemail.com
+            - insertion [ref=e48]:
+              - iframe [ref=e50]:
+                - generic [ref=f10e1]:
+                  - generic [ref=f10e7]:
+                    - generic [ref=f10e8]:
+                      - generic [ref=f10e9]: Microsoft
+                      - generic [ref=f10e10]: Microsoft
+                    - generic "Microsoft" [ref=f10e13]:
+                      - link "Microsoft" [ref=f10e14] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C5oeCFxZXau-xF76R9cYP_LPTkQPqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE1AFP0Dft4PQphNyqUXSA38EYJXoUUvjEwKTtSkjnMx1d765ob1prVM9nn72S5oIJp-g-EDNCpSdWs-3Vn0qFkLd1gY9_hyKDBoSuG4I4ArsRvW5AsL_zks1U0ckLakURrVoK0rA6C8vfh-OlUfizKutfbr7sS2_DJU2GKa9RgB96fXmu0K15_-0ZsMv1aIB3K4UjGbQYMfP4j2RdOeYBJAFi8q4J-xD5-awHE4AUs6gdlBe91PXGAk1Q6jTGM0dqYGALvNGIxkTO0DoYRErj9fQkAEg9OcAEqdez79oFiAWJ4rGjWIAH9-_OiQGoB6fMsQKoB-LYsQKoB6a-G6gHzM6xAqgH89EbqAeW2BuoB6qbsQKoB47OG6gHk9gbqAfw4BuoB-6WsQKoB_6esQKoB6--sQKoB9XJG6gH2baxAqgHmgaoB_-esQKoB9-fsQKoB_jCsQKoB_vCsQLYBwHSCDMIgGEQARifAzIIioKAgICAgAg6D4BAgMCAgICAqIACqIOAEEi9_cE6WLuC2ab105UDYAGxCRf1vhRPwnZegAoBigraAWh0dHBzOi8vNTM1MC54ZzRrZW4uY29tL3Ryay92MT9wcm9mPTQzOSZjYW1wPTE3ODA4NCZrY3Q9Z29vZ2xlJmtjaGlkPTc0Mjc5NTEyOTEmY3JpdGVyaWFpZD0mY2FtcGFpZ25pZD0yMzY5NjQ5MzMxMCZsb2NwaHk9OTIyOTcxOSZhZGdyb3VwaWQ9JmFkcG9zPSZjaWQ9Jm5ldHdvcmtUeXBlPSZrZHY9YyZrZXh0PSZrYWR0eXBlPSZrbWM9JmtwaWQ9JnVybD17dW5lc2NhcGVkbHB1cmx9mAsByAsB4AsBogwDkAEBqg0CQlLIDQHqDRMI457ZpvXTlQMVvkjdAh382TQy8A0CiA4JsA6Hka_3GNgTDNAVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjYyNTIzNjcwOTdQBroXAjgBqhgXCQAAAADkeBlBEgo2MjUyMzY3MDk3GAGyGAkSAotUGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE&num=1&cid=CAQSiwIAEQoqgROwz05lIF4FC4VuH7oT5gzqjMlW0iSyn0PxiC-tQO-6sAo0FUr6OBZj5BSde8JDY-xlq2d3qDZWIIjDTZA6RhafY4_kj85sGS_j6NQ4hGyifrC1DZavOYdI21ppE2F96RyDX1Q73cQneC-qtQu_mcsd4hyWQ-pUyxEicojGgEPfEKqbG_4YJcV6NPGspaAMXGMTcoUmG03XsDuaJEV-miDuqpgFbBFAqexebKHp4TnYbpNTsHVZIqHiaLjEuOCyw1YApp9yRTX5eXSH2ftYVpnF0AFZpXueEDfpCyzfgV89IDQqhJCKAGLk8jq1HJks48YvkhYNJKqUH9Asl-TLKs92C7UItKEYAQ&sig=AOD64_0DpAH5FFYRZpRDvJMKvCMvjlr5UA&client=ca-pub-2044622973026891&rf=1&nb=1&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE
+                    - generic [ref=f10e16]:
+                      - generic "Microsoft" [ref=f10e18]:
+                        - link "Keep Your Data and Code Safe" [ref=f10e19] [cursor=pointer]:
+                          - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C5oeCFxZXau-xF76R9cYP_LPTkQPqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE1AFP0Dft4PQphNyqUXSA38EYJXoUUvjEwKTtSkjnMx1d765ob1prVM9nn72S5oIJp-g-EDNCpSdWs-3Vn0qFkLd1gY9_hyKDBoSuG4I4ArsRvW5AsL_zks1U0ckLakURrVoK0rA6C8vfh-OlUfizKutfbr7sS2_DJU2GKa9RgB96fXmu0K15_-0ZsMv1aIB3K4UjGbQYMfP4j2RdOeYBJAFi8q4J-xD5-awHE4AUs6gdlBe91PXGAk1Q6jTGM0dqYGALvNGIxkTO0DoYRErj9fQkAEg9OcAEqdez79oFiAWJ4rGjWIAH9-_OiQGoB6fMsQKoB-LYsQKoB6a-G6gHzM6xAqgH89EbqAeW2BuoB6qbsQKoB47OG6gHk9gbqAfw4BuoB-6WsQKoB_6esQKoB6--sQKoB9XJG6gH2baxAqgHmgaoB_-esQKoB9-fsQKoB_jCsQKoB_vCsQLYBwHSCDMIgGEQARifAzIIioKAgICAgAg6D4BAgMCAgICAqIACqIOAEEi9_cE6WLuC2ab105UDYAGxCRf1vhRPwnZegAoBigraAWh0dHBzOi8vNTM1MC54ZzRrZW4uY29tL3Ryay92MT9wcm9mPTQzOSZjYW1wPTE3ODA4NCZrY3Q9Z29vZ2xlJmtjaGlkPTc0Mjc5NTEyOTEmY3JpdGVyaWFpZD0mY2FtcGFpZ25pZD0yMzY5NjQ5MzMxMCZsb2NwaHk9OTIyOTcxOSZhZGdyb3VwaWQ9JmFkcG9zPSZjaWQ9Jm5ldHdvcmtUeXBlPSZrZHY9YyZrZXh0PSZrYWR0eXBlPSZrbWM9JmtwaWQ9JnVybD17dW5lc2NhcGVkbHB1cmx9mAsByAsB4AsBogwDkAEBqg0CQlLIDQHqDRMI457ZpvXTlQMVvkjdAh382TQy8A0CiA4JsA6Hka_3GNgTDNAVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjYyNTIzNjcwOTdQBroXAjgBqhgXCQAAAADkeBlBEgo2MjUyMzY3MDk3GAGyGAkSAotUGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE&num=1&cid=CAQSiwIAEQoqgROwz05lIF4FC4VuH7oT5gzqjMlW0iSyn0PxiC-tQO-6sAo0FUr6OBZj5BSde8JDY-xlq2d3qDZWIIjDTZA6RhafY4_kj85sGS_j6NQ4hGyifrC1DZavOYdI21ppE2F96RyDX1Q73cQneC-qtQu_mcsd4hyWQ-pUyxEicojGgEPfEKqbG_4YJcV6NPGspaAMXGMTcoUmG03XsDuaJEV-miDuqpgFbBFAqexebKHp4TnYbpNTsHVZIqHiaLjEuOCyw1YApp9yRTX5eXSH2ftYVpnF0AFZpXueEDfpCyzfgV89IDQqhJCKAGLk8jq1HJks48YvkhYNJKqUH9Asl-TLKs92C7UItKEYAQ&sig=AOD64_0DpAH5FFYRZpRDvJMKvCMvjlr5UA&client=ca-pub-2044622973026891&rf=1&nb=0&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE
+                          - text: Keep Your Data andCode Safe
+                      - link "End-to-end Azure security from code to cloud." [ref=f10e21] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C5oeCFxZXau-xF76R9cYP_LPTkQPqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE1AFP0Dft4PQphNyqUXSA38EYJXoUUvjEwKTtSkjnMx1d765ob1prVM9nn72S5oIJp-g-EDNCpSdWs-3Vn0qFkLd1gY9_hyKDBoSuG4I4ArsRvW5AsL_zks1U0ckLakURrVoK0rA6C8vfh-OlUfizKutfbr7sS2_DJU2GKa9RgB96fXmu0K15_-0ZsMv1aIB3K4UjGbQYMfP4j2RdOeYBJAFi8q4J-xD5-awHE4AUs6gdlBe91PXGAk1Q6jTGM0dqYGALvNGIxkTO0DoYRErj9fQkAEg9OcAEqdez79oFiAWJ4rGjWIAH9-_OiQGoB6fMsQKoB-LYsQKoB6a-G6gHzM6xAqgH89EbqAeW2BuoB6qbsQKoB47OG6gHk9gbqAfw4BuoB-6WsQKoB_6esQKoB6--sQKoB9XJG6gH2baxAqgHmgaoB_-esQKoB9-fsQKoB_jCsQKoB_vCsQLYBwHSCDMIgGEQARifAzIIioKAgICAgAg6D4BAgMCAgICAqIACqIOAEEi9_cE6WLuC2ab105UDYAGxCRf1vhRPwnZegAoBigraAWh0dHBzOi8vNTM1MC54ZzRrZW4uY29tL3Ryay92MT9wcm9mPTQzOSZjYW1wPTE3ODA4NCZrY3Q9Z29vZ2xlJmtjaGlkPTc0Mjc5NTEyOTEmY3JpdGVyaWFpZD0mY2FtcGFpZ25pZD0yMzY5NjQ5MzMxMCZsb2NwaHk9OTIyOTcxOSZhZGdyb3VwaWQ9JmFkcG9zPSZjaWQ9Jm5ldHdvcmtUeXBlPSZrZHY9YyZrZXh0PSZrYWR0eXBlPSZrbWM9JmtwaWQ9JnVybD17dW5lc2NhcGVkbHB1cmx9mAsByAsB4AsBogwDkAEBqg0CQlLIDQHqDRMI457ZpvXTlQMVvkjdAh382TQy8A0CiA4JsA6Hka_3GNgTDNAVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjYyNTIzNjcwOTdQBroXAjgBqhgXCQAAAADkeBlBEgo2MjUyMzY3MDk3GAGyGAkSAotUGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE&num=1&cid=CAQSiwIAEQoqgROwz05lIF4FC4VuH7oT5gzqjMlW0iSyn0PxiC-tQO-6sAo0FUr6OBZj5BSde8JDY-xlq2d3qDZWIIjDTZA6RhafY4_kj85sGS_j6NQ4hGyifrC1DZavOYdI21ppE2F96RyDX1Q73cQneC-qtQu_mcsd4hyWQ-pUyxEicojGgEPfEKqbG_4YJcV6NPGspaAMXGMTcoUmG03XsDuaJEV-miDuqpgFbBFAqexebKHp4TnYbpNTsHVZIqHiaLjEuOCyw1YApp9yRTX5eXSH2ftYVpnF0AFZpXueEDfpCyzfgV89IDQqhJCKAGLk8jq1HJks48YvkhYNJKqUH9Asl-TLKs92C7UItKEYAQ&sig=AOD64_0DpAH5FFYRZpRDvJMKvCMvjlr5UA&client=ca-pub-2044622973026891&rf=1&nb=7&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE
+                    - generic [ref=f10e24]:
+                      - link "Sign Up" [ref=f10e26] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C5oeCFxZXau-xF76R9cYP_LPTkQPqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE1AFP0Dft4PQphNyqUXSA38EYJXoUUvjEwKTtSkjnMx1d765ob1prVM9nn72S5oIJp-g-EDNCpSdWs-3Vn0qFkLd1gY9_hyKDBoSuG4I4ArsRvW5AsL_zks1U0ckLakURrVoK0rA6C8vfh-OlUfizKutfbr7sS2_DJU2GKa9RgB96fXmu0K15_-0ZsMv1aIB3K4UjGbQYMfP4j2RdOeYBJAFi8q4J-xD5-awHE4AUs6gdlBe91PXGAk1Q6jTGM0dqYGALvNGIxkTO0DoYRErj9fQkAEg9OcAEqdez79oFiAWJ4rGjWIAH9-_OiQGoB6fMsQKoB-LYsQKoB6a-G6gHzM6xAqgH89EbqAeW2BuoB6qbsQKoB47OG6gHk9gbqAfw4BuoB-6WsQKoB_6esQKoB6--sQKoB9XJG6gH2baxAqgHmgaoB_-esQKoB9-fsQKoB_jCsQKoB_vCsQLYBwHSCDMIgGEQARifAzIIioKAgICAgAg6D4BAgMCAgICAqIACqIOAEEi9_cE6WLuC2ab105UDYAGxCRf1vhRPwnZegAoBigraAWh0dHBzOi8vNTM1MC54ZzRrZW4uY29tL3Ryay92MT9wcm9mPTQzOSZjYW1wPTE3ODA4NCZrY3Q9Z29vZ2xlJmtjaGlkPTc0Mjc5NTEyOTEmY3JpdGVyaWFpZD0mY2FtcGFpZ25pZD0yMzY5NjQ5MzMxMCZsb2NwaHk9OTIyOTcxOSZhZGdyb3VwaWQ9JmFkcG9zPSZjaWQ9Jm5ldHdvcmtUeXBlPSZrZHY9YyZrZXh0PSZrYWR0eXBlPSZrbWM9JmtwaWQ9JnVybD17dW5lc2NhcGVkbHB1cmx9mAsByAsB4AsBogwDkAEBqg0CQlLIDQHqDRMI457ZpvXTlQMVvkjdAh382TQy8A0CiA4JsA6Hka_3GNgTDNAVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjYyNTIzNjcwOTdQBroXAjgBqhgXCQAAAADkeBlBEgo2MjUyMzY3MDk3GAGyGAkSAotUGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE&num=1&cid=CAQSiwIAEQoqgROwz05lIF4FC4VuH7oT5gzqjMlW0iSyn0PxiC-tQO-6sAo0FUr6OBZj5BSde8JDY-xlq2d3qDZWIIjDTZA6RhafY4_kj85sGS_j6NQ4hGyifrC1DZavOYdI21ppE2F96RyDX1Q73cQneC-qtQu_mcsd4hyWQ-pUyxEicojGgEPfEKqbG_4YJcV6NPGspaAMXGMTcoUmG03XsDuaJEV-miDuqpgFbBFAqexebKHp4TnYbpNTsHVZIqHiaLjEuOCyw1YApp9yRTX5eXSH2ftYVpnF0AFZpXueEDfpCyzfgV89IDQqhJCKAGLk8jq1HJks48YvkhYNJKqUH9Asl-TLKs92C7UItKEYAQ&sig=AOD64_0DpAH5FFYRZpRDvJMKvCMvjlr5UA&client=ca-pub-2044622973026891&rf=1&nb=8&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE
+                      - link [ref=f10e27] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C5oeCFxZXau-xF76R9cYP_LPTkQPqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE1AFP0Dft4PQphNyqUXSA38EYJXoUUvjEwKTtSkjnMx1d765ob1prVM9nn72S5oIJp-g-EDNCpSdWs-3Vn0qFkLd1gY9_hyKDBoSuG4I4ArsRvW5AsL_zks1U0ckLakURrVoK0rA6C8vfh-OlUfizKutfbr7sS2_DJU2GKa9RgB96fXmu0K15_-0ZsMv1aIB3K4UjGbQYMfP4j2RdOeYBJAFi8q4J-xD5-awHE4AUs6gdlBe91PXGAk1Q6jTGM0dqYGALvNGIxkTO0DoYRErj9fQkAEg9OcAEqdez79oFiAWJ4rGjWIAH9-_OiQGoB6fMsQKoB-LYsQKoB6a-G6gHzM6xAqgH89EbqAeW2BuoB6qbsQKoB47OG6gHk9gbqAfw4BuoB-6WsQKoB_6esQKoB6--sQKoB9XJG6gH2baxAqgHmgaoB_-esQKoB9-fsQKoB_jCsQKoB_vCsQLYBwHSCDMIgGEQARifAzIIioKAgICAgAg6D4BAgMCAgICAqIACqIOAEEi9_cE6WLuC2ab105UDYAGxCRf1vhRPwnZegAoBigraAWh0dHBzOi8vNTM1MC54ZzRrZW4uY29tL3Ryay92MT9wcm9mPTQzOSZjYW1wPTE3ODA4NCZrY3Q9Z29vZ2xlJmtjaGlkPTc0Mjc5NTEyOTEmY3JpdGVyaWFpZD0mY2FtcGFpZ25pZD0yMzY5NjQ5MzMxMCZsb2NwaHk9OTIyOTcxOSZhZGdyb3VwaWQ9JmFkcG9zPSZjaWQ9Jm5ldHdvcmtUeXBlPSZrZHY9YyZrZXh0PSZrYWR0eXBlPSZrbWM9JmtwaWQ9JnVybD17dW5lc2NhcGVkbHB1cmx9mAsByAsB4AsBogwDkAEBqg0CQlLIDQHqDRMI457ZpvXTlQMVvkjdAh382TQy8A0CiA4JsA6Hka_3GNgTDNAVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjYyNTIzNjcwOTdQBroXAjgBqhgXCQAAAADkeBlBEgo2MjUyMzY3MDk3GAGyGAkSAotUGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE&num=1&cid=CAQSiwIAEQoqgROwz05lIF4FC4VuH7oT5gzqjMlW0iSyn0PxiC-tQO-6sAo0FUr6OBZj5BSde8JDY-xlq2d3qDZWIIjDTZA6RhafY4_kj85sGS_j6NQ4hGyifrC1DZavOYdI21ppE2F96RyDX1Q73cQneC-qtQu_mcsd4hyWQ-pUyxEicojGgEPfEKqbG_4YJcV6NPGspaAMXGMTcoUmG03XsDuaJEV-miDuqpgFbBFAqexebKHp4TnYbpNTsHVZIqHiaLjEuOCyw1YApp9yRTX5eXSH2ftYVpnF0AFZpXueEDfpCyzfgV89IDQqhJCKAGLk8jq1HJks48YvkhYNJKqUH9Asl-TLKs92C7UItKEYAQ&sig=AOD64_0DpAH5FFYRZpRDvJMKvCMvjlr5UA&client=ca-pub-2044622973026891&rf=1&nb=8&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE
+                      - link [ref=f10e31] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C5oeCFxZXau-xF76R9cYP_LPTkQPqktapiAHqtMOA7xXRgcXciioQASDi5KKWAWDN8O6ArAOgAfuPprgDyAEBqAMByAPLBKoE1AFP0Dft4PQphNyqUXSA38EYJXoUUvjEwKTtSkjnMx1d765ob1prVM9nn72S5oIJp-g-EDNCpSdWs-3Vn0qFkLd1gY9_hyKDBoSuG4I4ArsRvW5AsL_zks1U0ckLakURrVoK0rA6C8vfh-OlUfizKutfbr7sS2_DJU2GKa9RgB96fXmu0K15_-0ZsMv1aIB3K4UjGbQYMfP4j2RdOeYBJAFi8q4J-xD5-awHE4AUs6gdlBe91PXGAk1Q6jTGM0dqYGALvNGIxkTO0DoYRErj9fQkAEg9OcAEqdez79oFiAWJ4rGjWIAH9-_OiQGoB6fMsQKoB-LYsQKoB6a-G6gHzM6xAqgH89EbqAeW2BuoB6qbsQKoB47OG6gHk9gbqAfw4BuoB-6WsQKoB_6esQKoB6--sQKoB9XJG6gH2baxAqgHmgaoB_-esQKoB9-fsQKoB_jCsQKoB_vCsQLYBwHSCDMIgGEQARifAzIIioKAgICAgAg6D4BAgMCAgICAqIACqIOAEEi9_cE6WLuC2ab105UDYAGxCRf1vhRPwnZegAoBigraAWh0dHBzOi8vNTM1MC54ZzRrZW4uY29tL3Ryay92MT9wcm9mPTQzOSZjYW1wPTE3ODA4NCZrY3Q9Z29vZ2xlJmtjaGlkPTc0Mjc5NTEyOTEmY3JpdGVyaWFpZD0mY2FtcGFpZ25pZD0yMzY5NjQ5MzMxMCZsb2NwaHk9OTIyOTcxOSZhZGdyb3VwaWQ9JmFkcG9zPSZjaWQ9Jm5ldHdvcmtUeXBlPSZrZHY9YyZrZXh0PSZrYWR0eXBlPSZrbWM9JmtwaWQ9JnVybD17dW5lc2NhcGVkbHB1cmx9mAsByAsB4AsBogwDkAEBqg0CQlLIDQHqDRMI457ZpvXTlQMVvkjdAh382TQy8A0CiA4JsA6Hka_3GNgTDNAVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjYyNTIzNjcwOTdQBroXAjgBqhgXCQAAAADkeBlBEgo2MjUyMzY3MDk3GAGyGAkSAotUGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE&num=1&cid=CAQSiwIAEQoqgROwz05lIF4FC4VuH7oT5gzqjMlW0iSyn0PxiC-tQO-6sAo0FUr6OBZj5BSde8JDY-xlq2d3qDZWIIjDTZA6RhafY4_kj85sGS_j6NQ4hGyifrC1DZavOYdI21ppE2F96RyDX1Q73cQneC-qtQu_mcsd4hyWQ-pUyxEicojGgEPfEKqbG_4YJcV6NPGspaAMXGMTcoUmG03XsDuaJEV-miDuqpgFbBFAqexebKHp4TnYbpNTsHVZIqHiaLjEuOCyw1YApp9yRTX5eXSH2ftYVpnF0AFZpXueEDfpCyzfgV89IDQqhJCKAGLk8jq1HJks48YvkhYNJKqUH9Asl-TLKs92C7UItKEYAQ&sig=AOD64_0DpAH5FFYRZpRDvJMKvCMvjlr5UA&client=ca-pub-2044622973026891&rf=1&nb=8&adurl=https://azure.microsoft.com/en-us/pricing/purchase-options/azure-account/search%3Fef_id%3D_k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26OCID%3DAIDcmmim592qnd_SEM__k_EAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE_k_%26gad_source%3D5%26gad_campaignid%3D23696535817%26gclid%3DEAIaIQobChMIr5nZpvXTlQMVvkjdAh382TQyEAEYASAAEgKzifD_BwE
+                  - button [ref=f10e37] [cursor=pointer]
+            - button "Go !" [ref=e52] [cursor=pointer]
+            - generic [ref=e53]:
+              - generic [ref=e54] [cursor=pointer]:
+                - checkbox "Domain" [checked] [ref=e55]
+                - generic [ref=e56]: Domain
+              - generic [ref=e57] [cursor=pointer]:
+                - checkbox "+Gmail" [checked] [ref=e58]
+                - generic [ref=e59]: +Gmail
+              - generic [ref=e60] [cursor=pointer]:
+                - checkbox ".Gmail" [checked] [ref=e61]
+                - generic [ref=e62]: .Gmail
+              - generic [ref=e63] [cursor=pointer]:
+                - checkbox "GoogleMail" [checked] [ref=e64]
+                - generic [ref=e65]: GoogleMail
+            - generic [ref=e67]:
+              - button "Generate New" [ref=e68] [cursor=pointer]
+              - generic [ref=e71]:
+                - link "Click here for 10 minute mail" [ref=e73] [cursor=pointer]:
+                  - /url: /10minutemail
+                - generic [ref=e74]: Click here for custom email.
+    - generic [ref=e77]:
+      - generic [ref=e78]:
+        - heading "What is Gmailnator" [level=1] [ref=e80]
+        - generic [ref=e81]:
+          - text: Gmailnator is a free service that allows getting instant temporary
+          - link "email" [ref=e82] [cursor=pointer]:
+            - /url: "#"
+          - text: it is also known as "
+          - link "tempmail" [ref=e85] [cursor=pointer]:
+            - /url: "#"
+          - text: "\", \"10 minute mail\", \"throw away mail\", \"disposable mail\", fake email, and \"trash mail\". It is used to prevent spam into your personal email address. Most of the sites require to register in order to view content, post comments,or download files like forums, blogs, public WI-FI spots, etc. you can use gmailnator to get instant email without using your real email address.Never use temporary mail for important information. It is a public email and can be accessed by anyone and your mail address is only temporary."
+        - separator [ref=e90]
+      - generic [ref=e91]:
+        - heading "Features" [level=2] [ref=e92]
+        - generic [ref=e93]:
+          - generic [ref=e94]: Gmail Mail
+          - generic [ref=e97]: GMAILINATOR can generate millions of Gmail email inboxes. You can use anyone you want.
+        - generic [ref=e98]:
+          - generic [ref=e99]: Prevent Spam
+          - generic [ref=e102]: Protect your personal data and privacy by not allowing spam in your personal email.
+        - generic [ref=e103]:
+          - generic [ref=e104]: Works in any Website
+          - generic [ref=e107]: Most of the big companies not allowed to use temporary email service on their website registration it will detect as spam mail and you can't proceed to registration. Gmailnator uses a real Gmail address so you never get the tag as spam email and can be used in any websites.
+        - generic [ref=e108]:
+          - generic [ref=e109]: Email Auto-Deletes
+          - generic [ref=e112]: GMAILINATOR email messages are auto-deleted after 24 hours and has a 7 Days Backup of all Emails.
+    - generic [ref=e115]:
+      - heading "Instant Disposable Gmail Generator" [level=1] [ref=e116]
+      - generic [ref=e117]:
+        - text: Do you experience trouble with your Gmail account having too many spam notifications from subscribing on different websites? Are you having difficulties with finding your important email messages because of too many alerts and updates from sites you do not need? No need to worry, Gmailnator is here to provide instant service for your problems.
+        - strong [ref=e118]: Gmailnator
+        - text: is the solution for your SPAM FREE inbox. No registrations, no 7-day trials, and no requirement for a real email address because this is a FREE generator to help keep your essential emails clean and secure!
+      - heading "Why Should I Use a Temporary Gmail Generator?" [level=2] [ref=e119]
+      - insertion [ref=e121]
+      - paragraph [ref=e123]: In a virtually skilled society, the use of emails became one of the dominant communication tools for socialization, education, and business. This medium is where we provide our transactions, merchandise, and other relationship-based contents that contain confidential information that must be kept in private. However, almost all the applications and websites require email addresses to sign up for their services. If this is the case, are you confident that your data is still safe after sharing your information with these services?
+      - paragraph [ref=e124]: "To help you guard your safety, here are the things you need to know before risking your email addresses to other service providers:"
+      - heading "What is an Email Address?" [level=2] [ref=e125]
+      - paragraph [ref=e126]: Email address represents account identification used in sending and receiving messages. Similarly, physical mailing uses home address and name, whereas this feature provides the name of the user and the domain component, such as .com, .org, and .gov. This medium can be used on different networks to send and receive messages that can be transmitted within a fraction of a second, having its message information stored in the email address inbox. Although email address quickly stores all the emails sent and received, there are email messages that are unnecessary to obtain due to its redundancy and uselessness.
+      - insertion [ref=e128]
+      - paragraph [ref=e130]: You may ask, what are these unnecessary messages that I receive in my inbox?
+      - heading "Spam Messages" [level=2] [ref=e131]
+      - paragraph [ref=e132]: These are the junk mails that are unwanted and often sent as bulk messages generated by automated programs that use email address distribution lists. This list came from users who provided their email addresses to create an account for the site's services and programs. Spam messages are the most prevalent and most threatening emails because they can be a gateway for scammers to steal personal information.
+      - paragraph [ref=e133]: What should I do to protect my personal email online?
+      - heading "Use Gmailnator, and you will be free from security concerns." [level=2] [ref=e134]
+      - paragraph [ref=e135]: Use Gmailnator, and you will be free from security concerns. Gmailnator is your user-friendly website that can provide a customized Gmail address. You can also choose from a wide variety of Gmail addresses that we offered for FREE. If that does not suit you, there is also an option where you can create your own Gmail address in just a click. How convenient is that?
+      - insertion [ref=e137]
+      - heading "Gmailnator is the BEST temporary Gmail generator." [level=2] [ref=e139]
+      - paragraph [ref=e140]:
+        - strong [ref=e141]:
+          - text: What makes Gmailnator different from other temporary
+          - link "email" [ref=e142] [cursor=pointer]:
+            - /url: "#"
+          - text: services?
+        - text: Most of the largest companies that provide social networks and online services such as Facebook, Google, Twitter, and Amazon automatically detect fraudulence when an individual uses a temporary email coming from service providers that generate disposable
+        - link "email addresses" [ref=e145] [cursor=pointer]:
+          - /url: "#"
+        - text: . When a person attempts to register using an unauthorized
+        - link "email address" [ref=e148] [cursor=pointer]:
+          - /url: "#"
+        - text: ", the fraud team will likely lock the account or ban the individual from proceeding to registration. Gmailnator will not exploit a user to experience the risk of being recognized as a fraud operator. The site only utilizes REAL Gmail addresses to prevent commotion from the security platforms of any websites."
+      - heading "Advantages of Disposable Gmail address" [level=2] [ref=e151]
+      - paragraph [ref=e152]: Gmailnator has the benefits of creating your own Gmail address without any registration of your data. Unlike creating a regular email address on Google, which takes a couple of minutes to complete, Gmailnator provides a Gmail address in only seconds. You can also create a bundle of disposable Gmail addresses for over a THOUSAND. This feature will help individuals secure their privacy, especially on testing and developing applications or websites requiring email notification and inbox monitoring.
+      - insertion [ref=e154]
+      - paragraph [ref=e156]: Customizable Gmail Address
+      - paragraph [ref=e159]: Hassle-Free
+      - paragraph [ref=e162]: No Registration required
+      - heading [level=2] [ref=e165]:
+        - text: Generate your temporary Gmail address
+        - link "now!" [ref=e166] [cursor=pointer]:
+          - /url: "#disposable-email"
+  - contentinfo [ref=e167]:
+    - generic [ref=e169]:
+      - generic [ref=e170]:
+        - generic [ref=e171]:
+          - text: "Email :"
+          - link "support@emailnator.com" [ref=e174] [cursor=pointer]:
+            - /url: mailto:support@emailnator.com
+        - link [ref=e175] [cursor=pointer]:
+          - /url: https://www.facebook.com/gmailnator
+        - link [ref=e178] [cursor=pointer]:
+          - /url: https://www.facebook.com/gmailnator
+        - link [ref=e181] [cursor=pointer]:
+          - /url: https://discord.gg/K68g52HCWt
+      - generic [ref=e184]:
+        - generic [ref=e185]: Copyright © 2018-22 emailnator.com
+        - link "Gmailnator Premium" [ref=e187] [cursor=pointer]:
+          - /url: /premium
+        - generic [ref=e188]:
+          - link "AI Tools |" [ref=e189] [cursor=pointer]:
+            - /url: https://tools-ai.online/
+          - link "10 Minute Mail |" [ref=e190] [cursor=pointer]:
+            - /url: /10minutemail
+          - link "Compose Message" [ref=e191] [cursor=pointer]:
+            - /url: /compose-mail
+        - generic [ref=e192]:
+          - link "About |" [ref=e193] [cursor=pointer]:
+            - /url: /disposable-gmail-generator
+          - link "How to use |" [ref=e194] [cursor=pointer]:
+            - /url: /how-to-use
+          - link "FAQ |" [ref=e195] [cursor=pointer]:
+            - /url: /faq
+          - link "Contact" [ref=e196] [cursor=pointer]:
+            - /url: /contact-us
+        - generic [ref=e197]:
+          - link "Privacy/Policy |" [ref=e198] [cursor=pointer]:
+            - /url: /privacy-policy
+          - link "Term of Use" [ref=e199] [cursor=pointer]:
+            - /url: /term-of-use
+      - generic [ref=e201]:
+        - generic [ref=e202]: Donate
+        - button [ref=e204] [cursor=pointer]
+        - button [ref=e207] [cursor=pointer]
+        - button [ref=e209] [cursor=pointer]
+  - paragraph [ref=e212]:
+    - text: This site uses cookies. By continuing to browse the site you are agreeing to our use of cookies (
+    - link "Read more" [ref=e213] [cursor=pointer]:
+      - /url: /cookies
+    - text: )
+    - button "Close" [ref=e214] [cursor=pointer]
+    - link "Internet & Telecom" [ref=e215] [cursor=pointer]:
+      - generic [ref=e216]: Internet
+      - text: "& Telecom"

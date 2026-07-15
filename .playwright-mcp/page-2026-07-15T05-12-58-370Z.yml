@@ -1,0 +1,202 @@
+- generic [active] [ref=f373e1]:
+  - generic [ref=f373e5] [cursor=pointer]:
+    - generic [ref=f373e6]: ×
+    - generic [ref=f373e7]:
+      - text: 🔧 Powerful SMS API –
+      - link "Build Your Own App ➡️" [ref=f373e8]:
+        - /url: https://platfone.com
+  - banner [ref=f373e9]:
+    - generic [ref=f373e11]:
+      - generic [ref=f373e13]:
+        - link [ref=f373e14] [cursor=pointer]:
+          - /url: https://itunes.apple.com/app/temp-mail-temporary-email/id1214259095
+          - img "Temporary email app for Iphone and Ipad" [ref=f373e15]
+          - text: App Store
+        - link [ref=f373e16] [cursor=pointer]:
+          - /url: https://play.google.com/store/apps/details?id=com.tempmail
+          - img "Temporary email app for Android" [ref=f373e17]
+          - text: Google Play
+      - figure [ref=f373e19]:
+        - link "Temp Mail" [ref=f373e20] [cursor=pointer]:
+          - /url: /en/
+      - generic [ref=f373e21]:
+        - link "Temp Number 📲" [ref=f373e22] [cursor=pointer]:
+          - /url: https://temp-number.org/?ref=internal&tap_s=2993986-50ade6
+        - button "Premium" [ref=f373e23] [cursor=pointer]
+  - generic [ref=f373e27]:
+    - generic [ref=f373e28]:
+      - heading "Your Temporary Email Address" [level=2] [ref=f373e29]
+      - generic [ref=f373e30]:
+        - generic [ref=f373e32]:
+          - textbox [ref=f373e33]: Loading
+          - button [ref=f373e34] [cursor=pointer]
+        - button [disabled] [ref=f373e38]
+    - paragraph [ref=f373e42]: Forget about spam, advertising mailings, hacking and attacking robots. Keep your real mailbox clean and secure. Temp Mail provides temporary, secure, anonymous, free, disposable email address.
+  - generic [ref=f373e47]:
+    - button "Copy" [disabled] [ref=f373e48]
+    - link "Refresh" [ref=f373e50] [cursor=pointer]:
+      - /url: javascript:;
+    - link "Change" [ref=f373e52] [cursor=pointer]:
+      - /url: /en/change
+    - button "Delete" [ref=f373e54] [cursor=pointer]
+  - main [ref=f373e56]:
+    - generic [ref=f373e63]:
+      - generic [ref=f373e65]:
+        - generic [ref=f373e66]:
+          - generic [ref=f373e67]: Sender
+          - generic [ref=f373e68]: Subject
+          - generic [ref=f373e69]: View
+        - generic [ref=f373e71]:
+          - paragraph [ref=f373e80]: Your inbox is empty
+          - paragraph [ref=f373e81]: Waiting for incoming emails
+      - generic [ref=f373e82]:
+        - heading "What is Disposable Temporary E-mail?" [level=1] [ref=f373e83]
+        - paragraph [ref=f373e84]: "Disposable email - is a free email service that allows to receive email at a temporary address that self-destructed after a certain time elapses. It is also known by names like : tempmail, 10minutemail, 10minmail, throwaway email, fake-mail , fake email generator, burner mail or trash-mail. Many forums, Wi-Fi owners, websites and blogs ask visitors to register before they can view content, post comments or download something. Temp-Mail - is most advanced throwaway email service that helps you avoid spam and stay safe."
+    - generic [ref=f373e88]:
+      - heading "Popular Articles" [level=3] [ref=f373e90]
+      - list [ref=f373e91]:
+        - listitem [ref=f373e92]:
+          - generic [ref=f373e93]:
+            - figure [ref=f373e94]
+            - link "Private domains. How to get your own Temporary Email (2021)" [ref=f373e96] [cursor=pointer]:
+              - /url: /blog/temporary-email-with-private-domains-guide-2021/
+            - paragraph [ref=f373e97]: How to create temporary email on your own private domain and how it helps you to bypass common issues with registrations.
+        - listitem [ref=f373e98]:
+          - generic [ref=f373e99]:
+            - figure [ref=f373e100]
+            - link "How to receive SMS otp verification online in 5 min. Guide. (2021)" [ref=f373e102] [cursor=pointer]:
+              - /url: /blog/how-to-receive-sms-otp-verification-online-in-5-min-2021/
+            - paragraph [ref=f373e103]: In this guide, we’ll detail how to use a temporary phone number to receive one-time password (OTP) verification code texts to register for online services.
+        - listitem [ref=f373e104]:
+          - generic [ref=f373e105]:
+            - figure [ref=f373e106]
+            - link "New Temp Mail app for Android (2021)" [ref=f373e108] [cursor=pointer]:
+              - /url: /blog/new-temp-mail-app-for-android-2021/
+            - paragraph [ref=f373e109]: Read about the new features of Temp Mail mobile app for Android smartphones and tablets.
+        - listitem [ref=f373e110]:
+          - generic [ref=f373e111]:
+            - figure [ref=f373e112]
+            - link "Top mobile games for Android and registration via anonymous email" [ref=f373e114] [cursor=pointer]:
+              - /url: /blog/top-mobile-games-for-android-and-registration-via-anonymous-email/
+            - paragraph [ref=f373e115]: Mobile games are perfect when you have some spare time or feel boring. Many best-selling projects that had millions of fans among PC gamers...
+        - listitem [ref=f373e116]:
+          - generic [ref=f373e117]:
+            - figure [ref=f373e118]
+            - link "What is ransomware. The differences between ransomware and viruses and how to protect yourself from ransomware" [ref=f373e120] [cursor=pointer]:
+              - /url: /blog/what-is-ransomware-the-differences-between-ransomware-and-viruses-and-how-to-protect-yourself-from-ransomware/
+            - paragraph [ref=f373e121]: As technology actively develops, intruders use ever more sophisticated methods of stealing our money. We often get short messages to the mail or mobile...
+        - listitem [ref=f373e122]:
+          - generic [ref=f373e123]:
+            - figure [ref=f373e124]
+            - link "Disposable email for a Social media (Facebook, etc...)" [ref=f373e126] [cursor=pointer]:
+              - /url: /blog/disposable-email-social-media-facebook/
+            - paragraph [ref=f373e127]: Every time, you want to create account on some forum or social media, like Facebook, you have to enter information about your e-mail box to get an activation link...
+    - generic [ref=f373e131]:
+      - paragraph
+      - heading "The Tech behind Disposable Email Addresses" [level=2] [ref=f373e132]
+      - paragraph [ref=f373e133]: Everyone owns an email address each and every hour, for everything from connecting at work, with business prospects, reaching out to friends and colleagues using the email address as an online passport. Nearly 99% of all apps and services we sign-up today required an email address, likewise to most shoppers loyalty cards, contest and offer entries, and more.We all enjoy having an email address, but getting tons of spam emails each day doesn’t feel comfortable. Furthermore, it’s entirely common for stores to have their databases hacked, leaving your business email address at risk and more likely to end up on spam lists. Still, nothing done online is 100% private. Thus you need to protect your email contact identity and best done using disposable emails address.
+      - heading "So, What Is A Disposable Email Address?" [level=2] [ref=f373e134]
+      - paragraph [ref=f373e135]: Recently, I found a bounce rate complex than usual on my latest email blast! I later realized the surge of users (or bots) signing up for my services hiding their real identity using disposable mail addresses.
+      - paragraph [ref=f373e136]: Disposable email address (DEA) technically means an approach where a user’s with a unique email address gets a temporary email address for your current contact. The DEA allow the creation of an email address that passes validity need to sign-up for services and website without having to show your true identity.Disposable emails address if compromised or used in connection with email abuse online, the owner can’t be tied to the abuse and quickly cancel its application without affecting other contacts. With temporary mail, you can you receive your emails from the fake emails in your genuine emails address for a specified time set. The fake email address is simply a through-away email, temporary email set and self-destructs email.
+      - heading "Why would you need a fake email address?" [level=2] [ref=f373e137]
+      - paragraph [ref=f373e138]: "You must have noted services such as Amazon Prime, Hulu and Netflix allow limited-time test runs(trials), however, if still determined to use the services all you need is a disposable email address. Technically, you can extend your trial usage using a different email address linked to your original (genuine) after the trial period expires.An offline or online retailer tend to demand an email address to take advantage of their offers, however, this result in an unwanted deluge of spam promotional emails that you could avoid. Temporary email address makes it easy to cut out those irritating messages you are still receiving.Technically, the idea of a temporary email address conjures up with black hat hackers and underworld internet, but there are convincing reason to us fake email services.If you are looking for legitimate reasons to use a disposable email address here’s a few:"
+      - list [ref=f373e139]:
+        - listitem [ref=f373e140]:
+          - strong [ref=f373e141]: "Sign-Up For Store Loyalty Card:"
+          - text: If you don’t want to get promotional emails from the store adverting new products, use a disposable email address instead of your business email address, and you rule out spam emails. If the store gets hacked for email, you real email address won’t get stolen.
+        - listitem [ref=f373e142]:
+          - strong [ref=f373e143]: "Test Your App:"
+          - text: You just completed coding a web app, and you want to test it comprehensively before releasing it for sale, you can easily get 100 disposable emails, create dummy accounts and test it yourself other than hiring unreliable users online to test the app.
+        - listitem [ref=f373e144]:
+          - strong [ref=f373e145]: "Sign-Up For Double Account With A Web App:"
+          - text: You need another IFTTT account to program a second Twitter account run for your marketing site. A new account needs a different mail from your default, to rule out managing a new email inbox, get a new disposable email address at temp-mail.org
+        - listitem [ref=f373e146]:
+          - strong [ref=f373e147]: "Eliminate Spam:"
+          - text: A Disposable email address is a very useful tool against spam, especially, for users who consistently access web forms, forums and discussion groups you can curb spam to an absolute minimum with a disposable email address.
+      - heading "How to Choose a Disposable Email?" [level=2] [ref=f373e148]
+      - paragraph [ref=f373e149]: "The best fake email provider should:"
+      - list [ref=f373e150]:
+        - listitem [ref=f373e151]: Allow users create temporary emails address at the click of a button.
+        - listitem [ref=f373e152]: No registration is registration or identity information about the user.
+        - listitem [ref=f373e153]: The email address should remain anonymous.
+        - listitem [ref=f373e154]: Offer more than one email address (as many as you may want).
+        - listitem [ref=f373e155]: Offers temporarily email stored (temporal email inbox at user’s disposal).
+        - listitem [ref=f373e156]: Straightforward and functional design to get a mundane email.
+        - listitem [ref=f373e157]: Provider random account and users can choose an address of choice.
+      - paragraph [ref=f373e158]: Thus stay spam free and save time with temp-mail.org your favorite email service.
+      - heading "How to Use Disposable Email Address?" [level=2] [ref=f373e159]
+      - paragraph [ref=f373e160]: Users choose to get disposable email address by creating a new email account with their current email provider’s such as Gmail, but the account comes with many challenges such as you will have to manage emails new account. Users, who opt for free mail services by creating a new account, put up with a new email address.It’d work if you had one email address and a few disposable emails from temp-mail.org and managed one account inbox.The amazing thing about a disposable email address is you can forward directly to your real email account. In case the disposable email address is compromised, and you are suspicious of one of your contacts you can have those emails sent directly to your trash, and for those necessary connections have them sent directly to your real email address inbox.
+      - heading "To Conclude:" [level=2] [ref=f373e161]
+      - paragraph [ref=f373e162]: Have a disposable mail address system set up in a fantastic way to make sure when you participate in online wikis, chat rooms, and file sharing services and bulletin boards forums your real identity is never disclosed and never sold to anyone to avoid mail spam with Temp-mail.org.
+      - paragraph
+  - contentinfo [ref=f373e165]:
+    - generic [ref=f373e168]:
+      - navigation [ref=f373e170]:
+        - list [ref=f373e171]:
+          - listitem [ref=f373e172]:
+            - link "PREMIUM" [ref=f373e173] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=f373e174]:
+            - link "API" [ref=f373e175] [cursor=pointer]:
+              - /url: /en/api
+          - listitem [ref=f373e176]:
+            - link "Articles" [ref=f373e177] [cursor=pointer]:
+              - /url: /blog
+          - listitem [ref=f373e178]:
+            - link "10 MINUTE MAIL" [ref=f373e179] [cursor=pointer]:
+              - /url: /en/10minutemail
+          - listitem [ref=f373e180]:
+            - link "Email Generator" [ref=f373e181] [cursor=pointer]:
+              - /url: /en/email-generator
+          - listitem [ref=f373e182]:
+            - link "Privacy" [ref=f373e183] [cursor=pointer]:
+              - /url: /privacy-policy
+          - listitem [ref=f373e184]:
+            - link "Terms" [ref=f373e185] [cursor=pointer]:
+              - /url: /terms-of-service
+          - listitem [ref=f373e186]:
+            - link "FAQ" [ref=f373e187] [cursor=pointer]:
+              - /url: /en/faq
+          - listitem [ref=f373e188]:
+            - link "Contacts" [ref=f373e189] [cursor=pointer]:
+              - /url: /en/contact
+          - listitem [ref=f373e190]:
+            - link "Advertising" [ref=f373e191] [cursor=pointer]:
+              - /url: https://orders.temp-mail.org
+      - generic [ref=f373e192]:
+        - generic [ref=f373e194]:
+          - generic [ref=f373e195]:
+            - link [ref=f373e196] [cursor=pointer]:
+              - /url: https://itunes.apple.com/app/temp-mail-temporary-email/id1214259095
+              - img "Temporary email app for Iphone and Ipad" [ref=f373e197]
+              - text: App Store
+            - link [ref=f373e198] [cursor=pointer]:
+              - /url: https://play.google.com/store/apps/details?id=com.tempmail
+              - img "Temporary email app for Android" [ref=f373e199]
+              - text: Google Play
+            - link [ref=f373e200] [cursor=pointer]:
+              - /url: https://www.amazon.com/Temp-Mail-Temporary-Disposable-Email/dp/B08JQQF2H7/
+              - img "Temporary email app on Amazon" [ref=f373e201]
+          - generic [ref=f373e202]:
+            - link [ref=f373e203] [cursor=pointer]:
+              - /url: https://chrome.google.com/webstore/detail/temp-mail-disposable-temp/inojafojbhdpnehkhhfjalgjjobnhomj
+              - img "Temporary email Extension for Chrome" [ref=f373e204]
+            - link [ref=f373e205] [cursor=pointer]:
+              - /url: https://addons.mozilla.org/firefox/addon/temp-mail/
+              - img "Temporary disposable email Add-on for Firefox" [ref=f373e206]
+            - link [ref=f373e207] [cursor=pointer]:
+              - /url: https://privatix.slack.com/apps/A02CKESQ7KQ-temp-mail
+              - img "Temp Mail Extension for Slack" [ref=f373e208]
+            - link [ref=f373e209] [cursor=pointer]:
+              - /url: https://t.me/TempMail_org_bot
+              - img "Temp Mail Extension for Telegram" [ref=f373e210]
+        - generic [ref=f373e212]:
+          - link "Temp Number" [ref=f373e213] [cursor=pointer]:
+            - /url: https://temp-number.org
+          - text: "|"
+          - link "10MinuteMail" [ref=f373e214] [cursor=pointer]:
+            - /url: https://10minemail.com
+          - text: "|"
+          - link "Temp SMS API" [ref=f373e215] [cursor=pointer]:
+            - /url: https://platfone.com
+        - button "en" [ref=f373e218] [cursor=pointer]

@@ -1,0 +1,18 @@
+- generic [active] [ref=f266e1]:
+  - main [ref=f266e2]:
+    - generic [ref=f266e3]:
+      - heading "10minutemail.com" [level=1] [ref=f266e5]
+      - heading "Executando verificação de segurança" [level=2] [ref=f266e6]
+      - paragraph [ref=f266e7]: Este site utiliza um serviço de segurança para proteção contra bots maliciosos. Esta página é exibida enquanto o site verifica se você não é um bot.
+  - contentinfo [ref=f266e14]:
+    - generic [ref=f266e16]:
+      - generic [ref=f266e18]:
+        - text: "Ray ID:"
+        - code [ref=f266e19]: a1b6451ccffd9516
+      - generic [ref=f266e20]:
+        - generic [ref=f266e21]:
+          - text: Desempenho e segurança da
+          - link "Cloudflare" [ref=f266e22] [cursor=pointer]:
+            - /url: https://www.cloudflare.com?utm_source=challenge&utm_campaign=m
+        - link "Privacidade" [ref=f266e24] [cursor=pointer]:
+          - /url: https://www.cloudflare.com/pt-br/privacypolicy/

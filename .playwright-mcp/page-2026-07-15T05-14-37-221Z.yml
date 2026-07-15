@@ -1,0 +1,94 @@
+- generic [ref=f648e2]:
+  - link "Skip to main content" [ref=f648e3] [cursor=pointer]:
+    - /url: "#maincontent"
+  - banner [ref=f648e4]:
+    - generic [ref=f648e5]:
+      - navigation [ref=f648e8]:
+        - link "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f648e10] [cursor=pointer]:
+          - /url: /
+          - img "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f648e11]
+        - navigation [ref=f648e37]:
+          - generic [ref=f648e38]:
+            - link [ref=f648e39] [cursor=pointer]:
+              - /url: https://web.archive.org
+              - img "Web icon An illustration of a computer application window" [ref=f648e41]
+            - link [ref=f648e43] [cursor=pointer]:
+              - /url: /details/texts
+              - img "Texts icon An illustration of an open book." [ref=f648e45]
+            - link [ref=f648e47] [cursor=pointer]:
+              - /url: /details/movies
+              - img "Video icon An illustration of two cells of a film strip." [ref=f648e49]
+            - link [ref=f648e51] [cursor=pointer]:
+              - /url: /details/audio
+              - img "Audio icon An illustration of an audio speaker." [ref=f648e53]
+            - link [ref=f648e58] [cursor=pointer]:
+              - /url: /details/software
+              - img "Software icon An illustration of a 3.5\" floppy disk." [ref=f648e60]
+            - link [ref=f648e62] [cursor=pointer]:
+              - /url: /details/image
+              - img "Images icon An illustration of two photographs." [ref=f648e64]
+        - search [ref=f648e69]:
+          - generic [ref=f648e70]:
+            - button "Toggle options All" [ref=f648e74] [cursor=pointer]:
+              - generic [ref=f648e75]: Toggle options
+              - generic [ref=f648e76]: All
+            - generic [ref=f648e85]:
+              - generic [ref=f648e86]: Search the Archive. Filters and Advanced Search available below.
+              - textbox "Search the Archive. Filters and Advanced Search available below." [ref=f648e87]:
+                - /placeholder: Search
+            - button "Search" [ref=f648e88] [cursor=pointer]
+        - generic [ref=f648e89]:
+          - generic [ref=f648e92]:
+            - button "Toggle login menu" [ref=f648e93] [cursor=pointer]:
+              - img "User icon An illustration of a person's head and chest." [ref=f648e94]
+            - generic [ref=f648e96]:
+              - link "Sign up" [ref=f648e97] [cursor=pointer]:
+                - /url: /signup
+              - text: "|"
+              - link "Log in" [ref=f648e98] [cursor=pointer]:
+                - /url: /login
+          - link "Upload icon An illustration of a horizontal line over an up pointing arrow. Upload" [ref=f648e99] [cursor=pointer]:
+            - /url: /upload
+            - img "Upload icon An illustration of a horizontal line over an up pointing arrow." [ref=f648e100]
+            - generic [ref=f648e102]: Upload
+      - navigation [ref=f648e105]:
+        - list [ref=f648e106]:
+          - listitem [ref=f648e107]:
+            - link [ref=f648e108] [cursor=pointer]:
+              - /url: /signup
+              - text: Sign up for free
+          - listitem [ref=f648e109]:
+            - link [ref=f648e110] [cursor=pointer]:
+              - /url: /login
+              - text: Log in
+      - list [ref=f648e112]:
+        - listitem [ref=f648e113]:
+          - link "About" [ref=f648e114] [cursor=pointer]:
+            - /url: /about/
+        - listitem [ref=f648e115]:
+          - link "Blog" [ref=f648e116] [cursor=pointer]:
+            - /url: https://blog.archive.org
+        - listitem [ref=f648e117]:
+          - link "Events" [ref=f648e118] [cursor=pointer]:
+            - /url: /events
+        - listitem [ref=f648e119]:
+          - link "Projects" [ref=f648e120] [cursor=pointer]:
+            - /url: /projects/
+        - listitem [ref=f648e121]:
+          - link "Help" [ref=f648e122] [cursor=pointer]:
+            - /url: /about/faqs.php
+        - listitem [ref=f648e123]:
+          - link "Donate Donate icon An illustration of a heart shape" [ref=f648e124] [cursor=pointer]:
+            - /url: /donate?origin=iawww-TopNavDonateButton
+            - text: Donate
+            - img "Donate icon An illustration of a heart shape" [ref=f648e125]
+        - listitem [ref=f648e127]:
+          - link "Contact" [ref=f648e128] [cursor=pointer]:
+            - /url: /about/contact
+        - listitem [ref=f648e129]:
+          - link "Jobs" [ref=f648e130] [cursor=pointer]:
+            - /url: /about/jobs
+        - listitem [ref=f648e131]:
+          - link "Volunteer" [ref=f648e132] [cursor=pointer]:
+            - /url: /about/volunteer-positions
+  - main

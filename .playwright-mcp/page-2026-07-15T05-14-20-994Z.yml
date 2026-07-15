@@ -1,0 +1,97 @@
+- generic [active] [ref=f647e1]:
+  - link "Skip to main content" [ref=f647e2] [cursor=pointer]:
+    - /url: "#maincontent"
+  - generic [ref=f647e3]:
+    - generic [ref=f647e5]:
+      - navigation [ref=f647e8]:
+        - link "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f647e10] [cursor=pointer]:
+          - /url: /
+          - img "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f647e11]
+        - navigation [ref=f647e36]:
+          - generic [ref=f647e37]:
+            - link [ref=f647e38] [cursor=pointer]:
+              - /url: https://web.archive.org
+              - img "Web icon An illustration of a computer application window" [ref=f647e40]
+            - link [ref=f647e42] [cursor=pointer]:
+              - /url: /details/texts
+              - img "Texts icon An illustration of an open book." [ref=f647e44]
+            - link [ref=f647e45] [cursor=pointer]:
+              - /url: /details/movies
+              - img "Video icon An illustration of two cells of a film strip." [ref=f647e47]
+            - link [ref=f647e49] [cursor=pointer]:
+              - /url: /details/audio
+              - img "Audio icon An illustration of an audio speaker." [ref=f647e51]
+            - link [ref=f647e56] [cursor=pointer]:
+              - /url: /details/software
+              - img "Software icon An illustration of a 3.5\" floppy disk." [ref=f647e58]
+            - link [ref=f647e59] [cursor=pointer]:
+              - /url: /details/image
+              - img "Images icon An illustration of two photographs." [ref=f647e61]
+        - generic [ref=f647e63]:
+          - search [ref=f647e65]:
+            - generic [ref=f647e66]:
+              - button "Toggle options All" [ref=f647e70] [cursor=pointer]:
+                - generic [ref=f647e71]: Toggle options
+                - generic [ref=f647e72]: All
+              - generic [ref=f647e80]:
+                - generic [ref=f647e81]: Search the Archive. Filters and Advanced Search available below.
+                - textbox "Search the Archive. Filters and Advanced Search available below." [ref=f647e82]:
+                  - /placeholder: Search
+              - button "Search" [ref=f647e83] [cursor=pointer]
+          - generic [ref=f647e86]:
+            - button "Toggle login menu" [ref=f647e87] [cursor=pointer]:
+              - img "User icon An illustration of a person's head and chest." [ref=f647e88]
+            - generic [ref=f647e90]:
+              - link "Sign up" [ref=f647e91] [cursor=pointer]:
+                - /url: /signup
+              - text: "|"
+              - link "Log in" [ref=f647e92] [cursor=pointer]:
+                - /url: /account/login
+          - link "Upload icon An illustration of a horizontal line over an up pointing arrow. Upload" [ref=f647e93] [cursor=pointer]:
+            - /url: /upload
+            - img "Upload icon An illustration of a horizontal line over an up pointing arrow." [ref=f647e94]
+            - text: Upload
+      - navigation [ref=f647e98]:
+        - list [ref=f647e99]:
+          - listitem [ref=f647e100]:
+            - link [ref=f647e101] [cursor=pointer]:
+              - /url: /signup
+              - text: Sign up for free
+          - listitem [ref=f647e102]:
+            - link [ref=f647e103] [cursor=pointer]:
+              - /url: /account/login
+              - text: Log in
+      - list [ref=f647e105]:
+        - listitem [ref=f647e106]:
+          - link "About" [ref=f647e107] [cursor=pointer]:
+            - /url: /about/
+        - listitem [ref=f647e108]:
+          - link "Blog" [ref=f647e109] [cursor=pointer]:
+            - /url: https://blog.archive.org
+        - listitem [ref=f647e110]:
+          - link "Events" [ref=f647e111] [cursor=pointer]:
+            - /url: /events
+        - listitem [ref=f647e112]:
+          - link "Projects" [ref=f647e113] [cursor=pointer]:
+            - /url: /projects/
+        - listitem [ref=f647e114]:
+          - link "Help" [ref=f647e115] [cursor=pointer]:
+            - /url: /about/faqs.php
+        - listitem [ref=f647e116]:
+          - link "Donate Donate icon An illustration of a heart shape" [ref=f647e117] [cursor=pointer]:
+            - /url: /donate?origin=iawww-TopNavDonateButton
+            - text: Donate
+            - img "Donate icon An illustration of a heart shape" [ref=f647e118]
+        - listitem [ref=f647e119]:
+          - link "Contact" [ref=f647e120] [cursor=pointer]:
+            - /url: /about/contact
+        - listitem [ref=f647e121]:
+          - link "Jobs" [ref=f647e122] [cursor=pointer]:
+            - /url: /about/jobs
+        - listitem [ref=f647e123]:
+          - link "Volunteer" [ref=f647e124] [cursor=pointer]:
+            - /url: /about/volunteer-positions
+    - main [ref=f647e125]:
+      - generic [ref=f647e127]:
+        - heading "Email Verification Failed" [level=1] [ref=f647e128]
+        - paragraph [ref=f647e129]: The verification reset link seems invalid or expired.

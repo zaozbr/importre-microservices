@@ -11,7 +11,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-const RPC_URL = 'http://127.0.0.1:16802/jsonrpc';
+const RPC_URL = 'http://127.0.0.1:16810/jsonrpc';
 const LOG_FILE = path.join(__dirname, '..', 'logs', 'speed_monitor.log');
 const TARGET_MBPS = 40;
 const CHECK_INTERVAL_MS = 30000;

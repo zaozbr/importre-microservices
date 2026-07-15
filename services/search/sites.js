@@ -50,7 +50,7 @@ async function searchAll(serial, title) {
 
   // 2. Buscas online em paralelo (timeout generoso)
   // Fontes novas (romsfun, consoleroms) sempre executam para popular a fila
-  const prioritySources = ['romsfun', 'consoleroms', 'cdromance', 'romsretro'];
+  const prioritySources = ['consoleroms', 'cdromance', 'romsretro'];
   const onlineNames = names.filter(n => pluginPriority(n) < 50 && isEnabled(n) && !['google_fallback', 'bing_fallback', 'duckduckgo_fallback'].includes(n));
   const onlinePromises = onlineNames.map(async name => {
     // Fontes prioritarias sempre executam; outras so se poucos resultados

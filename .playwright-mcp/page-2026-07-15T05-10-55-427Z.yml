@@ -1,0 +1,136 @@
+- generic [ref=f209e2]:
+  - link "Skip to main content" [ref=f209e3] [cursor=pointer]:
+    - /url: "#maincontent"
+  - banner [ref=f209e4]:
+    - generic [ref=f209e5]:
+      - navigation [ref=f209e8]:
+        - link "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f209e10] [cursor=pointer]:
+          - /url: /
+          - img "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f209e11]
+        - navigation [ref=f209e37]:
+          - generic [ref=f209e38]:
+            - link [ref=f209e39] [cursor=pointer]:
+              - /url: https://web.archive.org
+              - img "Web icon An illustration of a computer application window" [ref=f209e41]
+            - link [ref=f209e43] [cursor=pointer]:
+              - /url: /details/texts
+              - img "Texts icon An illustration of an open book." [ref=f209e45]
+            - link [ref=f209e47] [cursor=pointer]:
+              - /url: /details/movies
+              - img "Video icon An illustration of two cells of a film strip." [ref=f209e49]
+            - link [ref=f209e51] [cursor=pointer]:
+              - /url: /details/audio
+              - img "Audio icon An illustration of an audio speaker." [ref=f209e53]
+            - link [ref=f209e58] [cursor=pointer]:
+              - /url: /details/software
+              - img "Software icon An illustration of a 3.5\" floppy disk." [ref=f209e60]
+            - link [ref=f209e62] [cursor=pointer]:
+              - /url: /details/image
+              - img "Images icon An illustration of two photographs." [ref=f209e64]
+        - search [ref=f209e69]:
+          - generic [ref=f209e70]:
+            - button "Toggle options All" [ref=f209e74] [cursor=pointer]:
+              - generic [ref=f209e75]: Toggle options
+              - generic [ref=f209e76]: All
+            - generic [ref=f209e85]:
+              - generic [ref=f209e86]: Search the Archive. Filters and Advanced Search available below.
+              - textbox "Search the Archive. Filters and Advanced Search available below." [ref=f209e87]:
+                - /placeholder: Search
+            - button "Search" [ref=f209e88] [cursor=pointer]
+        - generic [ref=f209e89]:
+          - generic [ref=f209e92]:
+            - button "Toggle login menu" [ref=f209e93] [cursor=pointer]:
+              - img "User icon An illustration of a person's head and chest." [ref=f209e94]
+            - generic [ref=f209e96]:
+              - link "Sign up" [ref=f209e97] [cursor=pointer]:
+                - /url: /signup
+              - text: "|"
+              - link "Log in" [ref=f209e98] [cursor=pointer]:
+                - /url: /login
+          - link "Upload icon An illustration of a horizontal line over an up pointing arrow. Upload" [ref=f209e99] [cursor=pointer]:
+            - /url: /upload
+            - img "Upload icon An illustration of a horizontal line over an up pointing arrow." [ref=f209e100]
+            - generic [ref=f209e102]: Upload
+      - navigation [ref=f209e105]:
+        - list [ref=f209e106]:
+          - listitem [ref=f209e107]:
+            - link [ref=f209e108] [cursor=pointer]:
+              - /url: /signup
+              - text: Sign up for free
+          - listitem [ref=f209e109]:
+            - link [ref=f209e110] [cursor=pointer]:
+              - /url: /login
+              - text: Log in
+      - list [ref=f209e112]:
+        - listitem [ref=f209e113]:
+          - link "About" [ref=f209e114] [cursor=pointer]:
+            - /url: /about/
+        - listitem [ref=f209e115]:
+          - link "Blog" [ref=f209e116] [cursor=pointer]:
+            - /url: https://blog.archive.org
+        - listitem [ref=f209e117]:
+          - link "Events" [ref=f209e118] [cursor=pointer]:
+            - /url: /events
+        - listitem [ref=f209e119]:
+          - link "Projects" [ref=f209e120] [cursor=pointer]:
+            - /url: /projects/
+        - listitem [ref=f209e121]:
+          - link "Help" [ref=f209e122] [cursor=pointer]:
+            - /url: /about/faqs.php
+        - listitem [ref=f209e123]:
+          - link "Donate Donate icon An illustration of a heart shape" [ref=f209e124] [cursor=pointer]:
+            - /url: /donate?origin=iawww-TopNavDonateButton
+            - text: Donate
+            - img "Donate icon An illustration of a heart shape" [ref=f209e125]
+        - listitem [ref=f209e127]:
+          - link "Contact" [ref=f209e128] [cursor=pointer]:
+            - /url: /about/contact
+        - listitem [ref=f209e129]:
+          - link "Jobs" [ref=f209e130] [cursor=pointer]:
+            - /url: /about/jobs
+        - listitem [ref=f209e131]:
+          - link "Volunteer" [ref=f209e132] [cursor=pointer]:
+            - /url: /about/volunteer-positions
+  - main [ref=f209e133]:
+    - generic [ref=f209e138]:
+      - img "Internet Archive Logo" [ref=f209e139]
+      - heading "Sign up for an account" [level=1] [ref=f209e140]
+      - paragraph [ref=f209e141]:
+        - text: Get your virtual library card and access 65+ million free and borrowable books, movies, audio, images, software, and more! Already have one?
+        - link "Log in!" [ref=f209e142] [cursor=pointer]:
+          - /url: /login
+      - generic [ref=f209e144]:
+        - generic:
+          - generic:
+            - paragraph
+        - button "Email me a code to sign up" [ref=f209e147] [cursor=pointer]
+        - generic [ref=f209e153]: Or
+      - generic [ref=f209e157]:
+        - generic [ref=f209e158]:
+          - generic [ref=f209e159]: Enter your email address
+          - generic [ref=f209e160]: Up to 127 characters
+          - textbox [ref=f209e162]
+        - generic [ref=f209e163]:
+          - generic [ref=f209e164]: Choose a screen name
+          - generic [ref=f209e165]: 3 to 40 characters
+          - textbox [ref=f209e167]
+        - generic [ref=f209e168]:
+          - generic [ref=f209e169]:
+            - generic [ref=f209e170]: Choose a password
+            - generic [ref=f209e171]: 8 to 100 characters
+          - generic [ref=f209e172]:
+            - textbox "Choose a password 8 to 100 characters" [ref=f209e173]
+            - button "Show password" [ref=f209e175] [cursor=pointer]
+        - generic [ref=f209e183]:
+          - generic [ref=f209e184]: Choose announcements
+          - generic [ref=f209e185]:
+            - 'checkbox "Best of the Archive: Useful resources, unique stories, and fun finds from our collections" [ref=f209e186]'
+            - generic [ref=f209e187]: "Best of the Archive: Useful resources, unique stories, and fun finds from our collections"
+          - generic [ref=f209e188]:
+            - 'checkbox "Event Notices: Invitations to and news about our events" [ref=f209e189]'
+            - generic [ref=f209e190]: "Event Notices: Invitations to and news about our events"
+        - button "Sign up" [ref=f209e192] [cursor=pointer]
+        - generic [ref=f209e194]:
+          - text: By signing up, you agree to the Internet Archive's
+          - link "Terms of Service" [ref=f209e195] [cursor=pointer]:
+            - /url: /about/terms

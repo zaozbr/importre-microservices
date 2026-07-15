@@ -1,0 +1,84 @@
+- generic [ref=f651e2]:
+  - link "Skip to main content" [ref=f651e3] [cursor=pointer]:
+    - /url: "#maincontent"
+  - banner [ref=f651e4]:
+    - generic [ref=f651e5]:
+      - navigation [ref=f651e8]:
+        - link "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f651e10] [cursor=pointer]:
+          - /url: /
+          - img "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f651e11]
+        - navigation [ref=f651e37]:
+          - generic [ref=f651e38]:
+            - link [ref=f651e39] [cursor=pointer]:
+              - /url: https://web.archive.org
+              - img "Web icon An illustration of a computer application window" [ref=f651e41]
+            - link [ref=f651e43] [cursor=pointer]:
+              - /url: /details/texts
+              - img "Texts icon An illustration of an open book." [ref=f651e45]
+            - link [ref=f651e47] [cursor=pointer]:
+              - /url: /details/movies
+              - img "Video icon An illustration of two cells of a film strip." [ref=f651e49]
+            - link [ref=f651e51] [cursor=pointer]:
+              - /url: /details/audio
+              - img "Audio icon An illustration of an audio speaker." [ref=f651e53]
+            - link [ref=f651e58] [cursor=pointer]:
+              - /url: /details/software
+              - img "Software icon An illustration of a 3.5\" floppy disk." [ref=f651e60]
+            - link [ref=f651e62] [cursor=pointer]:
+              - /url: /details/image
+              - img "Images icon An illustration of two photographs." [ref=f651e64]
+        - generic [ref=f651e66]:
+          - generic [ref=f651e69]:
+            - button "Toggle login menu" [ref=f651e70] [cursor=pointer]:
+              - img "User icon An illustration of a person's head and chest." [ref=f651e71]
+            - generic [ref=f651e73]:
+              - link "Sign up" [ref=f651e74] [cursor=pointer]:
+                - /url: /signup
+              - text: "|"
+              - link "Log in" [ref=f651e75] [cursor=pointer]:
+                - /url: /login
+          - link "Upload icon An illustration of a horizontal line over an up pointing arrow. Upload" [ref=f651e76] [cursor=pointer]:
+            - /url: /upload
+            - img "Upload icon An illustration of a horizontal line over an up pointing arrow." [ref=f651e77]
+            - generic [ref=f651e79]: Upload
+      - navigation [ref=f651e82]:
+        - list [ref=f651e83]:
+          - listitem [ref=f651e84]:
+            - link [ref=f651e85] [cursor=pointer]:
+              - /url: /signup
+              - text: Sign up for free
+          - listitem [ref=f651e86]:
+            - link [ref=f651e87] [cursor=pointer]:
+              - /url: /login
+              - text: Log in
+      - list [ref=f651e89]:
+        - listitem [ref=f651e90]:
+          - link "About" [ref=f651e91] [cursor=pointer]:
+            - /url: /about/
+        - listitem [ref=f651e92]:
+          - link "Blog" [ref=f651e93] [cursor=pointer]:
+            - /url: https://blog.archive.org
+        - listitem [ref=f651e94]:
+          - link "Events" [ref=f651e95] [cursor=pointer]:
+            - /url: /events
+        - listitem [ref=f651e96]:
+          - link "Projects" [ref=f651e97] [cursor=pointer]:
+            - /url: /projects/
+        - listitem [ref=f651e98]:
+          - link "Help" [ref=f651e99] [cursor=pointer]:
+            - /url: /about/faqs.php
+        - listitem [ref=f651e100]:
+          - link "Donate Donate icon An illustration of a heart shape" [ref=f651e101] [cursor=pointer]:
+            - /url: /donate?origin=iawww-TopNavDonateButton
+            - text: Donate
+            - img "Donate icon An illustration of a heart shape" [ref=f651e102]
+        - listitem [ref=f651e104]:
+          - link "Contact" [ref=f651e105] [cursor=pointer]:
+            - /url: /about/contact
+        - listitem [ref=f651e106]:
+          - link "Jobs" [ref=f651e107] [cursor=pointer]:
+            - /url: /about/jobs
+        - listitem [ref=f651e108]:
+          - link "Volunteer" [ref=f651e109] [cursor=pointer]:
+            - /url: /about/volunteer-positions
+  - main

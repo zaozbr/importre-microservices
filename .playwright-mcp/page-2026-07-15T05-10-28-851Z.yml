@@ -1,0 +1,216 @@
+- generic [ref=f86e3]:
+  - banner [ref=f86e4]:
+    - generic [ref=f86e5]:
+      - paragraph [ref=f86e6]: Now Available on
+      - link [ref=f86e7] [cursor=pointer]:
+        - /url: https://play.google.com/store/apps/details?id=com.emailnator
+      - link [ref=f86e9] [cursor=pointer]:
+        - /url: https://apps.apple.com/app/id6443654899
+    - navigation [ref=f86e11]:
+      - generic [ref=f86e13]:
+        - generic [ref=f86e14]:
+          - link "Home" [ref=f86e15] [cursor=pointer]:
+            - /url: /
+          - link "10 Minute Mail" [ref=f86e16] [cursor=pointer]:
+            - /url: /10minutemail
+          - link "Bulk Emails" [ref=f86e17] [cursor=pointer]:
+            - /url: /bulk-emails
+        - link [ref=f86e19] [cursor=pointer]:
+          - /url: /
+          - img "Gmailnator" [ref=f86e20]
+        - generic [ref=f86e21]:
+          - button "About" [ref=f86e23] [cursor=pointer]
+          - link "Temp Number" [ref=f86e24] [cursor=pointer]:
+            - /url: https://smsnator.online/
+          - link "API" [ref=f86e25] [cursor=pointer]:
+            - /url: /api
+          - link "Premium" [ref=f86e26] [cursor=pointer]:
+            - /url: /premium
+          - link "Login" [ref=f86e27] [cursor=pointer]:
+            - /url: https://premium.emailnator.com/login
+  - main [ref=f86e30]:
+    - img "Gmailnator" [ref=f86e31]:
+      - generic [ref=f86e34]:
+        - insertion [ref=f86e36]:
+          - iframe [ref=f86e38]:
+            - generic [ref=f95e2]:
+              - iframe [ref=f95e5]:
+                - generic [ref=f108e2] [cursor=pointer]:
+                  - img [ref=f108e4]:
+                    - generic "Try for free" [ref=f108e592]
+                  - button [ref=f108e636]
+              - button [ref=f95e12] [cursor=pointer]
+        - generic [ref=f86e39]:
+          - heading [level=5] [ref=f86e40]:
+            - text: Disposable
+            - link "Email Address" [ref=f86e41] [cursor=pointer]:
+              - /url: "#"
+          - generic [ref=f86e44]:
+            - textbox "Email Address" [ref=f86e46]: 5eekkbc@smartnator.com
+            - insertion [ref=f86e48]:
+              - iframe [ref=f86e50]:
+                - generic [ref=f96e1]:
+                  - generic [ref=f96e7]:
+                    - generic [ref=f96e8]:
+                      - generic "MongoDB Atlas" [ref=f96e9]:
+                        - link "Start building for free" [ref=f96e10] [cursor=pointer]:
+                          - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C7zxpRhZXarznHNmZ9cYPkNeKmAWW4aexiAH3g4T27RSOlqqMg0cQASDi5KKWAWDN8O6ArAOgAc3G16EDyAEBqAMByAPLBKoE4AFP0L-b4gDabPBmAmLshBQa3ELbMiJTevS-4DH2DF-2amYLiEVrbMl9twe1LHmr2JLMujqSzh2mxndBvkSGlqOZH_EK0T9T-yOaHc3j3mCO2UtDpcgBgQ21bwWXE0OA3lfbGLV04sjyVNEOOszcMsg3FMyMYcXfAdJc5IIlaV9cG1ZzbHbkgUlSn9JG50RuO5eMq0DAKcxiqkFtGKogm1VHtQ-v49AixM4u5pdvHhPY97kOO4X_Jm6pqDcgHNVDrIvQ9vbLeShbFqgBt6Ymdr3TG29MMXyDun39gAchE0R8U8AEgPvRqrIFiAWfhZvKVYAHm7moXqgHp8yxAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpY7YmTvfXTlQNgAbEJp7SBdYjASWGACgGYCwHICwGqDQJCUsgNAeoNEwi-qZO99dOVAxXZTN0CHZCrAlPwDQKIDgnYEwzQFQHKFgIKAPgWAYAXAbIXEBgBKgo2MjUyMzY3MDk3UAa6FwI4AaoYFwkAAAAAHjwmQRIKNjI1MjM2NzA5NxgBshgFGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE&num=1&cid=CAQSiwIAEQoqgdfEx_JeU86ydpC3NmBX6yix3J35UpfLdPzlgGE5CGme1vzcibm7q6GNNDc5oFU37EG7SpTZ_9AD_zsop_yYW-EboUfkkuSLSTTfwNrABxqmhGdT5De619ElUFzBz2rCRL6WZUlveQXHOGtF9nzka5XC6bQvSjFzYxXYHilEGcgIUw0Sgbgyr_03VuIgJqfEP6GuzbkfnEbNo-LFjSdN63WsDO3dSu7LS13ButS9AMQ3xvmsCheSIxdBbJ5xLNbxtRRPX8BGXCsuntBLXIR8IOAkp8RjZ0-GKH1co1rGOZO8Lkdis0FlydnVArY--QEk8ztrm5SX3dIn-hmTOfw_uKMGRCGnYgIYAQ&sig=AOD64_1glQkPXrIfRaXFfNV6o3Xbtb--1Q&client=ca-pub-2044622973026891&rf=1&nb=0&adurl=https://www.mongodb.com/lp/cloud/atlas/try2-reg%3Futm_content%3Dgdn-computerexport%26utm_source%3Dgdn%26utm_campaign%3Ddisplay_gd_pl_evergreen_atlas_general_prosp_mad_amers-br_dev_desktop_eng_lead%26utm_term%3Dprospecting%26utm_medium%3Ddisplay%26utm_ad%3D%26utm_ad_campaign_id%3D22972646047%26adgroup%3D185309887872%26cq_cmp%3D22972646047%26gad_source%3D5%26gad_campaignid%3D22972646047%26gclid%3DEAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE
+                      - link "Run anywhere, scale confidently, and reduce complexity." [ref=f96e12] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C7zxpRhZXarznHNmZ9cYPkNeKmAWW4aexiAH3g4T27RSOlqqMg0cQASDi5KKWAWDN8O6ArAOgAc3G16EDyAEBqAMByAPLBKoE4AFP0L-b4gDabPBmAmLshBQa3ELbMiJTevS-4DH2DF-2amYLiEVrbMl9twe1LHmr2JLMujqSzh2mxndBvkSGlqOZH_EK0T9T-yOaHc3j3mCO2UtDpcgBgQ21bwWXE0OA3lfbGLV04sjyVNEOOszcMsg3FMyMYcXfAdJc5IIlaV9cG1ZzbHbkgUlSn9JG50RuO5eMq0DAKcxiqkFtGKogm1VHtQ-v49AixM4u5pdvHhPY97kOO4X_Jm6pqDcgHNVDrIvQ9vbLeShbFqgBt6Ymdr3TG29MMXyDun39gAchE0R8U8AEgPvRqrIFiAWfhZvKVYAHm7moXqgHp8yxAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpY7YmTvfXTlQNgAbEJp7SBdYjASWGACgGYCwHICwGqDQJCUsgNAeoNEwi-qZO99dOVAxXZTN0CHZCrAlPwDQKIDgnYEwzQFQHKFgIKAPgWAYAXAbIXEBgBKgo2MjUyMzY3MDk3UAa6FwI4AaoYFwkAAAAAHjwmQRIKNjI1MjM2NzA5NxgBshgFGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE&num=1&cid=CAQSiwIAEQoqgdfEx_JeU86ydpC3NmBX6yix3J35UpfLdPzlgGE5CGme1vzcibm7q6GNNDc5oFU37EG7SpTZ_9AD_zsop_yYW-EboUfkkuSLSTTfwNrABxqmhGdT5De619ElUFzBz2rCRL6WZUlveQXHOGtF9nzka5XC6bQvSjFzYxXYHilEGcgIUw0Sgbgyr_03VuIgJqfEP6GuzbkfnEbNo-LFjSdN63WsDO3dSu7LS13ButS9AMQ3xvmsCheSIxdBbJ5xLNbxtRRPX8BGXCsuntBLXIR8IOAkp8RjZ0-GKH1co1rGOZO8Lkdis0FlydnVArY--QEk8ztrm5SX3dIn-hmTOfw_uKMGRCGnYgIYAQ&sig=AOD64_1glQkPXrIfRaXFfNV6o3Xbtb--1Q&client=ca-pub-2044622973026891&rf=1&nb=7&adurl=https://www.mongodb.com/lp/cloud/atlas/try2-reg%3Futm_content%3Dgdn-computerexport%26utm_source%3Dgdn%26utm_campaign%3Ddisplay_gd_pl_evergreen_atlas_general_prosp_mad_amers-br_dev_desktop_eng_lead%26utm_term%3Dprospecting%26utm_medium%3Ddisplay%26utm_ad%3D%26utm_ad_campaign_id%3D22972646047%26adgroup%3D185309887872%26cq_cmp%3D22972646047%26gad_source%3D5%26gad_campaignid%3D22972646047%26gclid%3DEAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE
+                      - generic [ref=f96e13]:
+                        - link "Quick setup" [ref=f96e20] [cursor=pointer]:
+                          - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C7zxpRhZXarznHNmZ9cYPkNeKmAWW4aexiAH3g4T27RSOlqqMg0cQASDi5KKWAWDN8O6ArAOgAc3G16EDyAEBqAMByAPLBKoE4AFP0L-b4gDabPBmAmLshBQa3ELbMiJTevS-4DH2DF-2amYLiEVrbMl9twe1LHmr2JLMujqSzh2mxndBvkSGlqOZH_EK0T9T-yOaHc3j3mCO2UtDpcgBgQ21bwWXE0OA3lfbGLV04sjyVNEOOszcMsg3FMyMYcXfAdJc5IIlaV9cG1ZzbHbkgUlSn9JG50RuO5eMq0DAKcxiqkFtGKogm1VHtQ-v49AixM4u5pdvHhPY97kOO4X_Jm6pqDcgHNVDrIvQ9vbLeShbFqgBt6Ymdr3TG29MMXyDun39gAchE0R8U8AEgPvRqrIFiAWfhZvKVYAHm7moXqgHp8yxAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpY7YmTvfXTlQNgAbEJp7SBdYjASWGACgGYCwHICwGqDQJCUsgNAeoNEwi-qZO99dOVAxXZTN0CHZCrAlPwDQKIDgnYEwzQFQHKFgIKAPgWAYAXAbIXEBgBKgo2MjUyMzY3MDk3UAa6FwI4AaoYFwkAAAAAHjwmQRIKNjI1MjM2NzA5NxgBshgFGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE&num=1&cid=CAQSiwIAEQoqgdfEx_JeU86ydpC3NmBX6yix3J35UpfLdPzlgGE5CGme1vzcibm7q6GNNDc5oFU37EG7SpTZ_9AD_zsop_yYW-EboUfkkuSLSTTfwNrABxqmhGdT5De619ElUFzBz2rCRL6WZUlveQXHOGtF9nzka5XC6bQvSjFzYxXYHilEGcgIUw0Sgbgyr_03VuIgJqfEP6GuzbkfnEbNo-LFjSdN63WsDO3dSu7LS13ButS9AMQ3xvmsCheSIxdBbJ5xLNbxtRRPX8BGXCsuntBLXIR8IOAkp8RjZ0-GKH1co1rGOZO8Lkdis0FlydnVArY--QEk8ztrm5SX3dIn-hmTOfw_uKMGRCGnYgIYAQ&sig=AOD64_1glQkPXrIfRaXFfNV6o3Xbtb--1Q&client=ca-pub-2044622973026891&rf=1&nb=63&adurl=https://www.mongodb.com/lp/cloud/atlas/try2-reg%3Futm_content%3Dgdn-computerexport%26utm_source%3Dgdn%26utm_campaign%3Ddisplay_gd_pl_evergreen_atlas_general_prosp_mad_amers-br_dev_desktop_eng_lead%26utm_term%3Dprospecting%26utm_medium%3Ddisplay%26utm_ad%3D%26utm_ad_campaign_id%3D22972646047%26adgroup%3D185309887872%26cq_cmp%3D22972646047%26gad_source%3D5%26gad_campaignid%3D22972646047%26gclid%3DEAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE
+                        - link "Continuous backups" [ref=f96e27] [cursor=pointer]:
+                          - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C7zxpRhZXarznHNmZ9cYPkNeKmAWW4aexiAH3g4T27RSOlqqMg0cQASDi5KKWAWDN8O6ArAOgAc3G16EDyAEBqAMByAPLBKoE4AFP0L-b4gDabPBmAmLshBQa3ELbMiJTevS-4DH2DF-2amYLiEVrbMl9twe1LHmr2JLMujqSzh2mxndBvkSGlqOZH_EK0T9T-yOaHc3j3mCO2UtDpcgBgQ21bwWXE0OA3lfbGLV04sjyVNEOOszcMsg3FMyMYcXfAdJc5IIlaV9cG1ZzbHbkgUlSn9JG50RuO5eMq0DAKcxiqkFtGKogm1VHtQ-v49AixM4u5pdvHhPY97kOO4X_Jm6pqDcgHNVDrIvQ9vbLeShbFqgBt6Ymdr3TG29MMXyDun39gAchE0R8U8AEgPvRqrIFiAWfhZvKVYAHm7moXqgHp8yxAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpY7YmTvfXTlQNgAbEJp7SBdYjASWGACgGYCwHICwGqDQJCUsgNAeoNEwi-qZO99dOVAxXZTN0CHZCrAlPwDQKIDgnYEwzQFQHKFgIKAPgWAYAXAbIXEBgBKgo2MjUyMzY3MDk3UAa6FwI4AaoYFwkAAAAAHjwmQRIKNjI1MjM2NzA5NxgBshgFGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE&num=1&cid=CAQSiwIAEQoqgdfEx_JeU86ydpC3NmBX6yix3J35UpfLdPzlgGE5CGme1vzcibm7q6GNNDc5oFU37EG7SpTZ_9AD_zsop_yYW-EboUfkkuSLSTTfwNrABxqmhGdT5De619ElUFzBz2rCRL6WZUlveQXHOGtF9nzka5XC6bQvSjFzYxXYHilEGcgIUw0Sgbgyr_03VuIgJqfEP6GuzbkfnEbNo-LFjSdN63WsDO3dSu7LS13ButS9AMQ3xvmsCheSIxdBbJ5xLNbxtRRPX8BGXCsuntBLXIR8IOAkp8RjZ0-GKH1co1rGOZO8Lkdis0FlydnVArY--QEk8ztrm5SX3dIn-hmTOfw_uKMGRCGnYgIYAQ&sig=AOD64_1glQkPXrIfRaXFfNV6o3Xbtb--1Q&client=ca-pub-2044622973026891&rf=1&nb=63&adurl=https://www.mongodb.com/lp/cloud/atlas/try2-reg%3Futm_content%3Dgdn-computerexport%26utm_source%3Dgdn%26utm_campaign%3Ddisplay_gd_pl_evergreen_atlas_general_prosp_mad_amers-br_dev_desktop_eng_lead%26utm_term%3Dprospecting%26utm_medium%3Ddisplay%26utm_ad%3D%26utm_ad_campaign_id%3D22972646047%26adgroup%3D185309887872%26cq_cmp%3D22972646047%26gad_source%3D5%26gad_campaignid%3D22972646047%26gclid%3DEAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE
+                        - link "Enhanced reliability" [ref=f96e34] [cursor=pointer]:
+                          - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C7zxpRhZXarznHNmZ9cYPkNeKmAWW4aexiAH3g4T27RSOlqqMg0cQASDi5KKWAWDN8O6ArAOgAc3G16EDyAEBqAMByAPLBKoE4AFP0L-b4gDabPBmAmLshBQa3ELbMiJTevS-4DH2DF-2amYLiEVrbMl9twe1LHmr2JLMujqSzh2mxndBvkSGlqOZH_EK0T9T-yOaHc3j3mCO2UtDpcgBgQ21bwWXE0OA3lfbGLV04sjyVNEOOszcMsg3FMyMYcXfAdJc5IIlaV9cG1ZzbHbkgUlSn9JG50RuO5eMq0DAKcxiqkFtGKogm1VHtQ-v49AixM4u5pdvHhPY97kOO4X_Jm6pqDcgHNVDrIvQ9vbLeShbFqgBt6Ymdr3TG29MMXyDun39gAchE0R8U8AEgPvRqrIFiAWfhZvKVYAHm7moXqgHp8yxAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpY7YmTvfXTlQNgAbEJp7SBdYjASWGACgGYCwHICwGqDQJCUsgNAeoNEwi-qZO99dOVAxXZTN0CHZCrAlPwDQKIDgnYEwzQFQHKFgIKAPgWAYAXAbIXEBgBKgo2MjUyMzY3MDk3UAa6FwI4AaoYFwkAAAAAHjwmQRIKNjI1MjM2NzA5NxgBshgFGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE&num=1&cid=CAQSiwIAEQoqgdfEx_JeU86ydpC3NmBX6yix3J35UpfLdPzlgGE5CGme1vzcibm7q6GNNDc5oFU37EG7SpTZ_9AD_zsop_yYW-EboUfkkuSLSTTfwNrABxqmhGdT5De619ElUFzBz2rCRL6WZUlveQXHOGtF9nzka5XC6bQvSjFzYxXYHilEGcgIUw0Sgbgyr_03VuIgJqfEP6GuzbkfnEbNo-LFjSdN63WsDO3dSu7LS13ButS9AMQ3xvmsCheSIxdBbJ5xLNbxtRRPX8BGXCsuntBLXIR8IOAkp8RjZ0-GKH1co1rGOZO8Lkdis0FlydnVArY--QEk8ztrm5SX3dIn-hmTOfw_uKMGRCGnYgIYAQ&sig=AOD64_1glQkPXrIfRaXFfNV6o3Xbtb--1Q&client=ca-pub-2044622973026891&rf=1&nb=63&adurl=https://www.mongodb.com/lp/cloud/atlas/try2-reg%3Futm_content%3Dgdn-computerexport%26utm_source%3Dgdn%26utm_campaign%3Ddisplay_gd_pl_evergreen_atlas_general_prosp_mad_amers-br_dev_desktop_eng_lead%26utm_term%3Dprospecting%26utm_medium%3Ddisplay%26utm_ad%3D%26utm_ad_campaign_id%3D22972646047%26adgroup%3D185309887872%26cq_cmp%3D22972646047%26gad_source%3D5%26gad_campaignid%3D22972646047%26gclid%3DEAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE
+                    - generic [ref=f96e37]:
+                      - generic "MongoDB Atlas" [ref=f96e39]:
+                        - link "MongoDB Atlas" [ref=f96e40] [cursor=pointer]:
+                          - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C7zxpRhZXarznHNmZ9cYPkNeKmAWW4aexiAH3g4T27RSOlqqMg0cQASDi5KKWAWDN8O6ArAOgAc3G16EDyAEBqAMByAPLBKoE4AFP0L-b4gDabPBmAmLshBQa3ELbMiJTevS-4DH2DF-2amYLiEVrbMl9twe1LHmr2JLMujqSzh2mxndBvkSGlqOZH_EK0T9T-yOaHc3j3mCO2UtDpcgBgQ21bwWXE0OA3lfbGLV04sjyVNEOOszcMsg3FMyMYcXfAdJc5IIlaV9cG1ZzbHbkgUlSn9JG50RuO5eMq0DAKcxiqkFtGKogm1VHtQ-v49AixM4u5pdvHhPY97kOO4X_Jm6pqDcgHNVDrIvQ9vbLeShbFqgBt6Ymdr3TG29MMXyDun39gAchE0R8U8AEgPvRqrIFiAWfhZvKVYAHm7moXqgHp8yxAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpY7YmTvfXTlQNgAbEJp7SBdYjASWGACgGYCwHICwGqDQJCUsgNAeoNEwi-qZO99dOVAxXZTN0CHZCrAlPwDQKIDgnYEwzQFQHKFgIKAPgWAYAXAbIXEBgBKgo2MjUyMzY3MDk3UAa6FwI4AaoYFwkAAAAAHjwmQRIKNjI1MjM2NzA5NxgBshgFGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE&num=1&cid=CAQSiwIAEQoqgdfEx_JeU86ydpC3NmBX6yix3J35UpfLdPzlgGE5CGme1vzcibm7q6GNNDc5oFU37EG7SpTZ_9AD_zsop_yYW-EboUfkkuSLSTTfwNrABxqmhGdT5De619ElUFzBz2rCRL6WZUlveQXHOGtF9nzka5XC6bQvSjFzYxXYHilEGcgIUw0Sgbgyr_03VuIgJqfEP6GuzbkfnEbNo-LFjSdN63WsDO3dSu7LS13ButS9AMQ3xvmsCheSIxdBbJ5xLNbxtRRPX8BGXCsuntBLXIR8IOAkp8RjZ0-GKH1co1rGOZO8Lkdis0FlydnVArY--QEk8ztrm5SX3dIn-hmTOfw_uKMGRCGnYgIYAQ&sig=AOD64_1glQkPXrIfRaXFfNV6o3Xbtb--1Q&client=ca-pub-2044622973026891&rf=1&nb=1&adurl=https://www.mongodb.com/lp/cloud/atlas/try2-reg%3Futm_content%3Dgdn-computerexport%26utm_source%3Dgdn%26utm_campaign%3Ddisplay_gd_pl_evergreen_atlas_general_prosp_mad_amers-br_dev_desktop_eng_lead%26utm_term%3Dprospecting%26utm_medium%3Ddisplay%26utm_ad%3D%26utm_ad_campaign_id%3D22972646047%26adgroup%3D185309887872%26cq_cmp%3D22972646047%26gad_source%3D5%26gad_campaignid%3D22972646047%26gclid%3DEAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE
+                      - link "Open" [ref=f96e43] [cursor=pointer]:
+                        - /url: https://www.googleadservices.com/pagead/aclk?sa=L&ai=C7zxpRhZXarznHNmZ9cYPkNeKmAWW4aexiAH3g4T27RSOlqqMg0cQASDi5KKWAWDN8O6ArAOgAc3G16EDyAEBqAMByAPLBKoE4AFP0L-b4gDabPBmAmLshBQa3ELbMiJTevS-4DH2DF-2amYLiEVrbMl9twe1LHmr2JLMujqSzh2mxndBvkSGlqOZH_EK0T9T-yOaHc3j3mCO2UtDpcgBgQ21bwWXE0OA3lfbGLV04sjyVNEOOszcMsg3FMyMYcXfAdJc5IIlaV9cG1ZzbHbkgUlSn9JG50RuO5eMq0DAKcxiqkFtGKogm1VHtQ-v49AixM4u5pdvHhPY97kOO4X_Jm6pqDcgHNVDrIvQ9vbLeShbFqgBt6Ymdr3TG29MMXyDun39gAchE0R8U8AEgPvRqrIFiAWfhZvKVYAHm7moXqgHp8yxAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHAdIIMwiAYRABGJ8DMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpY7YmTvfXTlQNgAbEJp7SBdYjASWGACgGYCwHICwGqDQJCUsgNAeoNEwi-qZO99dOVAxXZTN0CHZCrAlPwDQKIDgnYEwzQFQHKFgIKAPgWAYAXAbIXEBgBKgo2MjUyMzY3MDk3UAa6FwI4AaoYFwkAAAAAHjwmQRIKNjI1MjM2NzA5NxgBshgFGAEiAQDQGAHoGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE&num=1&cid=CAQSiwIAEQoqgdfEx_JeU86ydpC3NmBX6yix3J35UpfLdPzlgGE5CGme1vzcibm7q6GNNDc5oFU37EG7SpTZ_9AD_zsop_yYW-EboUfkkuSLSTTfwNrABxqmhGdT5De619ElUFzBz2rCRL6WZUlveQXHOGtF9nzka5XC6bQvSjFzYxXYHilEGcgIUw0Sgbgyr_03VuIgJqfEP6GuzbkfnEbNo-LFjSdN63WsDO3dSu7LS13ButS9AMQ3xvmsCheSIxdBbJ5xLNbxtRRPX8BGXCsuntBLXIR8IOAkp8RjZ0-GKH1co1rGOZO8Lkdis0FlydnVArY--QEk8ztrm5SX3dIn-hmTOfw_uKMGRCGnYgIYAQ&sig=AOD64_1glQkPXrIfRaXFfNV6o3Xbtb--1Q&client=ca-pub-2044622973026891&rf=1&nb=8&adurl=https://www.mongodb.com/lp/cloud/atlas/try2-reg%3Futm_content%3Dgdn-computerexport%26utm_source%3Dgdn%26utm_campaign%3Ddisplay_gd_pl_evergreen_atlas_general_prosp_mad_amers-br_dev_desktop_eng_lead%26utm_term%3Dprospecting%26utm_medium%3Ddisplay%26utm_ad%3D%26utm_ad_campaign_id%3D22972646047%26adgroup%3D185309887872%26cq_cmp%3D22972646047%26gad_source%3D5%26gad_campaignid%3D22972646047%26gclid%3DEAIaIQobChMIvKKTvfXTlQMV2UzdAh2QqwJTEAEYASAAEgJHjfD_BwE
+                  - button [ref=f96e52] [cursor=pointer]
+                  - iframe
+            - button "Go !" [ref=f86e52] [cursor=pointer]
+            - generic [ref=f86e53]:
+              - generic [ref=f86e54] [cursor=pointer]:
+                - checkbox "Domain" [checked] [ref=f86e55]
+                - generic [ref=f86e56]: Domain
+              - generic [ref=f86e57] [cursor=pointer]:
+                - checkbox "+Gmail" [checked] [ref=f86e58]
+                - generic [ref=f86e59]: +Gmail
+              - generic [ref=f86e60] [cursor=pointer]:
+                - checkbox ".Gmail" [checked] [ref=f86e61]
+                - generic [ref=f86e62]: .Gmail
+              - generic [ref=f86e63] [cursor=pointer]:
+                - checkbox "GoogleMail" [checked] [ref=f86e64]
+                - generic [ref=f86e65]: GoogleMail
+            - generic [ref=f86e67]:
+              - button "Generate New" [ref=f86e68] [cursor=pointer]
+              - generic [ref=f86e71]:
+                - link "Click here for 10 minute mail" [ref=f86e73] [cursor=pointer]:
+                  - /url: /10minutemail
+                - generic [ref=f86e74]: Click here for custom email.
+    - generic [ref=f86e77]:
+      - generic [ref=f86e78]:
+        - heading "What is Gmailnator" [level=1] [ref=f86e80]
+        - generic [ref=f86e81]:
+          - text: Gmailnator is a free service that allows getting instant temporary
+          - link "email" [ref=f86e82] [cursor=pointer]:
+            - /url: "#"
+          - text: it is also known as "
+          - link "tempmail" [ref=f86e85] [cursor=pointer]:
+            - /url: "#"
+          - text: "\", \"10 minute mail\", \"throw away mail\", \"disposable mail\", fake email, and \"trash mail\". It is used to prevent spam into your personal email address. Most of the sites require to register in order to view content, post comments,or download files like forums, blogs, public WI-FI spots, etc. you can use gmailnator to get instant email without using your real email address.Never use temporary mail for important information. It is a public email and can be accessed by anyone and your mail address is only temporary."
+        - separator [ref=f86e90]
+      - generic [ref=f86e91]:
+        - heading "Features" [level=2] [ref=f86e92]
+        - generic [ref=f86e93]:
+          - generic [ref=f86e94]: Gmail Mail
+          - generic [ref=f86e97]: GMAILINATOR can generate millions of Gmail email inboxes. You can use anyone you want.
+        - generic [ref=f86e98]:
+          - generic [ref=f86e99]: Prevent Spam
+          - generic [ref=f86e102]: Protect your personal data and privacy by not allowing spam in your personal email.
+        - generic [ref=f86e103]:
+          - generic [ref=f86e104]: Works in any Website
+          - generic [ref=f86e107]: Most of the big companies not allowed to use temporary email service on their website registration it will detect as spam mail and you can't proceed to registration. Gmailnator uses a real Gmail address so you never get the tag as spam email and can be used in any websites.
+        - generic [ref=f86e108]:
+          - generic [ref=f86e109]: Email Auto-Deletes
+          - generic [ref=f86e112]: GMAILINATOR email messages are auto-deleted after 24 hours and has a 7 Days Backup of all Emails.
+    - generic [ref=f86e115]:
+      - heading "Instant Disposable Gmail Generator" [level=1] [ref=f86e116]
+      - generic [ref=f86e117]:
+        - text: Do you experience trouble with your Gmail account having too many spam notifications from subscribing on different websites? Are you having difficulties with finding your important email messages because of too many alerts and updates from sites you do not need? No need to worry, Gmailnator is here to provide instant service for your problems.
+        - strong [ref=f86e118]: Gmailnator
+        - text: is the solution for your SPAM FREE inbox. No registrations, no 7-day trials, and no requirement for a real email address because this is a FREE generator to help keep your essential emails clean and secure!
+      - heading "Why Should I Use a Temporary Gmail Generator?" [level=2] [ref=f86e119]
+      - insertion [ref=f86e121]
+      - paragraph [ref=f86e123]: In a virtually skilled society, the use of emails became one of the dominant communication tools for socialization, education, and business. This medium is where we provide our transactions, merchandise, and other relationship-based contents that contain confidential information that must be kept in private. However, almost all the applications and websites require email addresses to sign up for their services. If this is the case, are you confident that your data is still safe after sharing your information with these services?
+      - paragraph [ref=f86e124]: "To help you guard your safety, here are the things you need to know before risking your email addresses to other service providers:"
+      - heading "What is an Email Address?" [level=2] [ref=f86e125]
+      - paragraph [ref=f86e126]: Email address represents account identification used in sending and receiving messages. Similarly, physical mailing uses home address and name, whereas this feature provides the name of the user and the domain component, such as .com, .org, and .gov. This medium can be used on different networks to send and receive messages that can be transmitted within a fraction of a second, having its message information stored in the email address inbox. Although email address quickly stores all the emails sent and received, there are email messages that are unnecessary to obtain due to its redundancy and uselessness.
+      - insertion [ref=f86e128]
+      - paragraph [ref=f86e130]: You may ask, what are these unnecessary messages that I receive in my inbox?
+      - heading "Spam Messages" [level=2] [ref=f86e131]
+      - paragraph [ref=f86e132]: These are the junk mails that are unwanted and often sent as bulk messages generated by automated programs that use email address distribution lists. This list came from users who provided their email addresses to create an account for the site's services and programs. Spam messages are the most prevalent and most threatening emails because they can be a gateway for scammers to steal personal information.
+      - paragraph [ref=f86e133]: What should I do to protect my personal email online?
+      - heading "Use Gmailnator, and you will be free from security concerns." [level=2] [ref=f86e134]
+      - paragraph [ref=f86e135]: Use Gmailnator, and you will be free from security concerns. Gmailnator is your user-friendly website that can provide a customized Gmail address. You can also choose from a wide variety of Gmail addresses that we offered for FREE. If that does not suit you, there is also an option where you can create your own Gmail address in just a click. How convenient is that?
+      - insertion [ref=f86e137]
+      - heading "Gmailnator is the BEST temporary Gmail generator." [level=2] [ref=f86e139]
+      - paragraph [ref=f86e140]:
+        - strong [ref=f86e141]:
+          - text: What makes Gmailnator different from other temporary
+          - link "email" [ref=f86e142] [cursor=pointer]:
+            - /url: "#"
+          - text: services?
+        - text: Most of the largest companies that provide social networks and online services such as Facebook, Google, Twitter, and Amazon automatically detect fraudulence when an individual uses a temporary email coming from service providers that generate disposable
+        - link "email addresses" [ref=f86e145] [cursor=pointer]:
+          - /url: "#"
+        - text: . When a person attempts to register using an unauthorized
+        - link "email address" [ref=f86e148] [cursor=pointer]:
+          - /url: "#"
+        - text: ", the fraud team will likely lock the account or ban the individual from proceeding to registration. Gmailnator will not exploit a user to experience the risk of being recognized as a fraud operator. The site only utilizes REAL Gmail addresses to prevent commotion from the security platforms of any websites."
+      - heading "Advantages of Disposable Gmail address" [level=2] [ref=f86e151]
+      - paragraph [ref=f86e152]: Gmailnator has the benefits of creating your own Gmail address without any registration of your data. Unlike creating a regular email address on Google, which takes a couple of minutes to complete, Gmailnator provides a Gmail address in only seconds. You can also create a bundle of disposable Gmail addresses for over a THOUSAND. This feature will help individuals secure their privacy, especially on testing and developing applications or websites requiring email notification and inbox monitoring.
+      - insertion [ref=f86e154]
+      - paragraph [ref=f86e156]: Customizable Gmail Address
+      - paragraph [ref=f86e159]: Hassle-Free
+      - paragraph [ref=f86e162]: No Registration required
+      - heading [level=2] [ref=f86e165]:
+        - text: Generate your temporary Gmail address
+        - link "now!" [ref=f86e166] [cursor=pointer]:
+          - /url: "#disposable-email"
+  - contentinfo [ref=f86e167]:
+    - generic [ref=f86e169]:
+      - generic [ref=f86e170]:
+        - generic [ref=f86e171]:
+          - text: "Email :"
+          - link "support@emailnator.com" [ref=f86e174] [cursor=pointer]:
+            - /url: mailto:support@emailnator.com
+        - link [ref=f86e175] [cursor=pointer]:
+          - /url: https://www.facebook.com/gmailnator
+        - link [ref=f86e178] [cursor=pointer]:
+          - /url: https://www.facebook.com/gmailnator
+        - link [ref=f86e181] [cursor=pointer]:
+          - /url: https://discord.gg/K68g52HCWt
+      - generic [ref=f86e184]:
+        - generic [ref=f86e185]: Copyright © 2018-22 emailnator.com
+        - link "Gmailnator Premium" [ref=f86e187] [cursor=pointer]:
+          - /url: /premium
+        - generic [ref=f86e188]:
+          - link "AI Tools |" [ref=f86e189] [cursor=pointer]:
+            - /url: https://tools-ai.online/
+          - link "10 Minute Mail |" [ref=f86e190] [cursor=pointer]:
+            - /url: /10minutemail
+          - link "Compose Message" [ref=f86e191] [cursor=pointer]:
+            - /url: /compose-mail
+        - generic [ref=f86e192]:
+          - link "About |" [ref=f86e193] [cursor=pointer]:
+            - /url: /disposable-gmail-generator
+          - link "How to use |" [ref=f86e194] [cursor=pointer]:
+            - /url: /how-to-use
+          - link "FAQ |" [ref=f86e195] [cursor=pointer]:
+            - /url: /faq
+          - link "Contact" [ref=f86e196] [cursor=pointer]:
+            - /url: /contact-us
+        - generic [ref=f86e197]:
+          - link "Privacy/Policy |" [ref=f86e198] [cursor=pointer]:
+            - /url: /privacy-policy
+          - link "Term of Use" [ref=f86e199] [cursor=pointer]:
+            - /url: /term-of-use
+      - generic [ref=f86e201]:
+        - generic [ref=f86e202]: Donate
+        - button [ref=f86e204] [cursor=pointer]
+        - button [ref=f86e207] [cursor=pointer]
+        - button [ref=f86e209] [cursor=pointer]
+  - paragraph [ref=f86e212]:
+    - text: This site uses cookies. By continuing to browse the site you are agreeing to our use of cookies (
+    - link "Read more" [ref=f86e213] [cursor=pointer]:
+      - /url: /cookies
+    - text: )
+    - button "Close" [ref=f86e214] [cursor=pointer]
+    - link "Internet & Telecom" [ref=f86e215] [cursor=pointer]:
+      - generic [ref=f86e216]: Internet
+      - text: "& Telecom"

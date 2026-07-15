@@ -1,0 +1,15 @@
+SLUS-00258	Street Fighter Alpha 2-SLUS-00258.cue | Street Fighter Alpha 2-SLUS-00258.img
+SLUS-00197	Street Fighter Alpha - Warriors' Dreams-SLUS-00197.cue | Street Fighter Alpha - Warriors' Dreams-SLUS-00197.img
+SCUS-94451	Syphon Filter 2 (Disc 1)-SCUS-94451.cue | Syphon Filter 2 (Disc 1)-SCUS-94451.img
+SCUS-94492	Syphon Filter 2 (Disc 2)-SCUS-94492.cue | Syphon Filter 2 (Disc 2)-SCUS-94492.img
+SCUS-94640	Syphon Filter 3-SCUS-94640.cue | Syphon Filter 3-SCUS-94640.img
+SCUS-94240	Syphon Filter-SCUS-94240.cue | Syphon Filter-SCUS-94240.img
+SLUS-00447	Vandal Hearts-SLUS-00447.cue | Vandal Hearts-SLUS-00447.img
+SLUS-01109	Vanishing Point-SLUS-01109.cue | Vanishing Point-SLUS-01109.img
+SLUS-00123	VMX Racing-SLUS-00123.cue | VMX Racing-SLUS-00123.img
+SLUS-00281	VR Baseball '97-SLUS-00281.cue | VR Baseball '97-SLUS-00281.img
+SLUS-01470	Aces of the Air [SLUS-01470].cue | Aces of the Air [SLUS-01470].img
+SLUS-00547	Adidas Power Soccer '98 [U] [SLUS-00547].cue | Adidas Power Soccer '98 [U] [SLUS-00547].img
+SLUS-01106	Walt Disney World Quest - Magical Racing Tour-SLUS-01106.cue | Walt Disney World Quest - Magical Racing Tour-SLUS-01106.img
+SLUS-00859	The Dukes of Hazzard - Racing for Home-SLUS-00859.cue | The Dukes of Hazzard - Racing for Home-SLUS-00859.img
+SLUS-00182	The Hive (Disc 2)-SLUS-00182.cue | The Hive (Disc 2)-SLUS-00182.img

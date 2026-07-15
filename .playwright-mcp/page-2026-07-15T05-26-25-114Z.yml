@@ -1,0 +1,308 @@
+- generic [ref=f652e2]:
+  - link "Skip to main content" [ref=f652e3] [cursor=pointer]:
+    - /url: "#maincontent"
+  - banner [ref=f652e4]:
+    - generic [ref=f652e5]:
+      - navigation [ref=f652e8]:
+        - link "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f652e10] [cursor=pointer]:
+          - /url: /
+          - img "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f652e11]
+        - navigation [ref=f652e37]:
+          - generic [ref=f652e38]:
+            - link [ref=f652e39] [cursor=pointer]:
+              - /url: https://web.archive.org
+              - img "Web icon An illustration of a computer application window" [ref=f652e41]
+            - link [ref=f652e43] [cursor=pointer]:
+              - /url: /details/texts
+              - img "Texts icon An illustration of an open book." [ref=f652e45]
+            - link [ref=f652e47] [cursor=pointer]:
+              - /url: /details/movies
+              - img "Video icon An illustration of two cells of a film strip." [ref=f652e49]
+            - link [ref=f652e51] [cursor=pointer]:
+              - /url: /details/audio
+              - img "Audio icon An illustration of an audio speaker." [ref=f652e53]
+            - link [ref=f652e58] [cursor=pointer]:
+              - /url: /details/software
+              - img "Software icon An illustration of a 3.5\" floppy disk." [ref=f652e60]
+            - link [ref=f652e62] [cursor=pointer]:
+              - /url: /details/image
+              - img "Images icon An illustration of two photographs." [ref=f652e64]
+        - generic [ref=f652e66]:
+          - button "Profile picture for impcoll2026z impcoll2026z" [ref=f652e68] [cursor=pointer]:
+            - img "Profile picture for impcoll2026z" [ref=f652e69]
+            - generic [ref=f652e70]: impcoll2026z
+          - link "Upload icon An illustration of a horizontal line over an up pointing arrow. Upload" [ref=f652e71] [cursor=pointer]:
+            - /url: /upload
+            - img "Upload icon An illustration of a horizontal line over an up pointing arrow." [ref=f652e72]
+            - generic [ref=f652e74]: Upload
+      - navigation [ref=f652e77]:
+        - list [ref=f652e78]:
+          - listitem [ref=f652e79]:
+            - link [ref=f652e80] [cursor=pointer]:
+              - /url: /details/@impcoll2026z
+              - text: My uploads
+          - listitem [ref=f652e81]:
+            - link [ref=f652e82] [cursor=pointer]:
+              - /url: /details/@impcoll2026z/loans
+              - text: My loans
+          - listitem [ref=f652e83]:
+            - link [ref=f652e84] [cursor=pointer]:
+              - /url: /details/fav-impcoll2026z
+              - text: My favorites
+          - listitem [ref=f652e85]:
+            - link [ref=f652e86] [cursor=pointer]:
+              - /url: /details/@impcoll2026z/lists
+              - text: My lists
+          - listitem [ref=f652e87]:
+            - link [ref=f652e88] [cursor=pointer]:
+              - /url: /details/@impcoll2026z/collections
+              - text: My collections
+          - listitem [ref=f652e89]:
+            - link [ref=f652e90] [cursor=pointer]:
+              - /url: /details/@impcoll2026z/web-archive
+              - text: My web archives
+          - listitem [ref=f652e91]:
+            - link [ref=f652e92] [cursor=pointer]:
+              - /url: /account/settings
+              - text: Account settings
+          - listitem [ref=f652e93]:
+            - link [ref=f652e94] [cursor=pointer]:
+              - /url: https://help.archive.org
+              - text: Get help
+          - listitem [ref=f652e95]:
+            - link [ref=f652e96] [cursor=pointer]:
+              - /url: /account/logout
+              - text: Log out
+      - list [ref=f652e98]:
+        - listitem [ref=f652e99]:
+          - link "About" [ref=f652e100] [cursor=pointer]:
+            - /url: /about/
+        - listitem [ref=f652e101]:
+          - link "Blog" [ref=f652e102] [cursor=pointer]:
+            - /url: https://blog.archive.org
+        - listitem [ref=f652e103]:
+          - link "Events" [ref=f652e104] [cursor=pointer]:
+            - /url: /events
+        - listitem [ref=f652e105]:
+          - link "Projects" [ref=f652e106] [cursor=pointer]:
+            - /url: /projects/
+        - listitem [ref=f652e107]:
+          - link "Help" [ref=f652e108] [cursor=pointer]:
+            - /url: /about/faqs.php
+        - listitem [ref=f652e109]:
+          - link "Donate Donate icon An illustration of a heart shape" [ref=f652e110] [cursor=pointer]:
+            - /url: /donate?origin=iawww-TopNavDonateButton
+            - text: Donate
+            - img "Donate icon An illustration of a heart shape" [ref=f652e111]
+        - listitem [ref=f652e113]:
+          - link "Contact" [ref=f652e114] [cursor=pointer]:
+            - /url: /about/contact
+        - listitem [ref=f652e115]:
+          - link "Jobs" [ref=f652e116] [cursor=pointer]:
+            - /url: /about/jobs
+        - listitem [ref=f652e117]:
+          - link "Volunteer" [ref=f652e118] [cursor=pointer]:
+            - /url: /about/volunteer-positions
+  - main [ref=f652e119]:
+    - generic [ref=f652e122]:
+      - generic [ref=f652e125]:
+        - paragraph [ref=f652e126]:
+          - text: Search the history of more than 1 trillion
+          - link "web pages" [ref=f652e127] [cursor=pointer]:
+            - /url: https://blog.archive.org/2016/10/23/defining-web-pages-web-sites-and-web-captures/
+          - text: on the Internet.
+        - group [ref=f652e128]:
+          - link "Visit the Wayback Machine" [ref=f652e129] [cursor=pointer]:
+            - /url: https://web.archive.org
+          - generic [ref=f652e134]:
+            - generic [ref=f652e135]: Search the Wayback Machine
+            - textbox "Search the Wayback Machine" [ref=f652e136]:
+              - /placeholder: Enter URL or keywords
+            - img "Search icon An illustration of a magnifying glass." [ref=f652e137]
+      - generic [ref=f652e140]:
+        - generic [ref=f652e143]:
+          - figure [ref=f652e145]:
+            - img "Internet Archive Logo" [ref=f652e146]
+          - generic [ref=f652e147]:
+            - heading [level=1] [ref=f652e148]:
+              - strong [ref=f652e149]: Internet Archive
+              - text: is a non-profit library of millions of free texts, movies, software, music, websites, and more.
+            - generic [ref=f652e152]:
+              - link "Web Image -" [ref=f652e153] [cursor=pointer]:
+                - /url: /details/web
+                - img "Web Image" [ref=f652e155]
+                - generic [ref=f652e156]: "-"
+              - link "Texts Image -" [ref=f652e157] [cursor=pointer]:
+                - /url: /details/texts
+                - img "Texts Image" [ref=f652e159]
+                - generic [ref=f652e160]: "-"
+              - link "Videos Image -" [ref=f652e161] [cursor=pointer]:
+                - /url: /details/movies
+                - img "Videos Image" [ref=f652e163]
+                - generic [ref=f652e164]: "-"
+              - link "Audio Image -" [ref=f652e165] [cursor=pointer]:
+                - /url: /details/audio
+                - img "Audio Image" [ref=f652e167]
+                - generic [ref=f652e168]: "-"
+              - link "TV Image -" [ref=f652e169] [cursor=pointer]:
+                - /url: /details/tv
+                - img "TV Image" [ref=f652e171]
+                - generic [ref=f652e172]: "-"
+              - link "Software Image -" [ref=f652e173] [cursor=pointer]:
+                - /url: /details/software
+                - img "Software Image" [ref=f652e175]
+                - generic [ref=f652e176]: "-"
+              - link "Images Image -" [ref=f652e177] [cursor=pointer]:
+                - /url: /details/image
+                - img "Images Image" [ref=f652e179]
+                - generic [ref=f652e180]: "-"
+              - link "Concerts Image -" [ref=f652e181] [cursor=pointer]:
+                - /url: /details/etree
+                - img "Concerts Image" [ref=f652e183]
+                - generic [ref=f652e184]: "-"
+              - link "Collections Image -" [ref=f652e185] [cursor=pointer]:
+                - /url: /search.php?query=mediatype:collection&sort=-downloads
+                - img "Collections Image" [ref=f652e187]
+                - generic [ref=f652e188]: "-"
+            - generic [ref=f652e189]:
+              - search [ref=f652e191]:
+                - generic [ref=f652e192]:
+                  - button "Toggle options All" [ref=f652e196] [cursor=pointer]:
+                    - generic [ref=f652e197]: Toggle options
+                    - generic [ref=f652e198]: All
+                  - generic [ref=f652e206]:
+                    - generic [ref=f652e207]: Search the Archive. Filters and Advanced Search available below.
+                    - textbox "Search the Archive. Filters and Advanced Search available below." [ref=f652e208]:
+                      - /placeholder: Search
+                  - button "Search" [ref=f652e209] [cursor=pointer]
+              - link "Advanced Search" [ref=f652e210] [cursor=pointer]:
+                - /url: /advancedsearch.php
+          - generic [ref=f652e213]:
+            - heading "Archive News" [level=1] [ref=f652e214]
+            - list [ref=f652e215]:
+              - listitem [ref=f652e216]:
+                - 'link "Vanishing Culture Episode #2: The Stories Hidden in Cookbooks with Katie Livingston" [ref=f652e217] [cursor=pointer]':
+                  - /url: https://blog.archive.org/2026/07/08/vanishing-culture-episode-2-the-stories-hidden-in-cookbooks-with-katie-livingston/
+              - listitem [ref=f652e218]:
+                - link "Introducing Department of Decentralization, DWeb Camp 2026 partner" [ref=f652e219] [cursor=pointer]:
+                  - /url: https://blog.archive.org/2026/07/05/introducing-department-of-decentralization-dweb-camp-2026-partner/
+              - listitem [ref=f652e220]:
+                - 'link "Vanishing Culture Episode #1: What We Stand to Lose with Luca Messarra" [ref=f652e221] [cursor=pointer]':
+                  - /url: https://blog.archive.org/2026/07/01/vanishing-culture-episode-1-what-we-stand-to-lose-with-luca-messarra/
+            - link "More posts" [ref=f652e222] [cursor=pointer]:
+              - /url: https://blog.archive.org
+        - generic [ref=f652e225]:
+          - generic [ref=f652e226]: New to the Archive?
+          - region "New to the Archive?" [ref=f652e227]:
+            - button "Previous": ᐸ
+            - list [ref=f652e228]:
+              - listitem [ref=f652e229]:
+                - link "How to search the archive" [ref=f652e230] [cursor=pointer]:
+                  - /url: https://help.archive.org/help/search-a-basic-guide/
+              - listitem [ref=f652e234]:
+                - link "How to download files" [ref=f652e235] [cursor=pointer]:
+                  - /url: https://help.archive.org/help/how-to-download-files/
+              - listitem [ref=f652e239]:
+                - link "Listening to music on the archive" [ref=f652e240] [cursor=pointer]:
+                  - /url: https://help.archive.org/help/media-players-a-basic-guide/
+              - listitem [ref=f652e244]:
+                - link "How do I find old web pages?" [ref=f652e245] [cursor=pointer]:
+                  - /url: https://help.archive.org/help/using-the-wayback-machine/
+              - listitem [ref=f652e249]:
+                - link "How to upload to the archive" [ref=f652e250] [cursor=pointer]:
+                  - /url: https://help.archive.org/help/uploading-a-basic-guide/
+              - listitem [ref=f652e254]:
+                - link "Print disability resources" [ref=f652e255] [cursor=pointer]:
+                  - /url: https://help.archive.org/help/print-disability-access-general-information/
+              - listitem [ref=f652e259]:
+                - link "How to change your account settings" [ref=f652e260] [cursor=pointer]:
+                  - /url: https://help.archive.org/help/accounts-tips-troubleshooting/
+              - listitem [ref=f652e264]:
+                - link "Other common questions" [ref=f652e265] [cursor=pointer]:
+                  - /url: https://help.archive.org/help/category/archive-org/most-frequently-asked-questions-archive-org/
+            - button "Next" [ref=f652e269] [cursor=pointer]: ᐳ
+        - heading "Top Collections" [level=1] [ref=f652e270]
+        - feed [ref=f652e274]:
+          - article [ref=f652e275]:
+            - generic [ref=f652e277]:
+              - link "Audio Books & Poetry" [ref=f652e278] [cursor=pointer]:
+                - /url: /details/audio_bookspoetry
+                - generic [ref=f652e280]:
+                  - heading "Audio Books & Poetry" [level=3] [ref=f652e287]
+                  - generic [ref=f652e288]: 76.863 items
+              - generic [ref=f652e294]: Press Down Arrow to preview item details
+          - article [ref=f652e295]:
+            - generic [ref=f652e297]:
+              - link "The LibriVox Free Audiobook Collection" [ref=f652e298] [cursor=pointer]:
+                - /url: /details/librivoxaudio
+                - generic [ref=f652e300]:
+                  - heading "The LibriVox Free Audiobook Collection" [level=3] [ref=f652e307]
+                  - generic [ref=f652e308]: 21.653 items
+              - generic [ref=f652e314]: Press Down Arrow to preview item details
+          - article [ref=f652e315]:
+            - generic [ref=f652e317]:
+              - link "APK Archive" [ref=f652e318] [cursor=pointer]:
+                - /url: /details/apkarchive
+                - generic [ref=f652e320]:
+                  - heading "APK Archive" [level=3] [ref=f652e327]
+                  - generic [ref=f652e328]: 133.645 items
+              - generic [ref=f652e334]: Press Down Arrow to preview item details
+          - article [ref=f652e335]:
+            - generic [ref=f652e337]:
+              - link "United States Patent and Trademark Office documents" [ref=f652e338] [cursor=pointer]:
+                - /url: /details/uspto
+                - generic [ref=f652e340]:
+                  - heading "United States Patent and Trademark Office documents" [level=3] [ref=f652e347]
+                  - generic [ref=f652e348]: 409.692 items
+              - generic [ref=f652e354]: Press Down Arrow to preview item details
+          - article [ref=f652e355]:
+            - generic [ref=f652e357]:
+              - 'link "Folksoundomy: A Library of Sound" [ref=f652e358] [cursor=pointer]':
+                - /url: /details/folksoundomy
+                - generic [ref=f652e360]:
+                  - 'heading "Folksoundomy: A Library of Sound" [level=3] [ref=f652e367]'
+                  - generic [ref=f652e368]: 1.275.766 items
+              - generic [ref=f652e374]: Press Down Arrow to preview item details
+          - article [ref=f652e375]:
+            - generic [ref=f652e377]:
+              - link "Live Music Archive" [ref=f652e378] [cursor=pointer]:
+                - /url: /details/etree
+                - generic [ref=f652e380]:
+                  - heading "Live Music Archive" [level=3] [ref=f652e387]
+                  - generic [ref=f652e388]: 301.878 items
+              - generic [ref=f652e394]: Press Down Arrow to preview item details
+          - article [ref=f652e395]:
+            - generic [ref=f652e397]:
+              - link "The Phone Software Archive" [ref=f652e398] [cursor=pointer]:
+                - /url: /details/phonesoftware
+                - generic [ref=f652e400]:
+                  - heading "The Phone Software Archive" [level=3] [ref=f652e407]
+                  - generic [ref=f652e408]: 227.972 items
+              - generic [ref=f652e414]: Press Down Arrow to preview item details
+          - article [ref=f652e415]:
+            - generic [ref=f652e417]:
+              - link "Books by Language" [ref=f652e418] [cursor=pointer]:
+                - /url: /details/booksbylanguage
+                - generic [ref=f652e420]:
+                  - heading "Books by Language" [level=3] [ref=f652e427]
+                  - generic [ref=f652e428]: 1.455.005 items
+              - generic [ref=f652e434]: Press Down Arrow to preview item details
+          - article [ref=f652e435]:
+            - generic [ref=f652e437]:
+              - link "Internet Archive Books" [ref=f652e438] [cursor=pointer]:
+                - /url: /details/internetarchivebooks
+                - generic [ref=f652e440]:
+                  - heading "Internet Archive Books" [level=3] [ref=f652e447]
+                  - generic [ref=f652e448]: 5.651.574 items
+              - generic [ref=f652e454]: Press Down Arrow to preview item details
+          - article [ref=f652e455]:
+            - generic [ref=f652e457]:
+              - link "Spirituality & Religion" [ref=f652e458] [cursor=pointer]:
+                - /url: /details/audio_religion
+                - generic [ref=f652e460]:
+                  - heading "Spirituality & Religion" [level=3] [ref=f652e467]
+                  - generic [ref=f652e468]: 981.525 items
+              - generic [ref=f652e474]: Press Down Arrow to preview item details
+  - contentinfo [ref=f652e475]:
+    - link "Terms of Service (last updated 12/31/2014)" [ref=f652e477] [cursor=pointer]:
+      - /url: /about/terms.php

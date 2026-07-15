@@ -1,0 +1,178 @@
+SLES-00307	SLES-00307.cue | SLES-00307_1.cue
+SLUS-00771	Rival Schools Evolution [U] [SLUS-00771].img
+SCUS-94204	Spawn - The Eternal-SCUS-94204.cue
+SLUS-00821	Street Fighter Alpha 3 [SLUS-00821].cue | Street Fighter Alpha 3-SLUS-00821.cue
+SLUS-00423	Street Fighter Collection (Disc 1)-SLUS-00423.cue
+SLUS-00813	T.R.A.G. - Mission of Mercy-SLUS-00813.cue
+SLUS-00560	Tactics Ogre-SLUS-00560.cue
+SLUS-00660	Tail Concerto-SLUS-00660.cue
+SLUS-01355	Tales of Destiny II (Disc 1)-SLUS-01355.cue
+SLUS-00626	Tales of Destiny-SLUS-00626.cue
+SLUS-00340	Tecmo's Deception - Invitation to Darkness-SLUS-00340.cue
+SLUS-00315	Tecmo Stackers-SLUS-00315.cue
+SLUS-00070	Tecmo Super Bowl-SLUS-00070.cue
+SLUS-00299	Tecmo World Golf - Japan-SLUS-00299.cue
+SLUS-00213	Tekken 2-SLUS-00213.cue
+SLUS-00402	Tekken 3-SLUS-00402.cue
+SLUS-00939	Tenchu 2 - Birth of the Stealth Assassins-SLUS-00939.cue
+SLUS-00706	Tenchu - Stealth Assassins-SLUS-00706.cue
+SLUS-01348	Tennis-SLUS-01348.cue
+SLUS-00487	Test Drive 4-SLUS-00487.cue
+SLUS-00839	Test Drive 6-SLUS-00839.cue
+SLUS-01077	Test Drive Le Mans-SLUS-01077.cue
+SLUS-00609	Test Drive Off-Road 2-SLUS-00609.cue
+SLUS-00840	Test Drive Off-Road 3-SLUS-00840.cue
+SLUS-00396	Test Drive Off-Road-SLUS-00396.cue
+SLUS-00275	Theme Hospital-SLUS-00275.cue
+SLUS-00017	Theme Park-SLUS-00017.cue
+SLUS-00858	Thousand Arms (Disc 2)-SLUS-00858.cue
+SLUS-01019	Threads of Fate-SLUS-01019.cue
+SLUS-01486	The Three Stooges-SLUS-01486.cue
+SLUS-00785	Tiger Woods 99 PGA Tour Golf-SLUS-00785.cue
+SLUS-01273	Tiger Woods PGA Tour Golf-SLUS-01273.cue
+SLUS-00346	Tigershark-SLUS-00346.cue
+SLUS-00342	Time Commando-SLUS-00342.cue
+SLUS-01336	Time Crisis - Project Titan-SLUS-01336.cue
+SLUS-00405	Time Crisis-SLUS-00405.cue
+SLUS-00967	Tiny Toon Adventures - Toonenstein - Dare to Scare!-SLUS-00967.cue
+SLUS-00089	TNN Motor Sports HardCore 4X4-SLUS-00089.cue
+SCUS-94208	Tobal No. 1-SCUS-94208.cue
+SLUS-00229	Tokyo Highway Battle-SLUS-00229.cue
+SLUS-01473	Tom Clancy's Rainbow Six - Lone Wolf-SLUS-01473.cue
+SLUS-01108	Tom Clancy's Rainbow Six - Rogue Spear-SLUS-01108.cue
+SLUS-00947	Tom Clancy's Rainbow Six-SLUS-00947.cue
+SLUS-01191	Tom and Jerry in House Trap-SLUS-01191.cue
+SLUS-00437	Tomb Raider II - Starring Lara Croft-SLUS-00437.cue
+SLUS-00691	Tomb Raider III - Adventures of Lara Croft-SLUS-00691.cue | Tomb-Raider-3-Adventures-of-Lara-Croft-SLUS-00691.cue
+SLUS-00885	Tomb Raider - The Last Revelation-SLUS-00885.cue
+SLUS-01311	Tomb Raider Chronicles-SLUS-01311.cue
+SCUS-94454	Tomba! 2 - The Evil Swine Return-SCUS-94454.cue
+SCUS-94236	Tomba!-SCUS-94236.cue
+SLUS-01007	Tonka Space Station-SLUS-01007.cue
+SLUS-01066	Tony Hawk's Pro Skater 2-SLUS-01066.cue
+SLUS-01485	Tony Hawk's Pro Skater 4-SLUS-01485.cue
+SLUS-01181	World of Dragon Warrior - Torneko - The Last Hope-SLUS-01181.cue
+SLUS-00021	Total Eclipse Turbo-SLUS-00021.cue
+SLUS-01160	Transformers - Beast Wars Transmetals-SLUS-01160.cue
+SLUS-00430	Treasures of the Deep-SLUS-00430.cue
+SLUS-00827	Triple Play 2000-SLUS-00827.cue
+SLUS-01082	Triple Play 2001-SLUS-01082.cue
+SLUS-00237	Triple Play 97-SLUS-00237.cue
+SLUS-00337	True Pinball-SLUS-00337.cue
+SLUS-00188	Tunnel B1-SLUS-00188.cue
+SCUS-94249	Twisted Metal III-SCUS-94249.cue
+SCUS-94560	Twisted Metal 4-SCUS-94560.cue
+SCUS-94304	Twisted Metal-SCUS-94304.cue
+SCUS-94642	Twisted Metal - Small Brawl-SCUS-94642.cue
+SLUS-01156	Valkyrie Profile (Disc 1)-SLUS-01156.cue
+SLUS-01179	Valkyrie Profile (Disc 2)-SLUS-01179.cue
+SLUS-01035	Vanark-SLUS-01035.cue
+SLUS-01228	V.I.P-SLUS-01228.cue
+SLUS-00599	WarGames - Defcon 1-SLUS-00599.cue
+SLUS-00328	War Gods-SLUS-00328.cue
+SLUS-00550	Warhammer - Dark Omen-SLUS-00550.cue
+SLUS-00117	Warhammer - Shadow of the Horned Rat-SLUS-00117.cue
+SLUS-00976	Warpath - Jurassic Park-SLUS-00976.cue
+SLUS-00819	Warzone 2100-SLUS-00819.cue
+SLUS-00147	Wayne Gretzky's 3D Hockey '98-SLUS-00147.cue
+SLUS-01274	WCW Backstage Assault-SLUS-01274.cue
+SLUS-00963	WCW Mayhem-SLUS-00963.cue
+SLUS-01175	World Destruction League - Thunder Tanks-SLUS-01175.cue
+SLUS-01413	The Weakest Link-SLUS-01413.cue
+SLUS-01174	Wheel of Fortune - 2nd Edition-SLUS-01174.cue
+SLUS-00683	Wheel of Fortune-SLUS-00683.cue
+SCUS-94567	Who Wants to Be a Millionaire - 2nd Edition-SCUS-94567.cue
+SCUS-94484	Wild Arms 2 (Disc 1)-SCUS-94484.cue
+SCUS-94498	Wild Arms 2 (Disc 2)-SCUS-94498.cue
+SCUS-94608	Wild Arms-SCUS-94608.cue
+SLUS-01128	The Wild Thornberrys - Animal Adventures-SLUS-01128.cue
+SLUS-00019	Wing Commander III - Heart of the Tiger (Disc 1)-SLUS-00019.cue
+SLUS-00134	Wing Commander III - Heart of the Tiger (Disc 2)-SLUS-00134.cue
+SLUS-00135	Wing Commander III - Heart of the Tiger (Disc 3)-SLUS-00135.cue
+SLUS-00136	Wing Commander III - Heart of the Tiger (Disc 4)-SLUS-00136.cue
+SLUS-00271	Wing Commander IV - The Price of Freedom (Disc 2)-SLUS-00271.cue
+SLUS-00272	Wing Commander IV - The Price of Freedom (Disc 3)-SLUS-00272.cue
+SLUS-00273	Wing Commander IV - The Price of Freedom (Disc 4)-SLUS-00273.cue
+SLUS-01513	Disney's Winnie the Pooh - Kindergarten-SLUS-01513.cue
+SLUS-01514	Disney's Winnie the Pooh - Preschool-SLUS-01514.cue
+SCUS-94351	Wipeout XL-SCUS-94351.cue
+SLUS-01188	Woody Woodpecker Racing-SLUS-01188.cue
+SLUS-00644	World Cup 98-SLUS-00644.cue
+SLUS-00063	World Cup Golf - Professional Edition-SLUS-00063.cue
+SLUS-01247	World Destruction League - WarJetz-SLUS-01247.cue
+SLUS-01165	World's Scariest Police Chases-SLUS-01165.cue
+SLUS-00888	Worms Armageddon-SLUS-00888.cue
+SLUS-00336	Worms-SLUS-00336.cue
+SLUS-01448	Worms World Party-SLUS-01448.cue
+SLUS-00587	Wreckin Crew - Drive Dangerously-SLUS-00587.cue
+SLUS-00929	Wu-Tang - Shaolin Style-SLUS-00929.cue
+SLUS-00831	WWF Attitude-SLUS-00831.cue
+SLUS-00246	WWF In Your House-SLUS-00246.cue
+SLUS-01234	WWF SmackDown! 2 - Know Your Role-SLUS-01234.cue
+SLUS-00927	WWF SmackDown!-SLUS-00927.cue
+SLUS-00495	WWF War Zone-SLUS-00495.cue
+SLPS-00396	Cyberspeed-The-Future's-Ultimate-Grand-Prix-SLPS-00396.cue
+SLES-02333	SLES-02333.cue
+SCUS-94952	PlayStation Picks (USA) (SCUS-94952).cue
+SCUS-94508	2Xtreme [NTSC-U] [SCUS-94508].cue
+SLUS-00874	40 Winks [NTSC-U] [SLUS-00874].cue
+SLUS-00023	Agile Warrior F-111X [U] [SLUS-00023].img
+SLUS-00450	SLUS-00450.img
+SLUS-00300	Dare Devil Derby 3D-SLUS-00300.cue
+SLUS-01210	Disney Presents Tigger's Honey Hunt-SLUS-01210.cue
+SLUS-01541	Final Fantasy Origins [NTSC-U] [SLUS-01541].cue
+SLUS-00595	Master of Monsters - Disciples of Gaia-SLUS-00595.cue
+SLUS-01419	Tony Hawk's Pro Skater 3-SLUS-01419.cue
+SLUS-01559	Hugo 6 - The Evil Mirror-SLUS-01559.cue
+SLUS-01097	IHRA Drag Racing-SLUS-01097.cue
+SLUS-00225	Impact Racing-SLUS-00225.cue
+SLUS-01294	In Cold Blood (Disc 1)-SLUS-01294.cue
+SLUS-01225	Incredible Crisis-SLUS-01225.cue
+SLUS-00150	The Incredible Hulk - The Pantheon Saga-SLUS-00150.cue
+SLUS-00221	Independence Day-SLUS-00221.cue
+SLUS-01267	Inspector Gadget - Gadget's Crazy Maze-SLUS-01267.cue
+SLUS-00906	Intellivision Classic Games-SLUS-00906.cue
+SLUS-00987	International Track & Field 2000-SLUS-00987.cue
+SLUS-00238	International Track & Field-SLUS-00238.cue
+SLUS-00850	Interplay Sports Baseball 2000-SLUS-00850.cue
+SLUS-01534	Inuyasha - A Feudal Fairy Tale-SLUS-01534.cue
+SLUS-00709	Invasion from Beyond-SLUS-00709.cue
+SLUS-01061	Iron Soldier 3-SLUS-01061.cue
+SLUS-00235	Iron Man & X-O Manowar in Heavy Metal-SLUS-00235.cue
+SLUS-00775	Irritating Stick-SLUS-00775.cue
+SLUS-00674	International Superstar Soccer Pro '98-SLUS-00674.cue
+SLUS-01457	The Italian Job-SLUS-01457.cue
+SLUS-00684	Jackie Chan Stuntmaster-SLUS-00684.cue
+SLUS-01139	Jarrett & Labonte Stock Car Racing-SLUS-01139.cue
+SLUS-01173	Jeopardy! 2nd Edition-SLUS-01173.cue
+SLUS-00682	Jeopardy!-SLUS-00682.cue
+SLUS-00479	Jeremy McGrath Supercross 98-SLUS-00479.cue
+SCUS-94167	Jet Moto 2-SCUS-94167.cue
+SCUS-94555	Jet Moto 3-SCUS-94555.cue
+SCUS-94309	Jet Moto-SCUS-94309.cue
+SLUS-01509	Jigsaw Madness-SLUS-01509.cue
+SLUS-00500	Jimmy Johnson's VR Football '98-SLUS-00500.cue
+SLUS-01313	Jimmy White's 2 - Cueball-SLUS-01313.cue
+SLUS-01060	JoJo's Bizarre Adventure-SLUS-01060.cue
+SLUS-00630	Judge Dredd-SLUS-00630.cue
+SLUS-00894	Juggernaut (Disc 1)-SLUS-00894.cue
+SLUS-00988	Juggernaut (Disc 2)-SLUS-00988.cue
+SLUS-00989	Juggernaut (Disc 3)-SLUS-00989.cue
+SCUS-94103	Jumping Flash!-SCUS-94103.cue
+SLUS-00177	Jupiter Strike-SLUS-00177.cue
+SLUS-00731	Oddworld - Abe's Exoddus (Disc 2)-SLUS-00731.cue
+SLUS-00190	Oddworld - Abe's Oddysee-SLUS-00190.cue
+SLUS-00698	O.D.T-SLUS-00698.cue
+SLUS-00020	Off-World Interceptor Extreme-SLUS-00020.cue
+SLUS-00467	Ogre Battle - Limited Edition-SLUS-00467.cue
+SLUS-00148	Olympic Summer Games-SLUS-00148.cue
+SCUS-94449	Omega Boost-SCUS-94449.cue
+SLUS-00469	One-SLUS-00469.cue
+SLUS-01406	One Piece Mansion-SLUS-01406.cue
+SLUS-00097	PO'ed-SLUS-00097.cue
+SLES-00197	SLES-00197.cue
+SLES-01419	SLES-01419.cue
+SCES-02279	SCES-02279.cue
+SLES-00081	SLES-00081.cue
+SLES-03431	SLES-03431.cue | SLES-03431_1.cue
+SLES-04047	SLES-04047.cue | SLES-04047_1.cue

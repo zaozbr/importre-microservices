@@ -4,7 +4,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS } = require('../../shared/config');
+const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS, DOWNLOAD_DIR, DUP_DIR, CHDMAN_PATH } = require('../../shared/config');
 const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { [ARCHIVE_ORG]: 2, [ARCHIVE_ORG_JP]: 2, 'coolrom': 4, 'round_robin': 12 };
 const Logger = require('../../shared/logger');
 const { aria2Download } = require('./aria2');
@@ -427,7 +427,9 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
   const isTorrent = url.endsWith('.torrent') && !url.startsWith('http');
   const isBt = isMagnet || isTorrent;
   const ext = isBt ? '.chd' : (path.extname(new URL(url).pathname) || '.7z');
-  const tmpPath = path.join(PSX_DIR, `${item.serial}${ext}`);
+  // Baixar para F:\downloads (nova esteira)
+  if (!fs.existsSync(DOWNLOAD_DIR)) { try { fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }); } catch {} }
+  const tmpPath = path.join(DOWNLOAD_DIR, `${item.serial}${ext}`);
   await acquireSourceSlot(source.site);
   startDownloadTracking(item.serial, source.site);
   try {
@@ -516,9 +518,12 @@ function sortSourcesBySpeed(sources) {
     'archive-psximagefiles-torrent': 20,
     'archive-redumpsonyplaystationamerica20160617-torrent': 20,
     'archive-sony-playstation-part1-torrent': 20,
-    // Fontes diretas rapidas (prioridade alta)
+    // Fontes CHD diretas (prioridade alta - evita conversao)
+    'archive_chd_jp': 15, 'archive_ps1_eu_chd_arquivista': 15, 'archive-centuron-psx': 15,
+    // Fontes diretas rapidas (prioridade media-alta)
     'vimm': 10, 'romsdl': 10, 'retrostic': 10, 'romspedia': 10, 'romsgames': 10,
-    'retromania': 10, 'romspure': 10, 'romsretro': 10, 'blueroms': 10, 'consoleroms': 10, 'archive_chd_jp': 8, 'archive_redump_jp': 7, 'archive-gamelist-202205': 6, 'archive-ps1-eu-chd-arquivista': 6, 'archive-psximagefiles': 6, 'archive-sony-playstation-part1': 6, 'archive-centuron-psx': 6, 'archive-redumpsonyplaystationamerica20160617': 6, 'archive-2024-sony-playstation-usa-hearto-1g1r-collection': 6, 'archive-sony-play-station-japan-non-redump': 6,
+    'retromania': 10, 'romspure': 10, 'romsretro': 10, 'blueroms': 10, 'consoleroms': 10,
+    'archive_redump_jp': 9, 'archive-gamelist-202205': 8, 'archive-psximagefiles': 8, 'archive-sony-playstation-part1': 8, 'archive-redumpsonyplaystationamerica20160617': 8, 'archive-2024-sony-playstation-usa-hearto-1g1r-collection': 8, 'archive-sony-play-station-japan-non-redump': 8,
     'hexrom': 10, 'freeroms': 10, 'classicgames': 10, 'oldiesnest': 10, 'playretrogames': 10,
     'roms2000': 10, 'romulation': 10, 'retrogames_cc': 10, 'retrogames_games': 10,
     'myrient': 10, 'homebrew': 10, 'retroiso': 10, 'romsfun': 10, 'cdromance': 10,
@@ -531,9 +536,15 @@ function sortSourcesBySpeed(sources) {
     // Fallback web (ultima opcao)
     'google_fallback': 3, 'google-fallback': 3
   };
+  // Bonus para URLs .chd diretas (prioriza baixar CHD pronto, evita conversao)
+  function chdBonus(source) {
+    const urlNoQuery = (source.url || '').split('?')[0].toLowerCase();
+    if (urlNoQuery.endsWith('.chd')) return 5;
+    return 0;
+  }
   // Embaralha fontes com mesma prioridade para diversificar
   const shuffled = [...sources].sort(() => Math.random() - 0.5);
-  return shuffled.sort((a, b) => (speedMap[b.site] || 5) - (speedMap[a.site] || 5));
+  return shuffled.sort((a, b) => ((speedMap[b.site] || 5) + chdBonus(b)) - ((speedMap[a.site] || 5) + chdBonus(a)));
 }
 
 function orderSources(sources, preferredSite) {
@@ -561,17 +572,118 @@ async function tryResolveUrl(source, directExts) {
   return { url: resolved, extraHeaders: null };
 }
 
+// === Semáforo para limitar conversoes CHD concorrentes ===
+// chdman e CPU-intensivo - max 2 simultaneos
+const chdSemaphore = { current: 0, max: 2, waiters: [] };
+
+function acquireChdSlot() {
+  return new Promise((resolve) => {
+    if (chdSemaphore.current < chdSemaphore.max) {
+      chdSemaphore.current++;
+      resolve();
+    } else {
+      chdSemaphore.waiters.push(resolve);
+    }
+  });
+}
+
+function releaseChdSlot() {
+  chdSemaphore.current--;
+  if (chdSemaphore.waiters.length > 0) {
+    const next = chdSemaphore.waiters.shift();
+    chdSemaphore.current++;
+    next();
+  }
+}
+
+// Spawnar conversao CHD em subprocesso separado (nao bloqueia event loop)
+function spawnChdConversion(extractDir, serial) {
+  const child = spawn(process.execPath, [
+    path.join(__dirname, 'chd_convert_one.js'),
+    extractDir,
+    serial
+  ], {
+    windowsHide: true,
+    detached: true,
+    stdio: 'ignore',
+  });
+  child.unref();
+  return child;
+}
+
 async function processDownload(item, source, url, sourceIndex, extraHeaders) {
   const tmpPath = await downloadFile(item, source, url, sourceIndex, extraHeaders);
-  await new Promise(r => setTimeout(r, 2000));
+  await new Promise(r => setTimeout(r, 500));
+
+  // Se ja for .chd, mover direto para PSX_DIR (sem conversao necessaria)
+  if (tmpPath.toLowerCase().endsWith('.chd')) {
+    const chdDest = path.join(PSX_DIR, path.basename(tmpPath));
+    try {
+      if (fs.existsSync(chdDest)) {
+        // Mover CHD existente para duplicados
+        if (!fs.existsSync(DUP_DIR)) fs.mkdirSync(DUP_DIR, { recursive: true });
+        const dupDest = path.join(DUP_DIR, path.basename(tmpPath));
+        try { fs.renameSync(chdDest, dupDest); } catch {}
+      }
+      fs.renameSync(tmpPath, chdDest);
+      log.info(`CHD direto movido: ${item.serial} (${source.site})`);
+    } catch {
+      try { fs.copyFileSync(tmpPath, chdDest); fs.unlinkSync(tmpPath); } catch {}
+    }
+    log.info(`Download concluido: ${item.serial} (${source.site})`);
+    return;
+  }
+
+  // Criar pasta isolada para descompactacao: F:\downloads\<serial>\
+  const extractDir = path.join(DOWNLOAD_DIR, item.serial);
+  if (fs.existsSync(extractDir)) {
+    try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch {}
+  }
+  fs.mkdirSync(extractDir, { recursive: true });
+
+  // Descompactar se for archive (.7z, .zip, .rar)
   if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
-    await validateAndExtract(tmpPath);
+    try {
+      await validateAndExtractTo(tmpPath, extractDir);
+    } catch (e) {
+      log.warn(`Extracao falhou para ${item.serial}: ${e.message}`);
+      try { fs.unlinkSync(tmpPath); } catch {}
+      try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch {}
+      throw e;
+    }
+    // Apagar archive apos extrair
+    try { fs.unlinkSync(tmpPath); } catch {}
+  } else if (tmpPath.endsWith('.iso') || tmpPath.endsWith('.bin') || tmpPath.endsWith('.cue') || tmpPath.endsWith('.img')) {
+    // Arquivo de midia direto - mover para pasta isolada
+    try {
+      fs.renameSync(tmpPath, path.join(extractDir, path.basename(tmpPath)));
+    } catch {
+      try { fs.copyFileSync(tmpPath, path.join(extractDir, path.basename(tmpPath))); fs.unlinkSync(tmpPath); } catch {}
+    }
   }
-  const contentOk = validateExtractedContent(item.serial);
-  if (!contentOk) {
-    log.warn(`Conteudo extraido para ${item.serial} nao contem serial - possivel download errado`);
-  }
-  log.info(`Download concluido: ${item.serial} (${source.site})`);
+
+  // Disparar conversao CHD IMEDIATAMENTE em subprocesso separado
+  // Semáforo limita a 2 conversoes simultaneas (chdman e CPU-intensivo)
+  // O subprocesso faz: converter -> mover CHD -> mover origens -> apagar pasta
+  acquireChdSlot().then(() => {
+    spawnChdConversion(extractDir, item.serial);
+    // Monitorar fim do subprocesso para liberar slot
+    // Como usamos detached+unref, nao podemos esperar o exit event.
+    // Em vez disso, verificar se a pasta foi apagada (sinal de conclusao)
+    const checkInterval = setInterval(() => {
+      if (!fs.existsSync(extractDir)) {
+        clearInterval(checkInterval);
+        releaseChdSlot();
+      }
+    }, 3000);
+    // Timeout de 10 minutos (fallback)
+    setTimeout(() => {
+      clearInterval(checkInterval);
+      releaseChdSlot();
+    }, 600000);
+  });
+
+  log.info(`Download concluido: ${item.serial} (${source.site}) -> conversao CHD disparada`);
 }
 
 async function validateAndExtract(tmpPath) {
@@ -597,6 +709,190 @@ async function validateAndExtract(tmpPath) {
   } catch (extractErr) {
     try { fs.unlinkSync(tmpPath); } catch (e) {}
     throw new Error('extracao falhou: ' + extractErr.message);
+  }
+}
+
+// === Nova esteira: extrair para pasta isolada ===
+async function validateAndExtractTo(archivePath, destDir) {
+  let archiveOk = false;
+  let archiveErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await testArchive(archivePath);
+      archiveOk = true;
+      break;
+    } catch (err) {
+      archiveErr = err;
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  if (!archiveOk) {
+    throw new Error('arquivo corrompido: ' + (archiveErr ? archiveErr.message : 'unknown'));
+  }
+  try {
+    await extractWith7z(archivePath, destDir);
+  } catch (extractErr) {
+    throw new Error('extracao falhou: ' + extractErr.message);
+  }
+}
+
+// === Nova esteira: converter pasta isolada para .chd ===
+// (semáforo e funcoes de conversao movidos para chd_convert_one.js - subprocesso separado)
+
+function convertCueToChdSync(cuePath, chdPath) {
+  return acquireChdSlot().then(() => {
+    return new Promise((resolve) => {
+      const proc = spawn(CHDMAN_PATH, ['createcd', '-i', cuePath, '-o', chdPath, '-f'], {
+        cwd: path.dirname(cuePath),
+        windowsHide: true,
+      });
+      let stderr = '';
+      proc.stderr.on('data', (d) => { stderr += d.toString(); });
+      proc.on('close', (code) => { releaseChdSlot(); resolve({ success: code === 0, error: stderr }); });
+      proc.on('error', (e) => { releaseChdSlot(); resolve({ success: false, error: e.message }); });
+    });
+  });
+}
+
+function getBinsFromCue(cuePath) {
+  const content = fs.readFileSync(cuePath, 'utf-8');
+  const bins = [];
+  const dir = path.dirname(cuePath);
+  for (const line of content.split('\n')) {
+    const match = line.match(/FILE\s+"([^"]+)"/i);
+    if (match) {
+      const binPath = path.join(dir, match[1]);
+      if (fs.existsSync(binPath)) bins.push(binPath);
+    }
+  }
+  return bins;
+}
+
+function generateCueForBin(binPath) {
+  const cuePath = binPath.replace(/\.bin$/i, '.cue');
+  const binName = path.basename(binPath);
+  fs.writeFileSync(cuePath, `FILE "${binName}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
+  return cuePath;
+}
+
+async function convertDirToChd(dir, serial) {
+  const chdFiles = [];
+  // 1. Converter .cue + .bin
+  const cueFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.cue'));
+  for (const cue of cueFiles) {
+    const cuePath = path.join(dir, cue);
+    const bins = getBinsFromCue(cuePath);
+    if (!bins.length) continue;
+    const stem = path.basename(cue, '.cue');
+    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdPath = path.join(dir, chdName);
+    // Se .chd ja existe e e valido, pular
+    if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      continue;
+    }
+    log.info(`Convertendo CHD: ${cue} -> ${chdName} [${serial}]`);
+    const result = await convertCueToChdSync(cuePath, chdPath);
+    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      log.info(`CHD OK: ${chdName} (${Math.round(fs.statSync(chdPath).size / 1048576)}MB)`);
+    } else {
+      log.warn(`CHD falhou: ${cue} - ${result.error.substring(0, 200)}`);
+    }
+  }
+  // 2. Converter .bin orfaos (sem .cue)
+  const binFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.bin'));
+  for (const bin of binFiles) {
+    const binPath = path.join(dir, bin);
+    const cuePath = binPath.replace(/\.bin$/i, '.cue');
+    if (fs.existsSync(cuePath)) continue; // ja tem cue
+    if (fs.statSync(binPath).size < 1048576) continue; // muito pequeno
+    const tmpCue = generateCueForBin(binPath);
+    const stem = path.basename(bin, '.bin');
+    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdPath = path.join(dir, chdName);
+    if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      try { fs.unlinkSync(tmpCue); } catch {}
+      continue;
+    }
+    log.info(`Convertendo .bin orfao: ${bin} -> ${chdName} [${serial}]`);
+    const result = await convertCueToChdSync(tmpCue, chdPath);
+    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      log.info(`CHD OK: ${chdName} (${Math.round(fs.statSync(chdPath).size / 1048576)}MB)`);
+    } else {
+      log.warn(`CHD falhou .bin orfao: ${bin}`);
+    }
+    try { fs.unlinkSync(tmpCue); } catch {}
+  }
+  // 3. Converter .img (gerar .cue)
+  const imgFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.img'));
+  for (const img of imgFiles) {
+    const imgPath = path.join(dir, img);
+    if (fs.statSync(imgPath).size < 1048576) continue;
+    const cuePath = imgPath.replace(/\.img$/i, '.cue');
+    fs.writeFileSync(cuePath, `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
+    const stem = path.basename(img, '.img');
+    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdPath = path.join(dir, chdName);
+    log.info(`Convertendo .img: ${img} -> ${chdName} [${serial}]`);
+    const result = await convertCueToChdSync(cuePath, chdPath);
+    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      log.info(`CHD OK: ${chdName}`);
+    }
+    try { fs.unlinkSync(cuePath); } catch {}
+  }
+  // 4. Se ja tem .chd na pasta, incluir
+  const existingChds = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.chd'));
+  for (const chd of existingChds) {
+    const chdPath = path.join(dir, chd);
+    if (fs.statSync(chdPath).size > 1048576 && !chdFiles.includes(chdPath)) {
+      chdFiles.push(chdPath);
+    }
+  }
+  return { success: chdFiles.length > 0, chdFiles, error: chdFiles.length === 0 ? 'nenhum CHD gerado' : null };
+}
+
+// === Nova esteira: mover arquivos de origem para duplicados ===
+function moveToDuplicados(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  if (!fs.existsSync(DUP_DIR)) fs.mkdirSync(DUP_DIR, { recursive: true });
+  const name = path.basename(filePath);
+  let dest = path.join(DUP_DIR, name);
+  let counter = 1;
+  while (fs.existsSync(dest)) {
+    const ext = path.extname(name);
+    const base = path.basename(name, ext);
+    dest = path.join(DUP_DIR, `${base}_${counter}${ext}`);
+    counter++;
+  }
+  try {
+    fs.renameSync(filePath, dest);
+  } catch {
+    try { fs.copyFileSync(filePath, dest); fs.unlinkSync(filePath); } catch {}
+  }
+}
+
+function moveOriginsToDuplicados(dir) {
+  if (!fs.existsSync(dir)) return;
+  const originExts = ['.bin', '.cue', '.img', '.ccd', '.sub', '.mdf', '.mds', '.ecm', '.iso'];
+  // Mover arquivos na raiz da pasta
+  for (const f of fs.readdirSync(dir)) {
+    const fp = path.join(dir, f);
+    if (fs.statSync(fp).isFile()) {
+      const ext = path.extname(f).toLowerCase();
+      if (originExts.includes(ext) || ext === '.zip' || ext === '.7z' || ext === '.rar') {
+        moveToDuplicados(fp);
+      }
+    }
+  }
+  // Mover arquivos em subpastas
+  for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (f.isDirectory()) {
+      moveOriginsToDuplicados(path.join(dir, f.name));
+    }
   }
 }
 
@@ -677,7 +973,7 @@ const rrSources = [
   'romspedia',                   // RR 13
   'romsgames',                   // RR 14
   'myrient',                     // RR 15
-  'romsfun',                     // RR 16
+  // romsfun removido (403 errors)
   'consoleroms',                 // RR 17
   'romulation',                  // RR 18
   'freeroms',                    // RR 19
@@ -808,7 +1104,7 @@ async function loop() {
   if (motrixAwake) {
     log.info('Motrix RPC ativo na porta 16800 - downloads via JSON-RPC');
     // Configurar opcoes globais (max-concurrent=20 para estabilidade)
-    try { await aria2Rpc.changeGlobalOption({ 'seed-time': '0', 'max-concurrent-downloads': '20', 'max-connection-per-server': '16', 'split': '16', 'min-split-size': '1M', 'file-allocation': 'none', 'check-certificate': 'false' }); } catch {}
+    try { await aria2Rpc.changeGlobalOption({ 'seed-time': '0', 'max-concurrent-downloads': '60', 'max-connection-per-server': '16', 'split': '16', 'min-split-size': '1M', 'file-allocation': 'none', 'check-certificate': 'false', 'max-overall-download-limit': '0', 'max-download-limit': '0' }); } catch {}
   } else {
     log.warn('Motrix indisponivel - fallback para spawn de aria2c.exe');
   }

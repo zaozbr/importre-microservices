@@ -75,7 +75,7 @@ async function rpcDownload(url, outputPath, options = {}) {
   const isArchiveOrg = url.includes('archive.org');
   const isMagnet = url.startsWith('magnet:');
   const isTorrent = url.endsWith('.torrent') && !url.startsWith('http');
-  const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.25 : 1.0);
+  const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.10 : 0.5);
 
   // Headers para archive.org
   let headers = null;
@@ -96,12 +96,12 @@ async function rpcDownload(url, outputPath, options = {}) {
   return rpc.rpcDownload(url, outputPath, {
     connections: options.connections || (isArchiveOrg ? 64 : 16),
     split: options.split || (isArchiveOrg ? 64 : 16),
+    maxTimeMs: options.maxTimeMs || (isArchiveOrg ? 1800000 : 600000),
     minSpeedMbps,
-    slowThresholdMs: options.slowThresholdMs || 60000,
-    stalledThresholdMs: options.stalledThresholdMs || 90000,
+    slowThresholdMs: options.slowThresholdMs || (isArchiveOrg ? 180000 : 60000),
+    stalledThresholdMs: options.stalledThresholdMs || (isArchiveOrg ? 300000 : 90000),
     onProgress: options.onProgress,
-    headers,
-    maxTimeMs: options.maxTimeMs || 600000
+    headers
   });
 }
 
@@ -161,7 +161,7 @@ function spawnDownload(url, outputPath, options = {}) {
     let slowSince = 0;
     const slowThresholdMs = options.slowThresholdMs || 60000;
     const stalledThresholdMs = options.stalledThresholdMs || 90000;
-    const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.25 : 1.0);
+    const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.10 : 0.5);
     let speedCheckTimer = null;
 
     function handleOutput(chunk) {

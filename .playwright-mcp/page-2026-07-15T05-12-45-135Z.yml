@@ -1,0 +1,152 @@
+- generic [ref=f358e1]:
+  - generic [active] [ref=f358e2]:
+    - link "Skip to main content" [ref=f358e3] [cursor=pointer]:
+      - /url: "#maincontent"
+    - banner [ref=f358e4]:
+      - generic [ref=f358e5]:
+        - navigation [ref=f358e8]:
+          - link "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f358e10] [cursor=pointer]:
+            - /url: /
+            - img "Internet Archive logo A line drawing of the Internet Archive headquarters building façade." [ref=f358e11]
+          - navigation [ref=f358e37]:
+            - generic [ref=f358e38]:
+              - link [ref=f358e39] [cursor=pointer]:
+                - /url: https://web.archive.org
+                - img "Web icon An illustration of a computer application window" [ref=f358e41]
+              - link [ref=f358e43] [cursor=pointer]:
+                - /url: /details/texts
+                - img "Texts icon An illustration of an open book." [ref=f358e45]
+              - link [ref=f358e47] [cursor=pointer]:
+                - /url: /details/movies
+                - img "Video icon An illustration of two cells of a film strip." [ref=f358e49]
+              - link [ref=f358e51] [cursor=pointer]:
+                - /url: /details/audio
+                - img "Audio icon An illustration of an audio speaker." [ref=f358e53]
+              - link [ref=f358e58] [cursor=pointer]:
+                - /url: /details/software
+                - img "Software icon An illustration of a 3.5\" floppy disk." [ref=f358e60]
+              - link [ref=f358e62] [cursor=pointer]:
+                - /url: /details/image
+                - img "Images icon An illustration of two photographs." [ref=f358e64]
+          - search [ref=f358e116]:
+            - generic [ref=f358e117]:
+              - button "Toggle options All" [ref=f358e121] [cursor=pointer]:
+                - generic [ref=f358e122]: Toggle options
+                - generic [ref=f358e123]: All
+              - generic [ref=f358e132]:
+                - generic [ref=f358e133]: Search the Archive. Filters and Advanced Search available below.
+                - textbox "Search the Archive. Filters and Advanced Search available below." [ref=f358e134]:
+                  - /placeholder: Search
+              - button "Search" [ref=f358e135] [cursor=pointer]
+          - generic [ref=f358e67]:
+            - generic [ref=f358e70]:
+              - button "Toggle login menu" [ref=f358e71] [cursor=pointer]:
+                - img "User icon An illustration of a person's head and chest." [ref=f358e72]
+              - generic [ref=f358e74]:
+                - link "Sign up" [ref=f358e75] [cursor=pointer]:
+                  - /url: /signup
+                - text: "|"
+                - link "Log in" [ref=f358e76] [cursor=pointer]:
+                  - /url: /login
+            - link "Upload icon An illustration of a horizontal line over an up pointing arrow. Upload" [ref=f358e77] [cursor=pointer]:
+              - /url: /upload
+              - img "Upload icon An illustration of a horizontal line over an up pointing arrow." [ref=f358e78]
+              - generic [ref=f358e80]: Upload
+        - navigation [ref=f358e83]:
+          - list [ref=f358e84]:
+            - listitem [ref=f358e85]:
+              - link [ref=f358e86] [cursor=pointer]:
+                - /url: /signup
+                - text: Sign up for free
+            - listitem [ref=f358e87]:
+              - link [ref=f358e88] [cursor=pointer]:
+                - /url: /login
+                - text: Log in
+        - list [ref=f358e90]:
+          - listitem [ref=f358e91]:
+            - link "About" [ref=f358e92] [cursor=pointer]:
+              - /url: /about/
+          - listitem [ref=f358e93]:
+            - link "Blog" [ref=f358e94] [cursor=pointer]:
+              - /url: https://blog.archive.org
+          - listitem [ref=f358e95]:
+            - link "Events" [ref=f358e96] [cursor=pointer]:
+              - /url: /events
+          - listitem [ref=f358e97]:
+            - link "Projects" [ref=f358e98] [cursor=pointer]:
+              - /url: /projects/
+          - listitem [ref=f358e99]:
+            - link "Help" [ref=f358e100] [cursor=pointer]:
+              - /url: /about/faqs.php
+          - listitem [ref=f358e101]:
+            - link "Donate Donate icon An illustration of a heart shape" [ref=f358e102] [cursor=pointer]:
+              - /url: /donate?origin=iawww-TopNavDonateButton
+              - text: Donate
+              - img "Donate icon An illustration of a heart shape" [ref=f358e103]
+          - listitem [ref=f358e105]:
+            - link "Contact" [ref=f358e106] [cursor=pointer]:
+              - /url: /about/contact
+          - listitem [ref=f358e107]:
+            - link "Jobs" [ref=f358e108] [cursor=pointer]:
+              - /url: /about/jobs
+          - listitem [ref=f358e109]:
+            - link "Volunteer" [ref=f358e110] [cursor=pointer]:
+              - /url: /about/volunteer-positions
+    - main [ref=f358e136]:
+      - generic [ref=f358e141]:
+        - img "Internet Archive Logo" [ref=f358e142]
+        - heading "Sign up for an account" [level=1] [ref=f358e143]
+        - paragraph [ref=f358e144]:
+          - text: Get your virtual library card and access 65+ million free and borrowable books, movies, audio, images, software, and more! Already have one?
+          - link "Log in!" [ref=f358e145] [cursor=pointer]:
+            - /url: /login
+        - generic [ref=f358e147]:
+          - generic [ref=f358e200]:
+            - iframe [ref=f358e205]:
+              - button "Fazer Login com o Google. Abre em uma nova guia" [ref=f366e3] [cursor=pointer]:
+                - generic [ref=f366e5]: Fazer Login com o Google
+            - paragraph
+          - button "Email me a code to sign up" [ref=f358e150] [cursor=pointer]
+          - generic [ref=f358e156]: Or
+        - generic [ref=f358e160]:
+          - generic [ref=f358e161]:
+            - generic [ref=f358e162]: Enter your email address
+            - generic [ref=f358e163]: Up to 127 characters
+            - generic [ref=f358e164]:
+              - textbox [ref=f358e165]: kideje5455@ezimb.com
+              - status "Success" [ref=f358e225]
+          - generic [ref=f358e166]:
+            - generic [ref=f358e167]: Choose a screen name
+            - generic [ref=f358e168]: 3 to 40 characters
+            - generic [ref=f358e169]:
+              - textbox [ref=f358e170]: impcoll2026z
+              - status "Success" [ref=f358e229]
+          - generic [ref=f358e171]:
+            - generic [ref=f358e172]:
+              - generic [ref=f358e173]: Choose a password
+              - generic [ref=f358e174]: 8 to 100 characters
+            - generic [ref=f358e175]:
+              - textbox "Choose a password 8 to 100 characters" [ref=f358e176]: Arch2026xK9!mp
+              - button "Show password" [ref=f358e178] [cursor=pointer]
+          - generic [ref=f358e186]:
+            - generic [ref=f358e187]: Choose announcements
+            - generic [ref=f358e188]:
+              - 'checkbox "Best of the Archive: Useful resources, unique stories, and fun finds from our collections" [ref=f358e189]'
+              - generic [ref=f358e190]: "Best of the Archive: Useful resources, unique stories, and fun finds from our collections"
+            - generic [ref=f358e191]:
+              - 'checkbox "Event Notices: Invitations to and news about our events" [ref=f358e192]'
+              - generic [ref=f358e193]: "Event Notices: Invitations to and news about our events"
+          - button "Sign up" [ref=f358e195] [cursor=pointer]
+          - generic [ref=f358e197]:
+            - text: By signing up, you agree to the Internet Archive's
+            - link "Terms of Service" [ref=f358e198] [cursor=pointer]:
+              - /url: /about/terms
+  - iframe [ref=f358e224]:
+    - generic [ref=f360e5]:
+      - generic [ref=f360e6]:
+        - text: protegido por
+        - strong [ref=f360e7]: reCAPTCHA
+      - generic [ref=f360e9]:
+        - text: Os Termos de Serviço do reCAPTCHA estão mudando.
+        - link "Acesse." [ref=f360e10] [cursor=pointer]:
+          - /url: https://google.com/recaptcha/admin/migrate
