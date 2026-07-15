@@ -4,7 +4,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS, DOWNLOAD_DIR, DUP_DIR, CHDMAN_PATH } = require('../../shared/config');
+const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS, DOWNLOAD_DIR, DUP_DIR, CHDMAN_PATH, STATE_DIR } = require('../../shared/config');
 const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { [ARCHIVE_ORG]: 2, [ARCHIVE_ORG_JP]: 2, 'coolrom': 4, 'round_robin': 12 };
 const Logger = require('../../shared/logger');
 const { aria2Download } = require('./aria2');
@@ -940,7 +940,30 @@ async function resolveAndDownload(item, sources, preferredSite) {
 // Meta: mínimo 10 fontes diferentes ativas sempre
 
 // Cooldown global por fonte (ex: vimm 429 rate limit)
+const COOLDOWN_FILE = path.join(STATE_DIR || 'F:\\importre_state', 'cooldown.json');
 const sourceCooldown = new Map(); // site -> timestamp ate quando evitar
+
+// Carregar cooldown persistente na inicializacao
+try {
+  if (fs.existsSync(COOLDOWN_FILE)) {
+    const data = JSON.parse(fs.readFileSync(COOLDOWN_FILE, 'utf8'));
+    for (const [site, until] of Object.entries(data)) {
+      if (until > Date.now()) sourceCooldown.set(site, until);
+    }
+    log.info(`Cooldown persistente carregado: ${sourceCooldown.size} fontes`);
+  }
+} catch {}
+
+function saveCooldown() {
+  try {
+    const data = {};
+    for (const [site, until] of sourceCooldown.entries()) {
+      if (until > Date.now()) data[site] = until;
+    }
+    fs.writeFileSync(COOLDOWN_FILE, JSON.stringify(data));
+  } catch {}
+}
+
 function isSourceInCooldown(site) {
   const until = sourceCooldown.get(site);
   if (!until) return false;
@@ -950,6 +973,7 @@ function isSourceInCooldown(site) {
 }
 function setSourceCooldown(site, ms) {
   sourceCooldown.set(site, Date.now() + ms);
+  saveCooldown();
   log.warn(`Fonte ${site} em cooldown por ${ms/1000}s (rate limit)`);
 }
 
@@ -1039,7 +1063,24 @@ async function processOneWithPreferredSource(preferredSite) {
   }
   let res = await queueRequest('post', '/queue/next-ready', { preferredSite });
   if ((!res || !res.item) && preferredSite && preferredSite !== 'any') {
+    // Fallback para 'any' mas filtrar fontes em cooldown
     res = await queueRequest('post', '/queue/next-ready', { preferredSite: 'any' });
+  }
+  if (res && res.item && res.item.sources) {
+    // Filtrar fontes em cooldown SEMPRE (mesmo no caminho principal)
+    const before = res.item.sources.map(s => s.site);
+    const filtered = res.item.sources.filter(s => !isSourceInCooldown(s.site));
+    if (filtered.length > 0) {
+      res.item.sources = filtered;
+      if (filtered.length < before.length) {
+        log.info(`Cooldown filter: ${res.item.serial} ${before.join(',')} -> ${filtered.map(s => s.site).join(',')}`);
+      }
+    } else if (res.item.sources.length > 0) {
+      // Todas as fontes em cooldown — devolver e esperar
+      log.info(`Cooldown block: ${res.item.serial} todas fontes em cooldown (${before.join(',')})`);
+      await queueRequest('post', '/queue/requeue', { serial: res.item.serial });
+      return false;
+    }
   }
   if (!res || !res.item) return false;
   const item = res.item;
@@ -1146,6 +1187,20 @@ async function loop() {
 }
 
 app.get('/status', (req, res) => res.json(status));
+app.get('/cooldown-status', (req, res) => {
+  const entries = {};
+  for (const [site, until] of sourceCooldown.entries()) {
+    entries[site] = { until: new Date(until).toISOString(), remaining: Math.ceil((until - Date.now()) / 1000) };
+  }
+  res.json({ cooldowns: entries });
+});
+app.post('/cooldown', (req, res) => {
+  const { site, ms } = req.body;
+  if (!site) return res.status(400).json({ error: 'site required' });
+  setSourceCooldown(site, ms || 60000);
+  log.warn(`Cooldown manual: ${site} por ${(ms||60000)/1000}s`);
+  res.json({ ok: true, site, ms: ms || 60000 });
+});
 
 // Resiliente: nao morre em uncaught/rejection
 process.on('uncaughtException', (e) => {

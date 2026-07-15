@@ -52,7 +52,7 @@ module.exports = {
     'archive.org-extra': 40,
     'archive_extra': 40,
     'coolrom': 10,
-    'vimm': 20,
+    'vimm': 10,
     'retrostic': 20,
     'romsdl': 10,
     'romsretro': 10,
@@ -90,12 +90,12 @@ module.exports = {
     'romspure': 4,
     'google_fallback': 2
   },
-  // Alocação: 20 archive.org + 10 archive.org-jp + 0 coolrom + 30 RR
-  // Total: 60 workers - archive.org limita ~0.25MB/s por arquivo, compensar com paralelismo
+  // Alocação: 5 archive.org + 5 archive.org-jp + 0 coolrom + 50 RR
+  // Reduzido archive.org (rate-limit pesado) e aumentado RR para diversificar fontes
   WORKER_ALLOCATION: {
-    'archive.org': 20,
-    'archive.org-jp': 10,
+    'archive.org': 5,
+    'archive.org-jp': 5,
     'coolrom': 0,
-    'round_robin': 30
+    'round_robin': 50
   }
 };

@@ -198,6 +198,7 @@ app.post('/queue/next-ready', (req, res) => {
   const q = getQueue();
   let ready = q.queue
     .filter(i => i.status === 'ready' && isReady(i) && !reservedReady.has(i.serial) && !q.in_progress[i.serial] && !q.completed[i.serial]);
+  console.log(`[next-ready] preferredSite=${preferredSite} ready=${ready.length} reserved=${reservedReady.size} inProgress=${Object.keys(q.in_progress).length}`);
   
   // Funcao de ordenacao: primeiro por % de conclusao (maior primeiro), depois por prioridade
   function sortByProgress(a, b) {
@@ -220,6 +221,9 @@ app.post('/queue/next-ready', (req, res) => {
     }
   } else {
     // Modo 'any': round-robin entre fontes para diversificar
+    // Filtrar itens sem fonte primeiro
+    ready = ready.filter(i => i.sources && i.sources.length > 0);
+    if (!ready.length) return res.json({ item: null });
     // Agrupa por primeira fonte, rotaciona a cada chamada
     const bySource = new Map();
     ready.forEach(i => {
