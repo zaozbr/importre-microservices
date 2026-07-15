@@ -18,7 +18,6 @@ const rows = db.prepare("SELECT host_key, name, value, encrypted_value, path, is
 console.log(`\nCookies do archive.org: ${rows.length}`);
 
 for (const row of rows) {
-  const encrypted = row.encrypted_value && row.encrypted_value.length > 0;
   console.log(`  ${row.host_key} ${row.name}=${row.value ? row.value.substring(0, 60) : '[encrypted ' + (row.encrypted_value ? row.encrypted_value.length : 0) + ' bytes]'} httpOnly=${row.is_httponly} expires=${row.expires_utc}`);
 }
 

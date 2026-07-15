@@ -1,5 +1,6 @@
 .devin/safe_point/
 .devin/backups/
+safe_point/
 node_modules/
 *.log
 shared/archive_auth.json
