@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { loadJson, buildSource } = require('./_base');
 const { getArchiveHeaders } = require('../../../shared/archive_auth');
+const { getAxiosProxyConfig } = require('../../../shared/tor_proxy');
 
 module.exports = {
   name: 'archive.org',
@@ -28,12 +29,13 @@ module.exports = {
       const hdrs = getArchiveHeaders();
       const q = encodeURIComponent(`"${serial}"`);
       const url = `https://archive.org/advancedsearch.php?q=${q}&fl%5B%5D=identifier&fl%5B%5D=title&sort=title&rows=10&page=1&output=json&save=yes`;
-      const res = await axios.get(url, { timeout: 10000, headers: hdrs });
+      const res = await axios.get(url, { timeout: 15000, headers: hdrs, ...getAxiosProxyConfig(url) });
       const docs = res.data?.response?.docs || [];
       if (!docs.length) return [];
       const metaPromises = docs.map(async d => {
         try {
-          const meta = await axios.get(`https://archive.org/metadata/${d.identifier}`, { timeout: 10000, headers: hdrs });
+          const metaUrl = `https://archive.org/metadata/${d.identifier}`;
+          const meta = await axios.get(metaUrl, { timeout: 15000, headers: hdrs, ...getAxiosProxyConfig(metaUrl) });
           const files = meta.data?.files || [];
           const romFiles = files.filter(f => /\.(7z|zip|rar|bin|cue|img|iso|chd)$/i.test(f.name) && f.size > 1024 * 1024);
           if (!romFiles.length) return null;

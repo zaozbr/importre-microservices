@@ -562,6 +562,10 @@ function buildAddOpts(options, isBt) {
   };
   if (!isBt) {
     addOpts.headers = options.headers || null;
+    // Proxy SOCKS5 para contornar bloqueio do Avast (apenas archive.org HTTPS)
+    if (options.proxy) {
+      addOpts.aria2Options['all-proxy'] = options.proxy;
+    }
   } else {
     addOpts.aria2Options['seed-time'] = '0';
     addOpts.aria2Options['bt-metadata-only'] = 'false';

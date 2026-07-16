@@ -74,6 +74,7 @@ async function rpcDownload(url, outputPath, options = {}) {
 
   // Headers para archive.org
   let headers = null;
+  let proxy = null;
   if (isArchiveOrg && !isMagnet && !isTorrent) {
     try {
       const { getArchiveHeaders } = require('../../shared/archive_auth');
@@ -81,6 +82,13 @@ async function rpcDownload(url, outputPath, options = {}) {
       headers = { Referer: 'https://archive.org/', Accept: '*/*' };
       if (hdrs['Cookie']) headers['Cookie'] = hdrs['Cookie'];
     } catch { /* sem auth, prossegue */ }
+    // Proxy Tor (via bridge HTTP->SOCKS5) para contornar bloqueio do Avast Web Shield (apenas archive.org HTTPS)
+    try {
+      const { isTorRunning } = require('../../shared/tor_proxy');
+      if (isTorRunning() && url.startsWith('https://')) {
+        proxy = 'http://127.0.0.1:8118';
+      }
+    } catch { /* Tor nao disponivel, prossegue sem proxy */ }
   }
   // Headers extras do resolver (vimm cookies, retrostic referer, etc)
   if (options.extraHeaders) {
@@ -96,7 +104,8 @@ async function rpcDownload(url, outputPath, options = {}) {
     slowThresholdMs: options.slowThresholdMs || 180000,
     stalledThresholdMs: options.stalledThresholdMs || 300000,
     onProgress: options.onProgress,
-    headers
+    headers,
+    proxy
   });
 }
 
