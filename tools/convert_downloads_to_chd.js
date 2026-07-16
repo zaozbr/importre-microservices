@@ -24,9 +24,8 @@ eccedcInit();
 // Descomprimir todos os .ecm de uma pasta para .bin/.img (no proprio F:)
 async function decompressEcms(dir) {
   const allFiles = fs.readdirSync(dir, { withFileTypes: true });
-  const ecms = [];
-  function scan(d, prefix) {
-    for (const entry of allFiles) {
+  function _scan(_d, _prefix) {
+    for (const _entry of allFiles) {
       // so top-level por enquanto
     }
   }
@@ -67,6 +66,65 @@ async function decompressEcms(dir) {
   }
 }
 
+function generateCuesForBins(dir, bins) {
+  const generated = [];
+  for (const bin of bins) {
+    const cuePath = path.join(dir, bin.replace(/\.bin$/i, '.cue'));
+    if (!fs.existsSync(cuePath)) {
+      const binName = bin;
+      const cueContent = `FILE "${binName}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`;
+      fs.writeFileSync(cuePath, cueContent);
+    }
+    generated.push(cuePath);
+  }
+  return generated;
+}
+
+function generateCuesForImgs(dir, imgs) {
+  const generated = [];
+  for (const img of imgs) {
+    const cuePath = path.join(dir, img.replace(/\.img$/i, '.cue'));
+    if (!fs.existsSync(cuePath)) {
+      const cueContent = `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`;
+      fs.writeFileSync(cuePath, cueContent);
+    }
+    generated.push(cuePath);
+  }
+  return generated;
+}
+
+function findRomsInSubdir(sub, subFiles) {
+  const subCues = subFiles.filter(f => f.toLowerCase().endsWith('.cue'));
+  const subIsos = subFiles.filter(f => f.toLowerCase().endsWith('.iso'));
+  const subBins = subFiles.filter(f => f.toLowerCase().endsWith('.bin'));
+  const subImgs = subFiles.filter(f => f.toLowerCase().endsWith('.img'));
+  if (subCues.length > 0) return subCues.map(f => path.join(sub, f));
+  if (subIsos.length > 0) return subIsos.map(f => path.join(sub, f));
+  if (subBins.length > 0) {
+    const result = [];
+    for (const bin of subBins) {
+      const cuePath = path.join(sub, bin.replace(/\.bin$/i, '.cue'));
+      if (!fs.existsSync(cuePath)) {
+        fs.writeFileSync(cuePath, `FILE "${bin}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
+      }
+      result.push(cuePath);
+    }
+    return result;
+  }
+  if (subImgs.length > 0) {
+    const result = [];
+    for (const img of subImgs) {
+      const cuePath = path.join(sub, img.replace(/\.img$/i, '.cue'));
+      if (!fs.existsSync(cuePath)) {
+        fs.writeFileSync(cuePath, `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
+      }
+      result.push(cuePath);
+    }
+    return result;
+  }
+  return [];
+}
+
 function findRomFiles(dir) {
   const files = fs.readdirSync(dir);
   // Procurar .cue+bin, .iso, ou .bin direto
@@ -78,30 +136,11 @@ function findRomFiles(dir) {
   if (isos.length > 0) return isos.map(f => path.join(dir, f));
   // .bin sem .cue: gerar .cue
   if (bins.length > 0 && cues.length === 0) {
-    const generated = [];
-    for (const bin of bins) {
-      const cuePath = path.join(dir, bin.replace(/\.bin$/i, '.cue'));
-      if (!fs.existsSync(cuePath)) {
-        const binName = bin;
-        const cueContent = `FILE "${binName}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`;
-        fs.writeFileSync(cuePath, cueContent);
-      }
-      generated.push(cuePath);
-    }
-    return generated;
+    return generateCuesForBins(dir, bins);
   }
   // .img sem .cue: gerar .cue
   if (imgs.length > 0 && cues.length === 0) {
-    const generated = [];
-    for (const img of imgs) {
-      const cuePath = path.join(dir, img.replace(/\.img$/i, '.cue'));
-      if (!fs.existsSync(cuePath)) {
-        const cueContent = `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`;
-        fs.writeFileSync(cuePath, cueContent);
-      }
-      generated.push(cuePath);
-    }
-    return generated;
+    return generateCuesForImgs(dir, imgs);
   }
   // Procurar em subpastas (discos)
   const subdirs = files.filter(f => {
@@ -111,29 +150,7 @@ function findRomFiles(dir) {
   for (const sd of subdirs) {
     const sub = path.join(dir, sd);
     const subFiles = fs.readdirSync(sub);
-    const subCues = subFiles.filter(f => f.toLowerCase().endsWith('.cue'));
-    const subIsos = subFiles.filter(f => f.toLowerCase().endsWith('.iso'));
-    const subBins = subFiles.filter(f => f.toLowerCase().endsWith('.bin'));
-    const subImgs = subFiles.filter(f => f.toLowerCase().endsWith('.img'));
-    if (subCues.length > 0) result.push(...subCues.map(f => path.join(sub, f)));
-    else if (subIsos.length > 0) result.push(...subIsos.map(f => path.join(sub, f)));
-    else if (subBins.length > 0) {
-      for (const bin of subBins) {
-        const cuePath = path.join(sub, bin.replace(/\.bin$/i, '.cue'));
-        if (!fs.existsSync(cuePath)) {
-          fs.writeFileSync(cuePath, `FILE "${bin}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
-        }
-        result.push(cuePath);
-      }
-    } else if (subImgs.length > 0) {
-      for (const img of subImgs) {
-        const cuePath = path.join(sub, img.replace(/\.img$/i, '.cue'));
-        if (!fs.existsSync(cuePath)) {
-          fs.writeFileSync(cuePath, `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
-        }
-        result.push(cuePath);
-      }
-    }
+    result.push(...findRomsInSubdir(sub, subFiles));
   }
   return result;
 }
@@ -241,8 +258,6 @@ async function processFolder(folderName) {
   const results = [];
   for (let i = 0; i < romFiles.length; i++) {
     const romPath = romFiles[i];
-    const ext = path.extname(romPath);
-    const baseName = path.basename(romPath, ext);
 
     // Nome do CHD: se multi-disc, adicionar _discN
     let chdName;

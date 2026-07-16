@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 
 const QUEUE_PATH = 'F:\\importre_state\\queue.json';
 const ROM_DIR = 'D:\\roms\\library\\roms\\psx';

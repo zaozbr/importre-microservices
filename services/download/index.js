@@ -4,7 +4,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS, DOWNLOAD_DIR, DUP_DIR, CHDMAN_PATH, STATE_DIR } = require('../../shared/config');
+const { PSX_DIR, PORTS, WORKERS, ARIA2, SOURCE_LIMITS, DOWNLOAD_DIR, DUP_DIR, STATE_DIR } = require('../../shared/config');
 const WORKER_ALLOCATION = require('../../shared/config').WORKER_ALLOCATION || { [ARCHIVE_ORG]: 2, [ARCHIVE_ORG_JP]: 2, 'coolrom': 4, 'round_robin': 12 };
 const Logger = require('../../shared/logger');
 const { aria2Download } = require('./aria2');
@@ -611,36 +611,35 @@ function spawnChdConversion(extractDir, serial) {
   return child;
 }
 
-async function processDownload(item, source, url, sourceIndex, extraHeaders) {
-  const tmpPath = await downloadFile(item, source, url, sourceIndex, extraHeaders);
-  await new Promise(r => setTimeout(r, 500));
-
+function handleDirectChd(tmpPath, item, source) {
   // Se ja for .chd, mover direto para PSX_DIR (sem conversao necessaria)
-  if (tmpPath.toLowerCase().endsWith('.chd')) {
-    const chdDest = path.join(PSX_DIR, path.basename(tmpPath));
-    try {
-      if (fs.existsSync(chdDest)) {
-        // Mover CHD existente para duplicados
-        if (!fs.existsSync(DUP_DIR)) fs.mkdirSync(DUP_DIR, { recursive: true });
-        const dupDest = path.join(DUP_DIR, path.basename(tmpPath));
-        try { fs.renameSync(chdDest, dupDest); } catch {}
-      }
-      fs.renameSync(tmpPath, chdDest);
-      log.info(`CHD direto movido: ${item.serial} (${source.site})`);
-    } catch {
-      try { fs.copyFileSync(tmpPath, chdDest); fs.unlinkSync(tmpPath); } catch {}
+  const chdDest = path.join(PSX_DIR, path.basename(tmpPath));
+  try {
+    if (fs.existsSync(chdDest)) {
+      // Mover CHD existente para duplicados
+      if (!fs.existsSync(DUP_DIR)) fs.mkdirSync(DUP_DIR, { recursive: true });
+      const dupDest = path.join(DUP_DIR, path.basename(tmpPath));
+      try { fs.renameSync(chdDest, dupDest); } catch {}
     }
-    log.info(`Download concluido: ${item.serial} (${source.site})`);
-    return;
+    fs.renameSync(tmpPath, chdDest);
+    log.info(`CHD direto movido: ${item.serial} (${source.site})`);
+  } catch {
+    try { fs.copyFileSync(tmpPath, chdDest); fs.unlinkSync(tmpPath); } catch {}
   }
+  log.info(`Download concluido: ${item.serial} (${source.site})`);
+}
 
+function prepareExtractDir(item) {
   // Criar pasta isolada para descompactacao: F:\downloads\<serial>\
   const extractDir = path.join(DOWNLOAD_DIR, item.serial);
   if (fs.existsSync(extractDir)) {
     try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch {}
   }
   fs.mkdirSync(extractDir, { recursive: true });
+  return extractDir;
+}
 
+async function extractOrMoveArchive(tmpPath, extractDir, item) {
   // Descompactar se for archive (.7z, .zip, .rar)
   if (tmpPath.endsWith('.7z') || tmpPath.endsWith('.zip') || tmpPath.endsWith('.rar')) {
     try {
@@ -661,12 +660,14 @@ async function processDownload(item, source, url, sourceIndex, extraHeaders) {
       try { fs.copyFileSync(tmpPath, path.join(extractDir, path.basename(tmpPath))); fs.unlinkSync(tmpPath); } catch {}
     }
   }
+}
 
+function launchChdConversion(extractDir, serial) {
   // Disparar conversao CHD IMEDIATAMENTE em subprocesso separado
   // Semáforo limita a 2 conversoes simultaneas (chdman e CPU-intensivo)
   // O subprocesso faz: converter -> mover CHD -> mover origens -> apagar pasta
   acquireChdSlot().then(() => {
-    spawnChdConversion(extractDir, item.serial);
+    spawnChdConversion(extractDir, serial);
     // Monitorar fim do subprocesso para liberar slot
     // Como usamos detached+unref, nao podemos esperar o exit event.
     // Em vez disso, verificar se a pasta foi apagada (sinal de conclusao)
@@ -682,6 +683,20 @@ async function processDownload(item, source, url, sourceIndex, extraHeaders) {
       releaseChdSlot();
     }, 600000);
   });
+}
+
+async function processDownload(item, source, url, sourceIndex, extraHeaders) {
+  const tmpPath = await downloadFile(item, source, url, sourceIndex, extraHeaders);
+  await new Promise(r => setTimeout(r, 500));
+
+  if (tmpPath.toLowerCase().endsWith('.chd')) {
+    handleDirectChd(tmpPath, item, source);
+    return;
+  }
+
+  const extractDir = prepareExtractDir(item);
+  await extractOrMoveArchive(tmpPath, extractDir, item);
+  launchChdConversion(extractDir, item.serial);
 
   log.info(`Download concluido: ${item.serial} (${source.site}) -> conversao CHD disparada`);
 }
@@ -733,166 +748,6 @@ async function validateAndExtractTo(archivePath, destDir) {
     await extractWith7z(archivePath, destDir);
   } catch (extractErr) {
     throw new Error('extracao falhou: ' + extractErr.message);
-  }
-}
-
-// === Nova esteira: converter pasta isolada para .chd ===
-// (semáforo e funcoes de conversao movidos para chd_convert_one.js - subprocesso separado)
-
-function convertCueToChdSync(cuePath, chdPath) {
-  return acquireChdSlot().then(() => {
-    return new Promise((resolve) => {
-      const proc = spawn(CHDMAN_PATH, ['createcd', '-i', cuePath, '-o', chdPath, '-f'], {
-        cwd: path.dirname(cuePath),
-        windowsHide: true,
-      });
-      let stderr = '';
-      proc.stderr.on('data', (d) => { stderr += d.toString(); });
-      proc.on('close', (code) => { releaseChdSlot(); resolve({ success: code === 0, error: stderr }); });
-      proc.on('error', (e) => { releaseChdSlot(); resolve({ success: false, error: e.message }); });
-    });
-  });
-}
-
-function getBinsFromCue(cuePath) {
-  const content = fs.readFileSync(cuePath, 'utf-8');
-  const bins = [];
-  const dir = path.dirname(cuePath);
-  for (const line of content.split('\n')) {
-    const match = line.match(/FILE\s+"([^"]+)"/i);
-    if (match) {
-      const binPath = path.join(dir, match[1]);
-      if (fs.existsSync(binPath)) bins.push(binPath);
-    }
-  }
-  return bins;
-}
-
-function generateCueForBin(binPath) {
-  const cuePath = binPath.replace(/\.bin$/i, '.cue');
-  const binName = path.basename(binPath);
-  fs.writeFileSync(cuePath, `FILE "${binName}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
-  return cuePath;
-}
-
-async function convertDirToChd(dir, serial) {
-  const chdFiles = [];
-  // 1. Converter .cue + .bin
-  const cueFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.cue'));
-  for (const cue of cueFiles) {
-    const cuePath = path.join(dir, cue);
-    const bins = getBinsFromCue(cuePath);
-    if (!bins.length) continue;
-    const stem = path.basename(cue, '.cue');
-    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
-    const chdPath = path.join(dir, chdName);
-    // Se .chd ja existe e e valido, pular
-    if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-      chdFiles.push(chdPath);
-      continue;
-    }
-    log.info(`Convertendo CHD: ${cue} -> ${chdName} [${serial}]`);
-    const result = await convertCueToChdSync(cuePath, chdPath);
-    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-      chdFiles.push(chdPath);
-      log.info(`CHD OK: ${chdName} (${Math.round(fs.statSync(chdPath).size / 1048576)}MB)`);
-    } else {
-      log.warn(`CHD falhou: ${cue} - ${result.error.substring(0, 200)}`);
-    }
-  }
-  // 2. Converter .bin orfaos (sem .cue)
-  const binFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.bin'));
-  for (const bin of binFiles) {
-    const binPath = path.join(dir, bin);
-    const cuePath = binPath.replace(/\.bin$/i, '.cue');
-    if (fs.existsSync(cuePath)) continue; // ja tem cue
-    if (fs.statSync(binPath).size < 1048576) continue; // muito pequeno
-    const tmpCue = generateCueForBin(binPath);
-    const stem = path.basename(bin, '.bin');
-    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
-    const chdPath = path.join(dir, chdName);
-    if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-      chdFiles.push(chdPath);
-      try { fs.unlinkSync(tmpCue); } catch {}
-      continue;
-    }
-    log.info(`Convertendo .bin orfao: ${bin} -> ${chdName} [${serial}]`);
-    const result = await convertCueToChdSync(tmpCue, chdPath);
-    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-      chdFiles.push(chdPath);
-      log.info(`CHD OK: ${chdName} (${Math.round(fs.statSync(chdPath).size / 1048576)}MB)`);
-    } else {
-      log.warn(`CHD falhou .bin orfao: ${bin}`);
-    }
-    try { fs.unlinkSync(tmpCue); } catch {}
-  }
-  // 3. Converter .img (gerar .cue)
-  const imgFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.img'));
-  for (const img of imgFiles) {
-    const imgPath = path.join(dir, img);
-    if (fs.statSync(imgPath).size < 1048576) continue;
-    const cuePath = imgPath.replace(/\.img$/i, '.cue');
-    fs.writeFileSync(cuePath, `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
-    const stem = path.basename(img, '.img');
-    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
-    const chdPath = path.join(dir, chdName);
-    log.info(`Convertendo .img: ${img} -> ${chdName} [${serial}]`);
-    const result = await convertCueToChdSync(cuePath, chdPath);
-    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-      chdFiles.push(chdPath);
-      log.info(`CHD OK: ${chdName}`);
-    }
-    try { fs.unlinkSync(cuePath); } catch {}
-  }
-  // 4. Se ja tem .chd na pasta, incluir
-  const existingChds = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.chd'));
-  for (const chd of existingChds) {
-    const chdPath = path.join(dir, chd);
-    if (fs.statSync(chdPath).size > 1048576 && !chdFiles.includes(chdPath)) {
-      chdFiles.push(chdPath);
-    }
-  }
-  return { success: chdFiles.length > 0, chdFiles, error: chdFiles.length === 0 ? 'nenhum CHD gerado' : null };
-}
-
-// === Nova esteira: mover arquivos de origem para duplicados ===
-function moveToDuplicados(filePath) {
-  if (!fs.existsSync(filePath)) return;
-  if (!fs.existsSync(DUP_DIR)) fs.mkdirSync(DUP_DIR, { recursive: true });
-  const name = path.basename(filePath);
-  let dest = path.join(DUP_DIR, name);
-  let counter = 1;
-  while (fs.existsSync(dest)) {
-    const ext = path.extname(name);
-    const base = path.basename(name, ext);
-    dest = path.join(DUP_DIR, `${base}_${counter}${ext}`);
-    counter++;
-  }
-  try {
-    fs.renameSync(filePath, dest);
-  } catch {
-    try { fs.copyFileSync(filePath, dest); fs.unlinkSync(filePath); } catch {}
-  }
-}
-
-function moveOriginsToDuplicados(dir) {
-  if (!fs.existsSync(dir)) return;
-  const originExts = ['.bin', '.cue', '.img', '.ccd', '.sub', '.mdf', '.mds', '.ecm', '.iso'];
-  // Mover arquivos na raiz da pasta
-  for (const f of fs.readdirSync(dir)) {
-    const fp = path.join(dir, f);
-    if (fs.statSync(fp).isFile()) {
-      const ext = path.extname(f).toLowerCase();
-      if (originExts.includes(ext) || ext === '.zip' || ext === '.7z' || ext === '.rar') {
-        moveToDuplicados(fp);
-      }
-    }
-  }
-  // Mover arquivos em subpastas
-  for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (f.isDirectory()) {
-      moveOriginsToDuplicados(path.join(dir, f.name));
-    }
   }
 }
 

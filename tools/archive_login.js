@@ -3,7 +3,7 @@ const fs = require('fs');
 
 const MAIL_API = 'https://api.mail.tm';
 
-(async () => {
+async function createMailAccount() {
   // 1. Criar email temporario
   const domains = (await axios.get(`${MAIL_API}/domains`, { timeout: 10000 })).data['hydra:member'];
   const domain = domains[0].domain;
@@ -17,10 +17,10 @@ const MAIL_API = 'https://api.mail.tm';
   const loginResp = await axios.post(`${MAIL_API}/token`, { address: email, password: mailPass }, { timeout: 10000 });
   const token = loginResp.data.token;
   console.log('Conta mail.tm criada');
+  return { email, user, token };
+}
 
-  // 2. Registrar no archive.org
-  const archivePass = 'Arch2026' + Math.random().toString(36).substring(2, 8) + '!';
-
+async function signupArchive(email, user, archivePass) {
   // Obter cookies de sessao
   const sessResp = await axios.get('https://archive.org/account/signup', {
     timeout: 15000,
@@ -52,7 +52,9 @@ const MAIL_API = 'https://api.mail.tm';
     }
   );
   console.log(`Signup status: ${signupResp.status}`);
+}
 
+async function waitForConfirmationEmail(token) {
   // 3. Aguardar email de confirmacao
   console.log('Aguardando email de confirmacao...');
   let msgId = null;
@@ -108,7 +110,9 @@ const MAIL_API = 'https://api.mail.tm';
     console.log('Nenhum email recebido apos 120s');
     // Tentar login mesmo sem confirmar - archive.org as vezes permite
   }
+}
 
+async function loginArchive(email, archivePass) {
   // 4. Fazer login no archive.org
   console.log('\nFazendo login no archive.org...');
   const loginResp2 = await axios.post('https://archive.org/account/login',
@@ -149,4 +153,16 @@ const MAIL_API = 'https://api.mail.tm';
       console.log(`  ${c.substring(0, 100)}`);
     }
   }
+}
+
+(async () => {
+  const { email, user, token } = await createMailAccount();
+
+  // 2. Registrar no archive.org
+  const archivePass = 'Arch2026' + Math.random().toString(36).substring(2, 8) + '!';
+  await signupArchive(email, user, archivePass);
+
+  await waitForConfirmationEmail(token);
+
+  await loginArchive(email, archivePass);
 })().catch(e => console.error('Erro:', e.message));

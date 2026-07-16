@@ -26,7 +26,6 @@ const all = walk(DUP);
 const bins = all.filter(f => /\.(bin|img|iso)$/i.test(f));
 
 // Para cada bin, verificar se o CHD correspondente ja existe
-const dirsToClean = new Set();
 let deleted = 0, deletedBytes = 0;
 const keepBins = new Set();
 
@@ -43,7 +42,6 @@ for (const bin of bins) {
   if (main.has(chdKey) || !isValid) {
     // Descartavel: deletar bin + arquivos relacionados (cue, sub, ccd, mds, mdf, etc)
     const baseNoExt = path.basename(bin, path.extname(bin));
-    const dir2 = path.dirname(bin);
     const related = all.filter(f => {
       const fb = path.basename(f);
       // Mesmo base name, extensoes relacionadas
@@ -57,7 +55,6 @@ for (const bin of bins) {
         deletedBytes += sz;
       } catch {}
     }
-    dirsToClean.add(dir2);
   } else {
     keepBins.add(bin);
   }

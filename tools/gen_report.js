@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 
 const ROM = 'D:\\roms\\library\\roms\\psx';
 
@@ -70,7 +69,7 @@ for (const g of nonDemo) {
 // Para cada titulo, escolher a melhor versao por regiao
 const pri = { USA: 0, EUR: 1, OTHER: 2, JPN: 3 };
 const finalGames = [];
-for (const [key, versions] of byTitle) {
+for (const [_key, versions] of byTitle) {
   versions.sort((a, b) => (pri[a.region] ?? 9) - (pri[b.region] ?? 9));
   finalGames.push(versions[0]); // melhor versao
 }

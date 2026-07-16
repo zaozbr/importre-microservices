@@ -12,9 +12,6 @@ console.log('Total linhas:', lines.length);
 const brokenChds = new Set();
 let lastScanned = null;
 
-// Map de timestamp -> arquivo scaneado para correlacionar erros
-const scanByLine = {};
-
 for (let i = 0; i < lines.length; i++) {
   const line = lines[i];
 
@@ -45,11 +42,8 @@ for (let i = 0; i < lines.length; i++) {
   }
 
   // Pattern 4: Failed to read (generico apos scan)
-  if (/Failed to read/i.test(line) && lastScanned && !/executable/i.test(line)) {
-    // So adicionar se for erro de leitura do disco, nao de exe
-    if (/E\(|ERROR|Failed to read disc/i.test(line)) {
-      brokenChds.add(lastScanned);
-    }
+  if (/Failed to read/i.test(line) && lastScanned && !/executable/i.test(line) && /E\(|ERROR|Failed to read disc/i.test(line)) {
+    brokenChds.add(lastScanned);
   }
 }
 

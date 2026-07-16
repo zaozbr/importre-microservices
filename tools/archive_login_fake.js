@@ -62,7 +62,6 @@ const fs = require('fs');
 
   // 3. Aguardar email de confirmacao
   console.log('Aguardando email de confirmacao...');
-  let confirmed = false;
   for (let i = 0; i < 24; i++) {
     await new Promise(r => setTimeout(r, 5000));
     try {
@@ -82,7 +81,6 @@ const fs = require('fs');
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
           });
           console.log(`Confirmacao status: ${confResp.status}`);
-          confirmed = true;
         }
         break;
       }

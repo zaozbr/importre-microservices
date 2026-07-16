@@ -25,7 +25,8 @@ function eccedcInit() {
   }
 }
 
-function edcPartial(edc, src, size) {
+function edcPartial(edcParam, src, size) {
+  let edc = edcParam;
   for (let i = 0; i < size; i++) edc = (edc >>> 8) ^ edcLut[(edc ^ src[i]) & 0xFF];
   return edc >>> 0;
 }
@@ -92,6 +93,92 @@ function eccedcGenerate(sector, type) {
   }
 }
 
+function readVarint(input, posParam) {
+  const recordStart = posParam;
+  let pos = posParam;
+  let c = input[pos++];
+  let bits = 5;
+  const type = c & 3;
+  let num = (c >>> 2) & 0x1F;
+
+  while (c & 0x80) {
+    if (pos >= input.length) throw new Error(`EOF inesperado no varint (pos=${recordStart})`);
+    c = input[pos++];
+    if (bits < 32) {
+      num = (num | ((c & 0x7F) << bits)) >>> 0;
+    }
+    bits += 7;
+    if (bits > 35) throw new Error(`Varint overflow (pos=${recordStart})`);
+  }
+  return { type, num, pos, recordStart };
+}
+
+function processRawType(input, pos, num, writeBuf, checkedc) {
+  if (pos + num > input.length) throw new Error(`Dados insuficientes para type=0 num=${num} (pos=${pos})`);
+  const chunk = Buffer.from(input.subarray(pos, pos + num));
+  const newCheckedc = edcPartial(checkedc, chunk, num);
+  writeBuf.push(chunk);
+  return { checkedc: newCheckedc, outBytes: num, pos: pos + num };
+}
+
+function buildSector(input, posParam, type, recordStart) {
+  const sector = new Uint8Array(2352);
+  sector[0] = 0x00;
+  for (let i = 1; i <= 10; i++) sector[i] = 0xFF;
+  sector[11] = 0x00;
+
+  let pos = posParam;
+  let writeSize, writeOffset;
+  switch (type) {
+    case 1:
+      sector[0x0F] = 0x01;
+      if (pos + 3 + 0x800 > input.length) throw new Error(`Dados insuficientes type=1 (pos=${pos})`);
+      sector.set(input.subarray(pos, pos + 3), 0x0C); pos += 3;
+      sector.set(input.subarray(pos, pos + 0x800), 0x10); pos += 0x800;
+      eccedcGenerate(sector, 1);
+      writeSize = 2352;
+      writeOffset = 0;
+      return { sector, writeSize, writeOffset, pos, edcSize: 2352, edcOffset: 0 };
+    case 2:
+      sector[0x0F] = 0x02;
+      if (pos + 0x804 > input.length) throw new Error(`Dados insuficientes type=2 (pos=${pos})`);
+      sector.set(input.subarray(pos, pos + 0x804), 0x14); pos += 0x804;
+      sector[0x10] = sector[0x14]; sector[0x11] = sector[0x15];
+      sector[0x12] = sector[0x16]; sector[0x13] = sector[0x17];
+      eccedcGenerate(sector, 2);
+      writeSize = 2336;
+      writeOffset = 0x10;
+      return { sector, writeSize, writeOffset, pos, edcSize: 2336, edcOffset: 0x10 };
+    case 3:
+      sector[0x0F] = 0x02;
+      if (pos + 0x918 > input.length) throw new Error(`Dados insuficientes type=3 (pos=${pos})`);
+      sector.set(input.subarray(pos, pos + 0x918), 0x14); pos += 0x918;
+      sector[0x10] = sector[0x14]; sector[0x11] = sector[0x15];
+      sector[0x12] = sector[0x16]; sector[0x13] = sector[0x17];
+      eccedcGenerate(sector, 3);
+      writeSize = 2336;
+      writeOffset = 0x10;
+      return { sector, writeSize, writeOffset, pos, edcSize: 2336, edcOffset: 0x10 };
+    default:
+      throw new Error(`Tipo desconhecido: ${type} (pos=${recordStart})`);
+  }
+}
+
+function processSectorType(input, posParam, type, num, recordStart, writeBuf, checkedcParam) {
+  // Tipos 1, 2, 3: setores CD-ROM
+  let pos = posParam;
+  let checkedc = checkedcParam;
+  let outBytes = 0;
+  for (let s = 0; s < num; s++) {
+    const { sector, writeSize, writeOffset, pos: newPos, edcSize, edcOffset } = buildSector(input, pos, type, recordStart);
+    pos = newPos;
+    checkedc = edcPartial(checkedc, edcOffset === 0 ? sector : sector.subarray(edcOffset), edcSize);
+    writeBuf.push(Buffer.from(sector.subarray(writeOffset, writeOffset + writeSize)));
+    outBytes += writeSize;
+  }
+  return { checkedc, outBytes, pos };
+}
+
 // Decoder: le input de uma vez, escreve output via stream
 async function decodeEcmStream(inputPath, outputPath) {
   const input = fs.readFileSync(inputPath);
@@ -122,83 +209,24 @@ async function decodeEcmStream(inputPath, outputPath) {
   }
 
   while (pos < input.length) {
-    // Ler varint: tipo + num
-    const recordStart = pos;
-    let c = input[pos++];
-    let bits = 5;
-    const type = c & 3;
-    let num = (c >>> 2) & 0x1F;
-
-    while (c & 0x80) {
-      if (pos >= input.length) throw new Error(`EOF inesperado no varint (pos=${recordStart})`);
-      c = input[pos++];
-      if (bits < 32) {
-        num = (num | ((c & 0x7F) << bits)) >>> 0;
-      }
-      bits += 7;
-      if (bits > 35) throw new Error(`Varint overflow (pos=${recordStart})`);
-    }
+    const { type, num, pos: newPos, recordStart } = readVarint(input, pos);
+    pos = newPos;
 
     if (num === 0xFFFFFFFF) break; // marcador de fim
-    num = (num + 1) >>> 0;
-    if (num === 0 || num >= 0x80000000) throw new Error(`num invalido: ${num} (pos=${recordStart})`);
+    const adjustedNum = (num + 1) >>> 0;
+    if (adjustedNum === 0 || adjustedNum >= 0x80000000) throw new Error(`num invalido: ${adjustedNum} (pos=${recordStart})`);
 
     if (type === 0) {
       // Raw: copiar num bytes diretamente
-      if (pos + num > input.length) throw new Error(`Dados insuficientes para type=0 num=${num} (pos=${pos})`);
-      const chunk = Buffer.from(input.subarray(pos, pos + num));
-      checkedc = edcPartial(checkedc, chunk, num);
-      writeBuf.push(chunk);
-      outBytes += num;
-      pos += num;
+      const result = processRawType(input, pos, adjustedNum, writeBuf, checkedc);
+      checkedc = result.checkedc;
+      outBytes += result.outBytes;
+      pos = result.pos;
     } else {
-      // Tipos 1, 2, 3: setores CD-ROM
-      for (let s = 0; s < num; s++) {
-        const sector = new Uint8Array(2352);
-        sector[0] = 0x00;
-        for (let i = 1; i <= 10; i++) sector[i] = 0xFF;
-        sector[11] = 0x00;
-
-        let writeSize, writeOffset;
-        switch (type) {
-          case 1:
-            sector[0x0F] = 0x01;
-            if (pos + 3 + 0x800 > input.length) throw new Error(`Dados insuficientes type=1 (pos=${pos})`);
-            sector.set(input.subarray(pos, pos + 3), 0x0C); pos += 3;
-            sector.set(input.subarray(pos, pos + 0x800), 0x10); pos += 0x800;
-            eccedcGenerate(sector, 1);
-            checkedc = edcPartial(checkedc, sector, 2352);
-            writeSize = 2352;
-            writeOffset = 0;
-            break;
-          case 2:
-            sector[0x0F] = 0x02;
-            if (pos + 0x804 > input.length) throw new Error(`Dados insuficientes type=2 (pos=${pos})`);
-            sector.set(input.subarray(pos, pos + 0x804), 0x14); pos += 0x804;
-            sector[0x10] = sector[0x14]; sector[0x11] = sector[0x15];
-            sector[0x12] = sector[0x16]; sector[0x13] = sector[0x17];
-            eccedcGenerate(sector, 2);
-            checkedc = edcPartial(checkedc, sector.subarray(0x10), 2336);
-            writeSize = 2336;
-            writeOffset = 0x10;
-            break;
-          case 3:
-            sector[0x0F] = 0x02;
-            if (pos + 0x918 > input.length) throw new Error(`Dados insuficientes type=3 (pos=${pos})`);
-            sector.set(input.subarray(pos, pos + 0x918), 0x14); pos += 0x918;
-            sector[0x10] = sector[0x14]; sector[0x11] = sector[0x15];
-            sector[0x12] = sector[0x16]; sector[0x13] = sector[0x17];
-            eccedcGenerate(sector, 3);
-            checkedc = edcPartial(checkedc, sector.subarray(0x10), 2336);
-            writeSize = 2336;
-            writeOffset = 0x10;
-            break;
-          default:
-            throw new Error(`Tipo desconhecido: ${type} (pos=${recordStart})`);
-        }
-        writeBuf.push(Buffer.from(sector.subarray(writeOffset, writeOffset + writeSize)));
-        outBytes += writeSize;
-      }
+      const result = processSectorType(input, pos, type, adjustedNum, recordStart, writeBuf, checkedc);
+      checkedc = result.checkedc;
+      outBytes += result.outBytes;
+      pos = result.pos;
     }
 
     // Flush periodico

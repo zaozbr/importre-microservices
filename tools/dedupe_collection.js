@@ -230,11 +230,9 @@ console.log(`Descartavel: ${discardable.length}`);
 
 // === 4. Deletar descartaveis ===
 let deleted = 0, deletedBytes = 0;
-const deletedDirs = new Set();
 
 for (const d of discardable) {
   const baseNoExt = path.basename(d.bin, path.extname(d.bin));
-  const dir = path.dirname(d.bin);
   // Deletar bin + arquivos relacionados
   const related = dupFiles.filter(f => {
     const fb = path.basename(f);
@@ -248,7 +246,6 @@ for (const d of discardable) {
       deletedBytes += sz;
     } catch {}
   }
-  deletedDirs.add(dir);
 }
 
 console.log(`\nDeletados: ${deleted} arquivos (${(deletedBytes / 1073741824).toFixed(2)} GB)`);

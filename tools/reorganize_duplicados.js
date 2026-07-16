@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const DUP = 'D:\\roms\\duplicados';
-const ROM = 'D:\\roms\\library\\roms\\psx';
 
 function extractSerial(name) {
   const m = name.match(/(SLES|SLUS|SCES|SCUS|SLPS|SIPS|SLPM|SCPS|SLED)[-_]?\d{3,5}/i);
@@ -143,7 +142,7 @@ for (const cue of cueFiles) {
     // Cue sem bin correspondente - pode ser cue principal de multi-track
     // Tentar匹配 por gameKey
     const gk = gameKey(basename);
-    for (const [k, g] of games) {
+    for (const [_k, g] of games) {
       if (gameKey(g.gameName) === gk) {
         g.cues.push(cue);
         break;
@@ -164,7 +163,7 @@ for (const [key, game] of games) {
   if (files.length === 0) continue;
 
   // Nome da pasta: [SERIAL] se tem serial, senao [GameName]
-  const folderName = serial || gameName.replace(/[^a-zA-Z0-9_\-().\[\]]/g, '_').substring(0, 60);
+  const folderName = serial || gameName.replace(/[^a-zA-Z0-9_\-().[\]]/g, '_').substring(0, 60);
   const newDir = path.join(DUP, folderName);
 
   try {

@@ -4,12 +4,7 @@
  *
  * Suporta: HTTP, HTTPS, magnet links, arquivos .torrent locais.
  */
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
 const rpc = require('./aria2_rpc');
-
-const ARIA2C = path.join(__dirname, '..', '..', 'aria2c.exe');
 
 function parseSpeed(line) {
   const m = line.match(/DL:(\d+\.?\d*[KMGT]?i?B)/);
@@ -102,105 +97,6 @@ async function rpcDownload(url, outputPath, options = {}) {
     stalledThresholdMs: options.stalledThresholdMs || 300000,
     onProgress: options.onProgress,
     headers
-  });
-}
-
-/**
- * Fallback: spawn de aria2c.exe (codigo original preservado).
- */
-function spawnDownload(url, outputPath, options = {}) {
-  return new Promise((resolve, reject) => {
-    if (!fs.existsSync(ARIA2C)) return reject(new Error('aria2c.exe nao encontrado'));
-    const isArchiveOrg = url.includes('archive.org');
-    const isCoolrom = url.includes('coolrom');
-    const connections = options.connections || (isArchiveOrg ? 64 : isCoolrom ? 32 : 16);
-    const split = options.split || (isArchiveOrg ? 64 : isCoolrom ? 32 : 16);
-    const args = [
-      url,
-      '--dir=' + path.dirname(outputPath),
-      '--out=' + path.basename(outputPath),
-      '--max-connection-per-server=' + connections,
-      '--split=' + split,
-      '--min-split-size=1M',
-      '--max-tries=5',
-      '--retry-wait=5',
-      '--timeout=60',
-      '--connect-timeout=30',
-      '--continue=true',
-      '--auto-file-renaming=false',
-      '--allow-overwrite=true',
-      '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      '--summary-interval=1',
-      '--max-overall-download-limit=0',
-      '--max-download-limit=0',
-      '--min-tls-version=TLSv1.2',
-      '--max-resume-failure-tries=5',
-      '--file-allocation=none',
-      '--console-log-level=warn'
-    ];
-    if (options.maxTime) args.push('--max-download-result=' + options.maxTime);
-    if (options.header) args.push('--header=' + options.header);
-    if (isArchiveOrg) {
-      try {
-        const { getArchiveHeaders } = require('../../shared/archive_auth');
-        const hdrs = getArchiveHeaders();
-        args.push('--header=Referer: https://archive.org/');
-        args.push('--header=Accept: */*');
-        if (hdrs['Cookie']) args.push('--header=Cookie: ' + hdrs['Cookie']);
-      } catch { /* sem auth */ }
-    }
-    if (options.extraHeaders) {
-      for (const [key, value] of Object.entries(options.extraHeaders)) {
-        args.push(`--header=${key}: ${value}`);
-      }
-    }
-    const proc = spawn(ARIA2C, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    let stderr = '';
-    let lastProgress = { percent: 0, speed: null, bytes: 0 };
-    let stalledSince = 0;
-    let slowSince = 0;
-    const slowThresholdMs = options.slowThresholdMs || 60000;
-    const stalledThresholdMs = options.stalledThresholdMs || 90000;
-    const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.10 : 0.5);
-    let speedCheckTimer = null;
-
-    function handleOutput(chunk) {
-      const lastLine = chunk.trim().split('\n').pop();
-      const speed = parseSpeed(lastLine);
-      const pct = parseProgress(lastLine);
-      if (speed || pct !== null) {
-        lastProgress = { percent: pct || lastProgress.percent, speed: speed || lastProgress.speed };
-        if (options.onProgress) options.onProgress(lastProgress);
-      }
-    }
-    proc.stderr.on('data', d => { stderr += d.toString(); handleOutput(d.toString()); });
-    proc.stdout.on('data', d => { handleOutput(d.toString()); });
-
-    speedCheckTimer = setInterval(() => {
-      const mbps = speedToMbps(lastProgress.speed);
-      if (mbps < minSpeedMbps) {
-        if (!slowSince) slowSince = Date.now();
-        else if (Date.now() - slowSince > slowThresholdMs) {
-          clearInterval(speedCheckTimer);
-          proc.kill('SIGTERM');
-          reject(new Error(`download muito lento: ${lastProgress.speed || '0'} por ${slowThresholdMs/1000}s (min ${minSpeedMbps}MB/s)`));
-        }
-      } else { slowSince = 0; }
-      if (lastProgress.speed === null && lastProgress.percent < 100) {
-        if (!stalledSince) stalledSince = Date.now();
-        else if (Date.now() - stalledSince > stalledThresholdMs) {
-          clearInterval(speedCheckTimer);
-          proc.kill('SIGTERM');
-          reject(new Error(`download travado por ${stalledThresholdMs/1000}s`));
-        }
-      } else { stalledSince = 0; }
-    }, 5000);
-
-    proc.on('exit', (code) => {
-      clearInterval(speedCheckTimer);
-      if (code === 0 && fs.existsSync(outputPath)) resolve(outputPath);
-      else reject(new Error(stderr.slice(0, 300) || `aria2 exit ${code}`));
-    });
   });
 }
 

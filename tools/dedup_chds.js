@@ -218,7 +218,6 @@ for (const [base, group] of dupeGroups) {
 
   // Estrategia 2: principal ruim ou inexistente - testar duplicados com quickCheck
   const validDupes = checks.filter(c => c.file !== main && c.valid);
-  const invalidDupes = checks.filter(c => c.file !== main && !c.valid);
 
   if (validDupes.length > 0) {
     // Ordenar por tamanho (maior primeiro = provavelmente mais completo)

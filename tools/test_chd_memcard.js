@@ -107,9 +107,8 @@ function testChd(chdName) {
 
   console.log(`  Testando: ${chdName}...`);
 
-  let proc;
   try {
-    proc = execSync(`"${DUCK}" -batch -fastboot -earlyconsole -- "${chdPath}"`, {
+    execSync(`"${DUCK}" -batch -fastboot -earlyconsole -- "${chdPath}"`, {
       stdio: 'pipe',
       timeout: 40000,
     });

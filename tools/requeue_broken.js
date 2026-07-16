@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 
 const BROKEN_DIR = 'D:\\roms\\psx-quebrados';
 const QUEUE_PATH = 'F:\\importre_state\\queue.json';

@@ -127,47 +127,55 @@ async function copier() {
 }
 
 // Conversores: 12 workers, pegam bins da fila e convertem em F:
-async function converter(id) {
-  while (true) {
-    let job = null;
-    while (!job && !queueDone) {
-      if (queue.length > 0) job = queue.shift();
-      else await new Promise(r => setTimeout(r, 50));
-    }
-    if (!job && queueDone && queue.length === 0) break;
-    if (!job) continue;
+async function getNextJob() {
+  let job = null;
+  while (!job && !queueDone) {
+    if (queue.length > 0) job = queue.shift();
+    else await new Promise(r => setTimeout(r, 50));
+  }
+  if (!job && queueDone && queue.length === 0) return null;
+  return job;
+}
 
-    const { chdName, workBin, workCue, safeName, dir } = job;
-    const chdTempPath = path.join(CHD_TEMP, chdName);
-    const chdFinalPath = path.join(ROM_DIR, chdName);
+async function processJob(job) {
+  const { chdName, workBin, workCue } = job;
+  const chdTempPath = path.join(CHD_TEMP, chdName);
+  const chdFinalPath = path.join(ROM_DIR, chdName);
 
-    try {
-      await runChdman(workCue, chdTempPath);
-      if (fs.existsSync(chdTempPath) && fs.statSync(chdTempPath).size > 0) {
-        fs.copyFileSync(chdTempPath, chdFinalPath);
-        fs.unlinkSync(chdTempPath);
-        const sizeMB = (fs.statSync(chdFinalPath).size / 1048576).toFixed(0);
-        console.log(`[OK] ${chdName} (${sizeMB}MB)`);
-        mainChds.add(chdName.replace(/\.chd$/i, ''));
-        converted++;
-      } else {
-        console.log(`[FAIL] ${chdName}`);
-        try { fs.unlinkSync(chdTempPath); } catch {}
-        failed++;
-      }
-    } catch (e) {
-      console.log(`[ERROR] ${chdName}: ${e.message.substring(0, 80)}`);
+  try {
+    await runChdman(workCue, chdTempPath);
+    if (fs.existsSync(chdTempPath) && fs.statSync(chdTempPath).size > 0) {
+      fs.copyFileSync(chdTempPath, chdFinalPath);
+      fs.unlinkSync(chdTempPath);
+      const sizeMB = (fs.statSync(chdFinalPath).size / 1048576).toFixed(0);
+      console.log(`[OK] ${chdName} (${sizeMB}MB)`);
+      mainChds.add(chdName.replace(/\.chd$/i, ''));
+      converted++;
+    } else {
+      console.log(`[FAIL] ${chdName}`);
       try { fs.unlinkSync(chdTempPath); } catch {}
       failed++;
-    } finally {
-      try { fs.unlinkSync(workBin); } catch {}
-      try { fs.unlinkSync(workCue); } catch {}
     }
+  } catch (e) {
+    console.log(`[ERROR] ${chdName}: ${e.message.substring(0, 80)}`);
+    try { fs.unlinkSync(chdTempPath); } catch {}
+    failed++;
+  } finally {
+    try { fs.unlinkSync(workBin); } catch {}
+    try { fs.unlinkSync(workCue); } catch {}
+  }
 
-    if ((converted + failed) % 50 === 0) {
-      const el = ((Date.now() - t0) / 1000).toFixed(0);
-      console.log(`--- ${converted + failed}/${jobs.length} (${converted} ok, ${failed} fail) em ${el}s | fila=${queue.length} ---`);
-    }
+  if ((converted + failed) % 50 === 0) {
+    const el = ((Date.now() - t0) / 1000).toFixed(0);
+    console.log(`--- ${converted + failed}/${jobs.length} (${converted} ok, ${failed} fail) em ${el}s | fila=${queue.length} ---`);
+  }
+}
+
+async function converter(_id) {
+  while (true) {
+    const job = await getNextJob();
+    if (!job) break;
+    await processJob(job);
   }
 }
 

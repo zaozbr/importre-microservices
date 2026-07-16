@@ -16,7 +16,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { spawn, execSync } = require('child_process');
+const { spawn } = require('child_process');
 const { PSX_DIR, DOWNLOAD_DIR, DUP_DIR, CHDMAN_PATH } = require('../shared/config');
 
 const SEVEN_ZIP = process.env.SEVEN_ZIP_PATH || 'C:\\Program Files\\7-Zip\\7z.exe';
@@ -94,6 +94,139 @@ function extractArchive(archPath, destDir) {
   });
 }
 
+async function extractArchives(dir) {
+  // 1. Extrair arquivos compactados
+  const archives = fs.readdirSync(dir).filter(f => /\.(7z|zip|rar)$/i.test(f));
+  for (const arch of archives) {
+    const archPath = path.join(dir, arch);
+    log(`  Extraindo: ${arch}`);
+    const result = await extractArchive(archPath, dir);
+    if (result.success) {
+      try { fs.unlinkSync(archPath); } catch {}
+      log(`  Extraido: ${arch}`);
+    } else {
+      log(`  Erro ao extrair: ${arch} - ${result.error.substring(0, 100)}`);
+    }
+  }
+}
+
+async function convertCueBins(dir, chdFiles) {
+  // 2. Converter .cue + .bin para .chd
+  const cueFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.cue'));
+  for (const cue of cueFiles) {
+    const cuePath = path.join(dir, cue);
+    const bins = getBinsFromCue(cuePath);
+    if (!bins.length) continue;
+
+    const stem = path.basename(cue, '.cue');
+    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdPath = path.join(dir, chdName);
+
+    if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      continue;
+    }
+
+    log(`  Convertendo: ${cue} -> ${chdName}`);
+    const result = await convertCueToChd(cuePath, chdPath);
+    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      log(`  OK: ${chdName} (${Math.round(fs.statSync(chdPath).size / 1048576)}MB)`);
+    } else {
+      log(`  Falhou: ${cue} - ${result.error.substring(0, 100)}`);
+    }
+  }
+}
+
+async function convertOrphanBins(dir, chdFiles) {
+  // 3. Converter .bin orfaos
+  const binFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.bin'));
+  for (const bin of binFiles) {
+    const binPath = path.join(dir, bin);
+    const cuePath = binPath.replace(/\.bin$/i, '.cue');
+    if (fs.existsSync(cuePath)) continue;
+    if (fs.statSync(binPath).size < 1048576) continue;
+
+    const tmpCue = generateCueForBin(binPath);
+    const stem = path.basename(bin, '.bin');
+    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdPath = path.join(dir, chdName);
+
+    if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      try { fs.unlinkSync(tmpCue); } catch {}
+      continue;
+    }
+
+    log(`  Convertendo .bin orfao: ${bin}`);
+    const result = await convertCueToChd(tmpCue, chdPath);
+    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+      log(`  OK: ${chdName}`);
+    }
+    try { fs.unlinkSync(tmpCue); } catch {}
+  }
+}
+
+async function convertImgFiles(dir, chdFiles) {
+  // 4. Converter .img
+  const imgFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.img'));
+  for (const img of imgFiles) {
+    const imgPath = path.join(dir, img);
+    if (fs.statSync(imgPath).size < 1048576) continue;
+    const cuePath = imgPath.replace(/\.img$/i, '.cue');
+    fs.writeFileSync(cuePath, `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
+    const stem = path.basename(img, '.img');
+    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdPath = path.join(dir, chdName);
+    log(`  Convertendo .img: ${img}`);
+    const result = await convertCueToChd(cuePath, chdPath);
+    if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
+      chdFiles.push(chdPath);
+    }
+    try { fs.unlinkSync(cuePath); } catch {}
+  }
+}
+
+function includeExistingChds(dir, chdFiles) {
+  // 5. Incluir .chd ja existentes
+  const existingChds = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.chd'));
+  for (const chd of existingChds) {
+    const chdPath = path.join(dir, chd);
+    if (fs.statSync(chdPath).size > 1048576 && !chdFiles.includes(chdPath)) {
+      chdFiles.push(chdPath);
+    }
+  }
+}
+
+function moveChdsToPsx(chdFiles) {
+  // 6. Mover .chd para PSX_DIR
+  for (const chdFile of chdFiles) {
+    const chdDest = path.join(PSX_DIR, path.basename(chdFile));
+    try {
+      if (fs.existsSync(chdDest)) moveToDuplicados(chdDest);
+      fs.renameSync(chdFile, chdDest);
+      log(`  CHD movido: ${path.basename(chdFile)}`);
+    } catch {
+      try { fs.copyFileSync(chdFile, chdDest); fs.unlinkSync(chdFile); } catch {}
+    }
+  }
+}
+
+function moveOriginsToDups(dir) {
+  // 7. Mover origens para duplicados
+  const originExts = ['.bin', '.cue', '.img', '.ccd', '.sub', '.mdf', '.mds', '.ecm', '.iso', '.ape'];
+  for (const f of fs.readdirSync(dir)) {
+    const fp = path.join(dir, f);
+    if (fs.statSync(fp).isFile()) {
+      const ext = path.extname(f).toLowerCase();
+      if (originExts.includes(ext) || ext === '.zip' || ext === '.7z' || ext === '.rar') {
+        moveToDuplicados(fp);
+      }
+    }
+  }
+}
+
 async function processDir(dir) {
   const name = path.basename(dir);
   if (activeConversions.has(dir)) return;
@@ -102,125 +235,15 @@ async function processDir(dir) {
   try {
     log(`Processando: ${name}`);
 
-    // 1. Extrair arquivos compactados
-    const archives = fs.readdirSync(dir).filter(f => /\.(7z|zip|rar)$/i.test(f));
-    for (const arch of archives) {
-      const archPath = path.join(dir, arch);
-      log(`  Extraindo: ${arch}`);
-      const result = await extractArchive(archPath, dir);
-      if (result.success) {
-        try { fs.unlinkSync(archPath); } catch {}
-        log(`  Extraido: ${arch}`);
-      } else {
-        log(`  Erro ao extrair: ${arch} - ${result.error.substring(0, 100)}`);
-      }
-    }
+    await extractArchives(dir);
 
-    // 2. Converter .cue + .bin para .chd
     const chdFiles = [];
-    const cueFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.cue'));
-    for (const cue of cueFiles) {
-      const cuePath = path.join(dir, cue);
-      const bins = getBinsFromCue(cuePath);
-      if (!bins.length) continue;
-
-      const stem = path.basename(cue, '.cue');
-      const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
-      const chdPath = path.join(dir, chdName);
-
-      if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-        chdFiles.push(chdPath);
-        continue;
-      }
-
-      log(`  Convertendo: ${cue} -> ${chdName}`);
-      const result = await convertCueToChd(cuePath, chdPath);
-      if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-        chdFiles.push(chdPath);
-        log(`  OK: ${chdName} (${Math.round(fs.statSync(chdPath).size / 1048576)}MB)`);
-      } else {
-        log(`  Falhou: ${cue} - ${result.error.substring(0, 100)}`);
-      }
-    }
-
-    // 3. Converter .bin orfaos
-    const binFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.bin'));
-    for (const bin of binFiles) {
-      const binPath = path.join(dir, bin);
-      const cuePath = binPath.replace(/\.bin$/i, '.cue');
-      if (fs.existsSync(cuePath)) continue;
-      if (fs.statSync(binPath).size < 1048576) continue;
-
-      const tmpCue = generateCueForBin(binPath);
-      const stem = path.basename(bin, '.bin');
-      const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
-      const chdPath = path.join(dir, chdName);
-
-      if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-        chdFiles.push(chdPath);
-        try { fs.unlinkSync(tmpCue); } catch {}
-        continue;
-      }
-
-      log(`  Convertendo .bin orfao: ${bin}`);
-      const result = await convertCueToChd(tmpCue, chdPath);
-      if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-        chdFiles.push(chdPath);
-        log(`  OK: ${chdName}`);
-      }
-      try { fs.unlinkSync(tmpCue); } catch {}
-    }
-
-    // 4. Converter .img
-    const imgFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.img'));
-    for (const img of imgFiles) {
-      const imgPath = path.join(dir, img);
-      if (fs.statSync(imgPath).size < 1048576) continue;
-      const cuePath = imgPath.replace(/\.img$/i, '.cue');
-      fs.writeFileSync(cuePath, `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
-      const stem = path.basename(img, '.img');
-      const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
-      const chdPath = path.join(dir, chdName);
-      log(`  Convertendo .img: ${img}`);
-      const result = await convertCueToChd(cuePath, chdPath);
-      if (result.success && fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
-        chdFiles.push(chdPath);
-      }
-      try { fs.unlinkSync(cuePath); } catch {}
-    }
-
-    // 5. Incluir .chd ja existentes
-    const existingChds = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.chd'));
-    for (const chd of existingChds) {
-      const chdPath = path.join(dir, chd);
-      if (fs.statSync(chdPath).size > 1048576 && !chdFiles.includes(chdPath)) {
-        chdFiles.push(chdPath);
-      }
-    }
-
-    // 6. Mover .chd para PSX_DIR
-    for (const chdFile of chdFiles) {
-      const chdDest = path.join(PSX_DIR, path.basename(chdFile));
-      try {
-        if (fs.existsSync(chdDest)) moveToDuplicados(chdDest);
-        fs.renameSync(chdFile, chdDest);
-        log(`  CHD movido: ${path.basename(chdFile)}`);
-      } catch {
-        try { fs.copyFileSync(chdFile, chdDest); fs.unlinkSync(chdFile); } catch {}
-      }
-    }
-
-    // 7. Mover origens para duplicados
-    const originExts = ['.bin', '.cue', '.img', '.ccd', '.sub', '.mdf', '.mds', '.ecm', '.iso', '.ape'];
-    for (const f of fs.readdirSync(dir)) {
-      const fp = path.join(dir, f);
-      if (fs.statSync(fp).isFile()) {
-        const ext = path.extname(f).toLowerCase();
-        if (originExts.includes(ext) || ext === '.zip' || ext === '.7z' || ext === '.rar') {
-          moveToDuplicados(fp);
-        }
-      }
-    }
+    await convertCueBins(dir, chdFiles);
+    await convertOrphanBins(dir, chdFiles);
+    await convertImgFiles(dir, chdFiles);
+    includeExistingChds(dir, chdFiles);
+    moveChdsToPsx(chdFiles);
+    moveOriginsToDups(dir);
 
     // 8. Apagar pasta de conversao
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}

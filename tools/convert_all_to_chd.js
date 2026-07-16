@@ -30,8 +30,6 @@ function log(msg) {
   console.log(`[${new Date().toISOString()}] ${msg}`);
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 /**
  * Converte .cue + .bin para .chd usando chdman.
  */
@@ -113,10 +111,7 @@ function getBinsFromCue(cuePath) {
 /**
  * Processa um diretorio: encontra .cue, converte, move origens
  */
-async function processDirectory(dir) {
-  if (!fs.existsSync(dir)) { log(`Diretorio nao existe: ${dir}`); return; }
-  log(`\n=== Processando: ${dir} ===`);
-
+function cleanupJunkFiles(dir) {
   // 1. Apagar .aria2 (downloads incompletos)
   const aria2Files = fs.readdirSync(dir).filter(f => f.endsWith('.aria2') || f.endsWith('.aria2__temp'));
   for (const f of aria2Files) {
@@ -137,7 +132,9 @@ async function processDirectory(dir) {
     const fp = path.join(dir, f);
     moveToDuplicados(fp);
   }
+}
 
+function extractArchives(dir) {
   // 4. Extrair arquivos compactados (.7z, .zip, .rar)
   const archives = fs.readdirSync(dir).filter(f => /\.(7z|zip|rar)$/i.test(f));
   for (const arch of archives) {
@@ -151,7 +148,13 @@ async function processDirectory(dir) {
       log(`  ERRO ao extrair ${arch}: ${e.message}`);
     }
   }
+}
 
+function cleanChdName(stem) {
+  return stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+}
+
+async function convertCueFiles(dir) {
   // 5. Converter .cue + .bin para .chd
   const cueFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.cue'));
   for (const cue of cueFiles) {
@@ -165,7 +168,7 @@ async function processDirectory(dir) {
 
     // Nome do .chd baseado no .cue
     const stem = path.basename(cue, '.cue');
-    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdName = cleanChdName(stem);
     const chdPath = path.join(dir, chdName);
 
     // Se .chd ja existe e e valido (>1MB), pular
@@ -194,7 +197,9 @@ async function processDirectory(dir) {
       }
     }
   }
+}
 
+async function convertOrphanBins(dir) {
   // 6. Converter .bin orfaos (sem .cue)
   const binFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.bin'));
   for (const bin of binFiles) {
@@ -211,7 +216,7 @@ async function processDirectory(dir) {
     log(`  .bin orfao: ${bin} - gerando .cue`);
     const tmpCue = generateCue(binPath);
     const stem = path.basename(bin, '.bin');
-    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdName = cleanChdName(stem);
     const chdPath = path.join(dir, chdName);
 
     if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 1048576) {
@@ -232,7 +237,9 @@ async function processDirectory(dir) {
     }
     try { fs.unlinkSync(tmpCue); } catch {}
   }
+}
 
+async function convertImgFiles(dir) {
   // 7. Converter .img para .chd (gerar .cue)
   const imgFiles = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.img'));
   for (const img of imgFiles) {
@@ -248,7 +255,7 @@ async function processDirectory(dir) {
     fs.writeFileSync(cuePath, cueContent);
 
     const stem = path.basename(img, '.img');
-    const chdName = stem.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '.chd';
+    const chdName = cleanChdName(stem);
     const chdPath = path.join(dir, chdName);
 
     const result = await convertCueToChd(cuePath, chdPath);
@@ -262,7 +269,9 @@ async function processDirectory(dir) {
     }
     try { fs.unlinkSync(cuePath); } catch {}
   }
+}
 
+function moveUnsupportedFormats(dir) {
   // 8. Mover .mdf, .mds, .ccd, .sub, .ecm para duplicados (formatos nao suportados pelo chdman)
   const otherExts = ['.mdf', '.mds', '.ccd', '.sub', '.ecm'];
   for (const ext of otherExts) {
@@ -271,6 +280,18 @@ async function processDirectory(dir) {
       moveToDuplicados(path.join(dir, f));
     }
   }
+}
+
+async function processDirectory(dir) {
+  if (!fs.existsSync(dir)) { log(`Diretorio nao existe: ${dir}`); return; }
+  log(`\n=== Processando: ${dir} ===`);
+
+  cleanupJunkFiles(dir);
+  extractArchives(dir);
+  await convertCueFiles(dir);
+  await convertOrphanBins(dir);
+  await convertImgFiles(dir);
+  moveUnsupportedFormats(dir);
 
   // 9. Processar subpastas
   const subdirs = fs.readdirSync(dir, { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name);
