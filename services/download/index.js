@@ -100,33 +100,25 @@ async function resolvePageDownload(pageUrl, siteHint) {
   if (siteHint === 'romsfun' || pageUrl.includes('romsfun.com/download/')) {
     return resolveRomsfun($, res, pageUrl, headers);
   }
-  if (siteHint === 'itch.io' || pageUrl.includes('itch.io')) {
-    return resolveItchIo($, pageUrl, headers);
-  }
+  // itch.io e tratado em tryResolveUrl (usa itchio-downloader, nao passa por aqui)
   return resolveGenericLink($, pageUrl);
 }
 
-function resolveItchIo($, pageUrl, headers) {
-  // itch.io: buscar links de download diretos na pagina
-  // 1. Links para arquivos .bin/.cue/.iso/.zip/.7z
-  const directLink = $('a[href*=".bin"], a[href*=".cue"], a[href*=".iso"], a[href*=".zip"], a[href*=".7z"]').first().attr('href');
-  if (directLink) {
-    const fullUrl = directLink.startsWith('http') ? directLink : new URL(directLink, pageUrl).href;
-    return { url: fullUrl, headers: { 'Referer': pageUrl, ...headers } };
+// itch.io: usa itchio-downloader (HTTP direto, sem browser)
+// Baixa o arquivo para DOWNLOAD_DIR e retorna localPath
+async function resolveItchIoDownload(pageUrl) {
+  const { downloadGame } = require('itchio-downloader');
+  const itchDir = path.join(DOWNLOAD_DIR, 'itch');
+  if (!fs.existsSync(itchDir)) { try { fs.mkdirSync(itchDir, { recursive: true }); } catch {} }
+  const result = await downloadGame({
+    itchGameUrl: pageUrl,
+    downloadDirectory: itchDir,
+    inMemory: false,
+  });
+  if (!result || !result.status || !result.filePath) {
+    throw new Error(`itch.io download falhou: ${result?.message || 'resposta invalida'}`);
   }
-  // 2. Buscar data-upload_id para API de download do itch.io
-  const uploadId = $('button[data-upload_id]').attr('data-upload_id');
-  if (uploadId) {
-    const dlUrl = `https://${new URL(pageUrl).hostname}/file/${uploadId}`;
-    return { url: dlUrl, headers: { 'Referer': pageUrl, ...headers } };
-  }
-  // 3. Buscar links de download na pagina (formato itch.io)
-  const downloadLink = $('a[href*="/download/"]').first().attr('href');
-  if (downloadLink) {
-    const fullUrl = downloadLink.startsWith('http') ? downloadLink : new URL(downloadLink, pageUrl).href;
-    return { url: fullUrl, headers: { 'Referer': pageUrl, ...headers } };
-  }
-  throw new Error('itch.io: link de download nao encontrado');
+  return { localPath: result.filePath, size: result.bytesDownloaded };
 }
 
 function resolveCoolrom($) {
@@ -448,7 +440,7 @@ function buildDownloadOptions(url, item, isBt) {
   };
 }
 
-async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = null) {
+async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = null, multiSourceUrls = null) {
   const isMagnet = url.startsWith('magnet:');
   const isTorrent = url.endsWith('.torrent') && !url.startsWith('http');
   const isBt = isMagnet || isTorrent;
@@ -456,30 +448,54 @@ async function downloadFile(item, source, url, sourceIndex = 0, extraHeaders = n
   // Baixar para F:\downloads (nova esteira)
   if (!fs.existsSync(DOWNLOAD_DIR)) { try { fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }); } catch {} }
   const tmpPath = path.join(DOWNLOAD_DIR, `${item.serial}${ext}`);
-  await acquireSourceSlot(source.site);
-  startDownloadTracking(item.serial, source.site);
+  // Multi-source: adquirir slot de cada fonte
+  const sites = multiSourceUrls ? multiSourceUrls.map(m => m.site) : [source.site];
+  for (const site of sites) await acquireSourceSlot(site);
+  for (const site of sites) startDownloadTracking(item.serial, site);
   try {
-    log.info(`aria2 start ${item.serial} fonte #${sourceIndex + 1} (${source.site}): ${url.substring(0, 80)}...`);
+    // itch.io: arquivo ja foi baixado pelo itchio-downloader em tryResolveUrl
+    if (extraHeaders && extraHeaders.__localPath) {
+      handleLocalFile(extraHeaders.__localPath, tmpPath, item.serial);
+      return tmpPath;
+    }
+    const urlLog = multiSourceUrls ? `${multiSourceUrls.length} fontes (multi-source)` : `fonte #${sourceIndex + 1} (${source.site})`;
+    log.info(`aria2 start ${item.serial} ${urlLog}: ${url.substring(0, 80)}...`);
     const opts = buildDownloadOptions(url, item, isBt);
     opts.extraHeaders = extraHeaders;
-    await aria2Download(url, tmpPath, opts);
+    // Multi-source: passar array de URLs para o aria2
+    const downloadArg = multiSourceUrls ? multiSourceUrls.map(m => m.url) : url;
+    await aria2Download(downloadArg, tmpPath, opts);
   } catch (e) {
-    if (isBt) {
-      try { fs.unlinkSync(tmpPath); } catch (e2) {}
-      throw e;
-    }
-    log.warn(`aria2 falhou ${item.serial}: ${e.message}. Tentando fallback axios.`);
-    try {
-      await axiosFallbackDownload(url, tmpPath, extraHeaders);
-    } catch (axiosErr) {
-      try { fs.unlinkSync(tmpPath); } catch (e2) {}
-      throw new Error(`aria2 + axios falharam: ${e.message} | ${axiosErr.message}`);
-    }
+    await handleDownloadError(e, isBt, tmpPath, url, item.serial, extraHeaders);
   } finally {
     endDownloadTracking(item.serial);
-    releaseSourceSlot(source.site);
+    for (const site of sites) releaseSourceSlot(site);
   }
   return tmpPath;
+}
+
+// Move arquivo local (itch.io) para tmpPath
+function handleLocalFile(localPath, tmpPath, serial) {
+  log.info(`itch.io file already downloaded: ${serial} <- ${localPath}`);
+  if (path.resolve(localPath) !== path.resolve(tmpPath)) {
+    fs.copyFileSync(localPath, tmpPath);
+    try { fs.unlinkSync(localPath); } catch {}
+  }
+}
+
+// Trata erro de download: BT nao tem fallback, HTTP tenta axios
+async function handleDownloadError(e, isBt, tmpPath, url, serial, extraHeaders) {
+  if (isBt) {
+    try { fs.unlinkSync(tmpPath); } catch {}
+    throw e;
+  }
+  log.warn(`aria2 falhou ${serial}: ${e.message}. Tentando fallback axios.`);
+  try {
+    await axiosFallbackDownload(url, tmpPath, extraHeaders);
+  } catch (axiosErr) {
+    try { fs.unlinkSync(tmpPath); } catch {}
+    throw new Error(`aria2 + axios falharam: ${e.message} | ${axiosErr.message}`);
+  }
 }
 
 async function axiosFallbackDownload(url, tmpPath, extraHeaders) {
@@ -581,12 +597,17 @@ function orderSources(sources, preferredSite) {
   return sortSourcesBySpeed(sources);
 }
 
-const RESOLVER_SITES = ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro', 'romsfun', 'itch.io'];
+const RESOLVER_SITES = ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro', 'romsfun'];
 
 async function tryResolveUrl(source, directExts) {
   // Magnet links e .torrent locais nao precisam resolver pagina
   if (source.url.startsWith('magnet:')) return null;
   if (source.url.endsWith('.torrent') && !source.url.startsWith('http')) return null;
+  // itch.io: usa itchio-downloader (baixa arquivo diretamente, sem URL intermediaria)
+  if (source.site === 'itch.io' || source.url.includes('itch.io')) {
+    const { localPath, size } = await resolveItchIoDownload(source.url);
+    return { url: `file:///${localPath.replace(/\\/g, '/')}`, extraHeaders: { __localPath: localPath }, localPath, size };
+  }
   // Remove query string antes de checar extensao (URLs com token: file.zip?token=...)
   const urlNoQuery = source.url.split('?')[0].toLowerCase();
   const isDirect = directExts.some(e => urlNoQuery.endsWith(e));
@@ -711,8 +732,8 @@ function launchChdConversion(extractDir, serial) {
   });
 }
 
-async function processDownload(item, source, url, sourceIndex, extraHeaders) {
-  const tmpPath = await downloadFile(item, source, url, sourceIndex, extraHeaders);
+async function processDownload(item, source, url, sourceIndex, extraHeaders, multiSourceUrls = null) {
+  const tmpPath = await downloadFile(item, source, url, sourceIndex, extraHeaders, multiSourceUrls);
   await new Promise(r => setTimeout(r, 500));
 
   if (tmpPath.toLowerCase().endsWith('.chd')) {
@@ -777,11 +798,49 @@ async function validateAndExtractTo(archivePath, destDir) {
   }
 }
 
-async function resolveAndDownload(item, sources, preferredSite) {
-  if (!sources || !sources.length) throw new Error('sem sources');
-  const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img', '.chd'];
-  const orderedSources = orderSources(sources, preferredSite);
-  const errors = [];
+// Filtra apenas fontes HTTP direto (nao magnet/torrent) com size conhecido
+function filterHttpSources(resolvedSources) {
+  return resolvedSources.filter(s => {
+    if (!s.url || !s.size) return false;
+    const isBt = s.url.startsWith('magnet:') || (s.url.endsWith('.torrent') && !s.url.startsWith('http'));
+    return !isBt;
+  });
+}
+
+// Agrupa fontes por size (mesmo tamanho = provavelmente mesmo arquivo)
+function groupBySize(httpSources) {
+  const bySize = new Map();
+  for (const s of httpSources) {
+    const key = String(s.size);
+    if (!bySize.has(key)) bySize.set(key, []);
+    bySize.get(key).push(s);
+  }
+  return bySize;
+}
+
+// Agrupa fontes HTTP que apontam para o mesmo arquivo (mesmo size) para multi-source download.
+// O aria2 vai baixar chunks diferentes de cada URL em paralelo, acelerando o download.
+// Fontes BT/magnet nao sao agrupadas (protocolo diferente).
+function groupMultiSourceSources(resolvedSources) {
+  const httpSources = filterHttpSources(resolvedSources);
+  const bySize = groupBySize(httpSources);
+  // Para cada grupo com 2+ fontes, criar um multi-source set
+  const multiGroups = [];
+  const usedSerials = new Set();
+  for (const [, group] of bySize) {
+    if (group.length >= 2) {
+      multiGroups.push(group);
+      group.forEach(s => usedSerials.add(s));
+    }
+  }
+  // Fontes restantes (sem grupo ou size desconhecido) ficam como single-source
+  const singles = resolvedSources.filter(s => !usedSerials.has(s));
+  return { multiGroups, singles };
+}
+
+// Resolve todas as URLs das fontes (Fase 1 do resolveAndDownload)
+async function resolveAllSources(orderedSources, preferredSite, item, directExts, errors) {
+  const resolved = [];
   for (let i = 0; i < orderedSources.length; i++) {
     const source = orderedSources[i];
     if (!source.url) continue;
@@ -797,20 +856,55 @@ async function resolveAndDownload(item, sources, preferredSite) {
     }
     let url = source.url;
     let extraHeaders = null;
+    let resolvedSize = source.size || source.metadata?.size;
     try {
-      const resolved = await tryResolveUrl(source, directExts);
-      if (resolved) { url = resolved.url; extraHeaders = resolved.extraHeaders; }
+      const r = await tryResolveUrl(source, directExts);
+      if (r) { url = r.url; extraHeaders = r.extraHeaders; if (r.size) resolvedSize = r.size; }
     } catch (e) {
       log.warn(`Nao foi possivel resolver pagina ${source.site} para ${item.serial}: ${e.message}`);
       errors.push(`${source.site}: ${e.message}`);
       continue;
     }
+    resolved.push({ source, url, extraHeaders, index: i, size: resolvedSize });
+  }
+  return resolved;
+}
+
+async function resolveAndDownload(item, sources, preferredSite) {
+  if (!sources || !sources.length) throw new Error('sem sources');
+  const directExts = ['.7z', '.zip', '.rar', '.iso', '.bin', '.cue', '.img', '.chd'];
+  const orderedSources = orderSources(sources, preferredSite);
+  const errors = [];
+
+  // Fase 1: Resolver todas as URLs primeiro (para poder agrupar por size)
+  const resolved = await resolveAllSources(orderedSources, preferredSite, item, directExts, errors);
+
+  // Fase 2: Agrupar fontes com mesmo size para multi-source
+  const { multiGroups, singles } = groupMultiSourceSources(resolved);
+
+  // Fase 3: Tentar multi-source primeiro (mais rapido)
+  for (const group of multiGroups) {
+    const primary = group[0];
+    const multiUrls = group.map(g => ({ url: g.url, site: g.source.site }));
+    const sites = multiUrls.map(m => m.site);
+    log.info(`Multi-source ${item.serial}: ${group.length} fontes (${sites.join(', ')}) size=${primary.size}`);
     try {
-      await processDownload(item, source, url, i, extraHeaders);
+      await processDownload(item, primary.source, primary.url, primary.index, primary.extraHeaders, multiUrls);
       return;
     } catch (e) {
-      log.warn(`Download fonte #${i + 1} (${source.site}) falhou para ${item.serial}: ${e.message}`);
-      errors.push(`${source.site}: ${e.message}`);
+      log.warn(`Multi-source falhou para ${item.serial}: ${e.message}. Tentando fontes individuais.`);
+      errors.push(`multi-source(${sites.join(',')}): ${e.message}`);
+    }
+  }
+
+  // Fase 4: Tentar fontes individuais (fallback)
+  for (const r of singles) {
+    try {
+      await processDownload(item, r.source, r.url, r.index, r.extraHeaders);
+      return;
+    } catch (e) {
+      log.warn(`Download fonte #${r.index + 1} (${r.source.site}) falhou para ${item.serial}: ${e.message}`);
+      errors.push(`${r.source.site}: ${e.message}`);
     }
   }
   throw new Error('todas as fontes falharam: ' + errors.join(' | '));

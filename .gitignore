@@ -15,3 +15,5 @@ aria2-1.37.0-win-64bit.zip
 _rename_log.txt
 _rename_progress.json
 _source_hunter_state.json
+.playwright-mcp/
+_tmp_*.js

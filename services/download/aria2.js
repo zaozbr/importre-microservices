@@ -51,7 +51,7 @@ function speedToMbps(speedStr) {
  * Download via Motrix RPC (primario) ou spawn (fallback).
  * Interface mantida compativel com a versao anterior.
  *
- * @param {string} url - HTTP, magnet ou path .torrent local
+ * @param {string|string[]} url - HTTP, magnet, path .torrent local, ou array de URLs (multi-source)
  * @param {string} outputPath - path completo do arquivo de saida
  * @param {object} options - { connections, split, minSpeedMbps, slowThresholdMs, stalledThresholdMs, onProgress, extraHeaders, maxTimeMs }
  * @returns {Promise<string>} outputPath
@@ -65,31 +65,39 @@ async function aria2Download(url, outputPath, options = {}) {
 
 /**
  * Download via Motrix RPC.
+ * Suporta multi-source: passar array de URLs para baixar chunks de multiplas fontes em paralelo.
  */
-async function rpcDownload(url, outputPath, options = {}) {
-  const isArchiveOrg = url.includes('archive.org');
-  const isMagnet = url.startsWith('magnet:');
-  const isTorrent = url.endsWith('.torrent') && !url.startsWith('http');
-  const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.10 : 0.05);
-
-  // Headers para archive.org
+// Constroi headers e proxy para archive.org (cookies + Tor)
+function buildArchiveOrgHeaders(primaryUrl, isMagnet, isTorrent) {
   let headers = null;
   let proxy = null;
-  if (isArchiveOrg && !isMagnet && !isTorrent) {
-    try {
-      const { getArchiveHeaders } = require('../../shared/archive_auth');
-      const hdrs = getArchiveHeaders();
-      headers = { Referer: 'https://archive.org/', Accept: '*/*' };
-      if (hdrs['Cookie']) headers['Cookie'] = hdrs['Cookie'];
-    } catch { /* sem auth, prossegue */ }
-    // Proxy Tor (via bridge HTTP->SOCKS5) para contornar bloqueio do Avast Web Shield (apenas archive.org HTTPS)
-    try {
-      const { isTorRunning } = require('../../shared/tor_proxy');
-      if (isTorRunning() && url.startsWith('https://')) {
-        proxy = 'http://127.0.0.1:8118';
-      }
-    } catch { /* Tor nao disponivel, prossegue sem proxy */ }
-  }
+  if (isMagnet || isTorrent) return { headers, proxy };
+  try {
+    const { getArchiveHeaders } = require('../../shared/archive_auth');
+    const hdrs = getArchiveHeaders();
+    headers = { Referer: 'https://archive.org/', Accept: '*/*' };
+    if (hdrs['Cookie']) headers['Cookie'] = hdrs['Cookie'];
+  } catch { /* sem auth, prossegue */ }
+  try {
+    const { isTorRunning } = require('../../shared/tor_proxy');
+    if (isTorRunning() && primaryUrl.startsWith('https://')) {
+      proxy = 'http://127.0.0.1:8118';
+    }
+  } catch { /* Tor nao disponivel, prossegue sem proxy */ }
+  return { headers, proxy };
+}
+
+async function rpcDownload(urlOrUrls, outputPath, options = {}) {
+  const urls = Array.isArray(urlOrUrls) ? urlOrUrls : [urlOrUrls];
+  const primaryUrl = urls[0];
+  const isArchiveOrg = urls.some(u => u.includes('archive.org'));
+  const isMagnet = primaryUrl.startsWith('magnet:');
+  const isTorrent = primaryUrl.endsWith('.torrent') && !primaryUrl.startsWith('http');
+  const minSpeedMbps = options.minSpeedMbps || (isArchiveOrg ? 0.10 : 0.05);
+
+  // Headers e proxy para archive.org
+  const { headers: archHeaders, proxy } = isArchiveOrg ? buildArchiveOrgHeaders(primaryUrl, isMagnet, isTorrent) : { headers: null, proxy: null };
+  let headers = archHeaders;
   // Headers extras do resolver (vimm cookies, retrostic referer, etc)
   if (options.extraHeaders) {
     headers = headers || {};
@@ -100,7 +108,9 @@ async function rpcDownload(url, outputPath, options = {}) {
   const isBt = isMagnet || isTorrent;
   const btOpts = buildBtOptions(isBt, isArchiveOrg);
 
-  return rpc.rpcDownload(url, outputPath, {
+  // Multi-source: passar array de URLs se houver mais de uma
+  const urlArg = urls.length > 1 && !isBt ? urls : primaryUrl;
+  return rpc.rpcDownload(urlArg, outputPath, {
     connections: options.connections || (isArchiveOrg ? 64 : 16),
     split: options.split || (isArchiveOrg ? 64 : 16),
     maxTimeMs: options.maxTimeMs || btOpts.maxTimeMs,

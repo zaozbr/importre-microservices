@@ -71,6 +71,7 @@ async function searchDuckDuckGoArchive(title) {
 }
 
 // Busca no itch.io (homebrew PSX e comum la)
+// Reativado: itchio-downloader resolve downloads via HTTP direto
 async function searchItchIo(title) {
   if (!title || title.length < 3) return [];
   try {

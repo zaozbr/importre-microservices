@@ -364,6 +364,23 @@ function buildHeaders(url, opts) {
   return headerArr;
 }
 
+/** Constroi headers multi-source: cookies do archive.org para URLs do archive.org,
+ *  headers extras (referer, etc) para todas as URLs. */
+function buildMultiSourceHeaders(urls, opts) {
+  const headerArr = [];
+  if (opts.headers) {
+    for (const [k, v] of Object.entries(opts.headers)) {
+      headerArr.push(`${k}: ${v}`);
+    }
+  }
+  // Cookie do archive.org se qualquer URL for do archive.org
+  if (urls.some(u => u.includes('archive.org'))) {
+    const cookieHeader = getArchiveCookieHeader();
+    if (cookieHeader) headerArr.push(cookieHeader);
+  }
+  return headerArr;
+}
+
 /** Constroi options do aria2 para addDownload. */
 function buildDownloadOptions(dir, filename, opts, headerArr) {
   const options = {
@@ -386,22 +403,26 @@ function buildDownloadOptions(dir, filename, opts, headerArr) {
   return options;
 }
 
-async function addDownload(url, dir, filename, opts = {}) {
-  const headerArr = buildHeaders(url, opts);
+async function addDownload(urlOrUrls, dir, filename, opts = {}) {
+  // Suporta url unica ou array de URLs (multi-source)
+  const urls = Array.isArray(urlOrUrls) ? urlOrUrls : [urlOrUrls];
+  const primaryUrl = urls[0];
+  const isMulti = urls.length > 1;
+  const headerArr = isMulti ? buildMultiSourceHeaders(urls, opts) : buildHeaders(primaryUrl, opts);
   const options = buildDownloadOptions(dir, filename, opts, headerArr);
 
   // magnet: -> addUri (aria2 trata magnet como URI especial)
   // .torrent local -> addTorrent (base64)
-  // HTTP/HTTPS -> addUri
-  if (url.startsWith('magnet:')) {
-    return rpc('aria2.addUri', [[url], options]);
+  // HTTP/HTTPS -> addUri (com multi-source se array)
+  if (primaryUrl.startsWith('magnet:')) {
+    return rpc('aria2.addUri', [urls, options]);
   }
-  if (url.endsWith('.torrent') && !url.startsWith('http')) {
-    const torrentData = fs.readFileSync(url);
+  if (primaryUrl.endsWith('.torrent') && !primaryUrl.startsWith('http')) {
+    const torrentData = fs.readFileSync(primaryUrl);
     return rpc('aria2.addTorrent', [torrentData.toString('base64'), [], options]);
   }
-  // HTTP/HTTPS
-  return rpc('aria2.addUri', [[url], options]);
+  // HTTP/HTTPS - aria2.addUri com multiplas URLs = multi-source download
+  return rpc('aria2.addUri', [urls, options]);
 }
 
 /**
@@ -493,18 +514,42 @@ async function purgeDownloadResult() {
  * @param {object} options - { connections, split, maxTimeMs, onProgress, headers, minSpeedMbps, slowThresholdMs, stalledThresholdMs }
  * @returns {Promise<string>} outputPath se sucesso
  */
-async function rpcDownload(url, outputPath, options = {}) {
+// Obtem status do gid com cache + retry (extrai complexidade do rpcDownload)
+async function getStatusWithRetry(gid) {
+  let status = getCachedStatus(gid);
+  if (status) return status;
+  try {
+    status = await tellStatus(gid);
+  } catch (e) {
+    logProgress(`RPC erro obtendo status gid=${gid}: ${e.message}. Retry...`);
+    await sleep(5000);
+    try {
+      status = await tellStatus(gid);
+    } catch (e2) {
+      logProgress(`RPC retry falhou gid=${gid}: ${e2.message}. Abortando.`);
+      throw new Error(`RPC indisponivel: ${e2.message}`);
+    }
+  }
+  return status;
+}
+
+async function rpcDownload(urlOrUrls, outputPath, options = {}) {
   const path = require('path');
   const dir = path.dirname(outputPath);
   const filename = path.basename(outputPath);
   const maxTimeMs = options.maxTimeMs || DEFAULT_MAX_TIME_MS;
-  const isMagnet = url.startsWith('magnet:');
-  const isTorrent = url.endsWith('.torrent') && !url.startsWith('http');
+  const urls = Array.isArray(urlOrUrls) ? urlOrUrls : [urlOrUrls];
+  const primaryUrl = urls[0];
+  const isMagnet = primaryUrl.startsWith('magnet:');
+  const isTorrent = primaryUrl.endsWith('.torrent') && !primaryUrl.startsWith('http');
   const isBt = isMagnet || isTorrent;
+  const isMulti = urls.length > 1 && !isBt;
 
   const addOpts = buildAddOpts(options, isBt);
-  const gid = await addDownload(url, dir, isBt ? null : filename, addOpts);
-  logProgress(`RPC download iniciado: gid=${gid} url=${url.substring(0, 80)}...`);
+  // Multi-source: passar array de URLs para o aria2 (ele faz split automatico)
+  const gid = await addDownload(isMulti ? urls : primaryUrl, dir, isBt ? null : filename, addOpts);
+  const urlLog = isMulti ? `${urls.length} URLs (multi-source)` : primaryUrl.substring(0, 80);
+  logProgress(`RPC download iniciado: gid=${gid} url=${urlLog}...`);
 
   // Iniciar monitor compartilhado se ainda nao estiver rodando
   startMonitor().catch(() => {});
@@ -525,21 +570,10 @@ async function rpcDownload(url, outputPath, options = {}) {
     await sleep(POLL_INTERVAL_MS);
     if (checkTimeout(ctx)) {
       await removeDownload(gid);
-      throw new Error(`timeout ${ctx.maxTimeMs / 1000}s excedido para ${url.substring(0, 60)}`);
+      throw new Error(`timeout ${ctx.maxTimeMs / 1000}s excedido para ${primaryUrl.substring(0, 60)}`);
     }
 
-    // Ler status do cache compartilhado (sem chamada RPC individual)
-    let status = getCachedStatus(gid);
-    if (!status) {
-      try { status = await tellStatus(gid); }
-      catch (e) {
-        logProgress(`RPC erro obtendo status gid=${gid}: ${e.message}. Retry...`);
-        await sleep(5000);
-        try { status = await tellStatus(gid); }
-        catch (e2) { logProgress(`RPC retry falhou gid=${gid}: ${e2.message}. Abortando.`); throw new Error(`RPC indisponivel: ${e2.message}`); }
-      }
-    }
-
+    const status = await getStatusWithRetry(gid);
     const result = handleStatus(status, gid, outputPath, isBt, options);
     if (result.done) {
       statusCache.delete(gid);
