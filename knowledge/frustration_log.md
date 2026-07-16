@@ -101,3 +101,17 @@
   4. **archive.org timeout nao e detectado como erro:** O axios retorna timeout mas o plugin de search retorna `[]` silenciosamente. Nao ha log de warning para timeout de archive.org. Isso faz o search service parecer que esta funcionando mas nao encontrando fontes, quando na verdade a fonte principal esta inacessivel.
   5. **DHT do aria2 nao encontra peers sem trackers funcionais:** Magnets do archive.org dependem de trackers que tambem bloqueiam o IP. DHT puro (sem trackers) nao encontrou peers em 3+ minutos.
 - **Acao corretiva:** Documentado para referencia futura. Workarounds aplicados onde possivel.
+
+## 15. IA commita sem seguir o workflow completo (recorrente!)
+
+- **Data:** 2026-07-16 (sessao 4)
+- **Contexto:** Usuario pediu `commit!` e a IA foi direto ao `git add -A && git commit`, pulando completamente os passos 1 (DOCUMENTAR), 2 (BACKUP), 3 (SAFE POINT), 6 (PUSH) e 7 (CONTEXTO). O workflow `commit.md` com 7 passos obrigatorios esta documentado em `knowledge/workflows/` e foi reabsorvido no inicio da sessao, mas foi ignorado.
+- **Impacto:** Usuario teve que explicitamente cobrar cada passo: "cade o fluxo completo? Primeiro as documentacoes, backup, safepoint, stage, commit e push!!!!!!!!!!". Isso e a MESMA frustracao dos itens 7, 9 e 13 — a IA consistentemente pula documentacao e backup.
+- **Acao corretiva:** Executar os 7 passos do workflow `commit.md` incondicionalmente quando o usuario disser `commit!`. Reabsorver o workflow ANTES de commitar, nao depois.
+
+## 16. Cloudflare bloqueia axios/curl no itch.io
+
+- **Data:** 2026-07-16 (sessao 4)
+- **Contexto:** Tentativas de criar conta itch.io via axios falharam com 403 Forbidden (Cloudflare). Tentativas de resolver paginas de download via cheerio/axios tambem falharam. A unica forma de bypass foi usar Playwright (browser real) para criar a conta, e a biblioteca `itchio-downloader` (que implementa o fluxo CSRF internamente) para downloads.
+- **Impacto:** ~30 minutos perdidos tentando axios direto antes de migrar para Playwright + biblioteca especializada.
+- **Acao corretiva:** Para sites com Cloudflare, usar Playwright para autenticacao e bibliotecas especializadas para downloads. Nao tentar axios direto em sites protegidos por Cloudflare.

@@ -350,3 +350,49 @@ Resultado: 94 CHDs quebrados movidos, 31 re-adicionados na queue (63 ja estavam)
 - Script safe_point/start_tor.bat inicia Tor + bridge automaticamente
 
 **Regra:** NUNCA tentar desabilitar/parar servicos do Avast. Usar proxy Tor como contorno. O Tor so afeta archive.org - resto do trafego nao passa por ele.
+
+## 8. itch.io nao tem links de download diretos no HTML
+
+**Problema:** O itch.io usa fluxo de 3-4 requisicoes HTTP (CSRF → download page → CDN URL assinada) para liberar downloads. As paginas dos jogos NAO contem links .zip/.rar/.bin diretos. Tentar resolver com cheerio/axios direto falha porque:
+1. Cloudflare bloqueia axios/curl (403 Forbidden)
+2. O botao de download usa `data-upload_id` + JavaScript, nao href
+3. O endpoint `POST /file/{upload_id}` exige CSRF token do cookie `itchio_token`
+
+**Solucao que FUNCIONOU:** Biblioteca `itchio-downloader` (npm, v1.2.0, publicada mar/2026)
+- Faz download via HTTP direto (CSRF → download page → CDN) sem browser
+- Suporte a cookie caching (30-min TTL) para downloads em batch
+- Fallback Puppeteer opcional (nao necessario para jogos free)
+- Testada com jogos de 2.6 MB a 1.9 GB
+
+**Implementacao:** `resolveItchIoDownload()` em `services/download/index.js` chama `downloadGame()` da biblioteca, baixa para `F:\downloads\itch\`, e retorna `{ localPath, size }`. O `downloadFile` detecta `extraHeaders.__localPath` e move o arquivo para o tmpPath sem passar pelo aria2.
+
+**Regra:** Para sites com Cloudflare/CSRF, preferir bibliotecas especializadas em vez de tentar resolver HTML com cheerio. Verificar se a biblioteca foi publicada ha pelo menos 7 dias antes de instalar.
+
+## 9. Multi-source download no aria2 (agrupar fontes por size)
+
+**Problema:** Quando multiplos sites tem o mesmo arquivo (mesmo size), o orchestrador baixava de uma fonte por vez, desperdicando as outras.
+
+**Solucao:** Agrupar fontes HTTP com mesmo `size` em um unico `aria2.addUri` com array de URLs. O aria2 baixa chunks diferentes de cada URL em paralelo, multiplicando a velocidade.
+
+**Implementacao:**
+- `aria2_rpc.js`: `addDownload` e `rpcDownload` aceitam array de URLs (um GID por download)
+- `aria2.js`: `aria2Download` aceita array de URLs
+- `index.js`: `groupMultiSourceSources()` agrupa resolved sources por size; `resolveAndDownload` tenta multi-source primeiro, fallback para single-source
+- `tryResolveUrl` retorna `{ url, extraHeaders, size }` para permitir agrupamento
+
+**Caveat:** So funciona para fontes HTTP (nao magnet/torrent). URLs precisam ter o mesmo arquivo (mesmo size) para evitar corrupcao.
+
+## 10. Workflow de commit completo (7 passos)
+
+**Problema:** Commitar direto sem documentar, sem backup, sem safe point, sem push. Resultado: trabalho perdido em caso de crash, documentacao desatualizada, handover incompleto.
+
+**Solucao:** Workflow `commit.md` com 7 passos obrigatorios:
+1. DOCUMENTAR (lessons_learned, frustration_log, handover, system_docs)
+2. BACKUP (zip para safe_point/)
+3. SAFE POINT (copia diretorios criticos)
+4. PRE-COMMIT CHECKS (lint + testes)
+5. GIT STAGE + COMMIT
+6. GIT PUSH
+7. CONTEXTO (arquivo de reabsorção)
+
+**Regra:** NUNCA commitar sem executar os 7 passos. O workflow esta em `knowledge/workflows/commit.md` e e inegociavel.

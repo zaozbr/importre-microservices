@@ -43,7 +43,17 @@ Plugins atuais: coolrom, vimm, archive.org, archive.org-jp, archive.org-extra, r
 
 - `aria2c` e usado por padrao com 16 conexoes.
 - `archive.org` usa 32 conexoes.
+- **Multi-source:** aria2 aceita array de URLs (mesmo size) e baixa chunks de cada uma em paralelo.
 - Paginas de download sao resolvidas genericamente em `services/download/index.js`.
+- **itch.io:** usa biblioteca `itchio-downloader` (HTTP direto, sem browser). Baixa para `F:\downloads\itch\` e move para tmpPath. Nao passa pelo aria2.
+- **Resolvers especificos:** coolrom, vimm, retrostic, romsdl, romsretro, romsfun, itch.io.
+
+## Dependencias chave
+
+- `itchio-downloader@1.2.0` — download de jogos free do itch.io via HTTP direto (CSRF → CDN)
+- `aria2c` 1.37.0 — gerenciador de downloads com suporte a multi-source, BT, HTTP
+- `chdman.exe` — conversao CUE/BIN/ISO → CHD
+- `tor` (Expert Bundle) — proxy SOCKS5 para contornar bloqueio archive.org
 
 ## Dashboard
 
