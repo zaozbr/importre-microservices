@@ -100,7 +100,33 @@ async function resolvePageDownload(pageUrl, siteHint) {
   if (siteHint === 'romsfun' || pageUrl.includes('romsfun.com/download/')) {
     return resolveRomsfun($, res, pageUrl, headers);
   }
+  if (siteHint === 'itch.io' || pageUrl.includes('itch.io')) {
+    return resolveItchIo($, pageUrl, headers);
+  }
   return resolveGenericLink($, pageUrl);
+}
+
+function resolveItchIo($, pageUrl, headers) {
+  // itch.io: buscar links de download diretos na pagina
+  // 1. Links para arquivos .bin/.cue/.iso/.zip/.7z
+  const directLink = $('a[href*=".bin"], a[href*=".cue"], a[href*=".iso"], a[href*=".zip"], a[href*=".7z"]').first().attr('href');
+  if (directLink) {
+    const fullUrl = directLink.startsWith('http') ? directLink : new URL(directLink, pageUrl).href;
+    return { url: fullUrl, headers: { 'Referer': pageUrl, ...headers } };
+  }
+  // 2. Buscar data-upload_id para API de download do itch.io
+  const uploadId = $('button[data-upload_id]').attr('data-upload_id');
+  if (uploadId) {
+    const dlUrl = `https://${new URL(pageUrl).hostname}/file/${uploadId}`;
+    return { url: dlUrl, headers: { 'Referer': pageUrl, ...headers } };
+  }
+  // 3. Buscar links de download na pagina (formato itch.io)
+  const downloadLink = $('a[href*="/download/"]').first().attr('href');
+  if (downloadLink) {
+    const fullUrl = downloadLink.startsWith('http') ? downloadLink : new URL(downloadLink, pageUrl).href;
+    return { url: fullUrl, headers: { 'Referer': pageUrl, ...headers } };
+  }
+  throw new Error('itch.io: link de download nao encontrado');
 }
 
 function resolveCoolrom($) {
@@ -555,7 +581,7 @@ function orderSources(sources, preferredSite) {
   return sortSourcesBySpeed(sources);
 }
 
-const RESOLVER_SITES = ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro', 'romsfun'];
+const RESOLVER_SITES = ['coolrom', 'vimm', 'retrostic', 'romsdl', 'romsretro', 'romsfun', 'itch.io'];
 
 async function tryResolveUrl(source, directExts) {
   // Magnet links e .torrent locais nao precisam resolver pagina
