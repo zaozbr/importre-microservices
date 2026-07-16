@@ -9,17 +9,21 @@ Sistema Node.js de download e conversao de ROMs PSX, usando arquitetura de micro
 | Servico | Porta | Responsabilidade |
 |---------|-------|------------------|
 | Orchestrator | 8767 | Coordena servicos, serve dashboard, expoe API de controle |
-| Queue | 9001 | Gerencia fila (`queue.json`), estados e reprocessamento |
+| Queue | 9011 | Gerencia fila (`queue.json`), estados e reprocessamento |
 | Search | 9002 | Busca ROMs em multiplas fontes via plugins |
 | Download | 9003 | Resolve paginas de download e baixa com aria2c |
 | CHD | 9004 | Converte CUE/BIN/ISO para CHD com chdman.exe |
+| AriaNg | 16801 | Interface web do aria2 com proxy RPC e hack de auto-descoberta |
 
 ## Diretorios importantes
 
 - `F:\importre\` — codigo-fonte Node.js
-- `D:\roms\library\roms\_importre_state\` — fila, caches, logs, indices
+- `F:\importre_state\` — fila, caches, logs, indices (estado runtime)
 - `D:\roms\library\roms\psx\` — downloads e CHDs finais
 - `F:\chd_temp\` — temporario CHD
+- `F:\testes\` — CHDs convertidos aguardando validacao manual
+- `F:\importre\safe_point\` — backups e safe points do workflow de commit
+- `C:\Users\Usuario\AppData\Roaming\devin\skills\commit\SKILL.md` — skill global /commit
 
 ## Arquitetura de plugins de fontes
 

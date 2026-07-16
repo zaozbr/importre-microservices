@@ -76,3 +76,28 @@
 - **Contexto:** Operacoes `Get-ChildItem` em `D:\roms\library\roms\psx` com mais de 1500 arquivos .chd frequentemente travavam por 30-60s ou nao retornavam. Verificacoes de renomeacao levavam minutos.
 - **Impacto:** Verificacao de duplicatas apos renomeacao era dolorosamente lenta. Monitor de downloads nao conseguia contar CHDs novos em tempo real.
 - **Acao corretiva:** Usar comandos mais leves (`Test-Path` individual em vez de `Get-ChildItem` completo). Evitar `Get-ChildItem -Recurse` em D:. Operacoes pesadas em background com timeout.
+
+## 12. archive.org bloqueou IP por rate limiting — downloads pararam completamente
+
+- **Data:** 2026-07-16
+- **Contexto:** Apos centenas de downloads do archive.org na sessao anterior, o IP da maquina foi bloqueado. Todos os endpoints (metadata, search, download) retornam timeout (HTTP 000 apos 15s). Ping para archive.org tambem falha (perda de pacotes). O cookie continua valido — o bloqueio e por IP.
+- **Impacto:** 109 itens pending sem fonte. Search service buscando 63 itens mas encontrando 0 fontes. 9 torrents via magnet adicionados ao aria2 mas 0 peers encontrados (DHT depende de trackers que tambem bloqueiam o IP). Sites web alternativos (retrostic, romsdl, vimm) funcionam mas caches locais nao tem os seriais. myrient.com e parked domain (extinto).
+- **Acao corretiva:** Reportado ao usuario que e necessario reiniciar o router ou ativar VPN. Nao ha workaround para IP bloqueado.
+
+## 13. IA criou skill global /commit mas omitiu passos do workflow original
+
+- **Data:** 2026-07-16
+- **Contexto:** Usuario pediu para configurar o workflow de commit globalmente no Devin. A IA criou a skill mas incluiu apenas os passos 4-6 (lint, test, commit, push), omitindo os passos 1 (DOCUMENTAR), 2 (BACKUP), 3 (SAFE POINT) e 7 (CONTEXTO) do workflow original em `knowledge/workflows/commit.md`.
+- **Impacto:** Usuario teve que explicitamente listar os passos atuais e pedir que a skill fosse reescrita com todos os passos. Isso e a mesma frustracao dos itens 7 e 9 — a IA consistentemente pula a parte de documentacao.
+- **Acao corretiva:** Skill reescrita com todos os 7 passos + passo 8 (relatorio). Passo 1 (DOCUMENTAR) expandido com 7 sub-passos detalhados (lessons_learned, frustration_log, handover, system_docs, TODO, AGENTS.md, shortcomings do Devin).
+
+## 14. Shortcomings do Devin nesta sessao
+
+- **Data:** 2026-07-16
+- **Contexto:** Limitacoes encontradas durante a sessao:
+  1. **PowerShell parser errors com aspas em regex:** Comandos `node -e` com regex contendo `[^"]` falham com ParserError no PowerShell. Workaround: escrever script em arquivo .js temporario e rodar com `node arquivo.js`.
+  2. **Here-string `<<'EOF'` nao funciona no PowerShell:** `git commit -m "$(cat <<'EOF'...)"` falha com ParserError. Workaround: usar string direta com `\n` ou mensagem em uma linha com `\n` literais.
+  3. **Subagent em background nao pode pedir aprovacao de tools:** Se um subagent em background tenta usar uma tool que requer aprovacao, ela e auto-denied. Workaround: usar `subagent_general` em foreground quando precisa de aprovacao, ou garantir que as tools estao pre-aprovadas.
+  4. **archive.org timeout nao e detectado como erro:** O axios retorna timeout mas o plugin de search retorna `[]` silenciosamente. Nao ha log de warning para timeout de archive.org. Isso faz o search service parecer que esta funcionando mas nao encontrando fontes, quando na verdade a fonte principal esta inacessivel.
+  5. **DHT do aria2 nao encontra peers sem trackers funcionais:** Magnets do archive.org dependem de trackers que tambem bloqueiam o IP. DHT puro (sem trackers) nao encontrou peers em 3+ minutos.
+- **Acao corretiva:** Documentado para referencia futura. Workarounds aplicados onde possivel.

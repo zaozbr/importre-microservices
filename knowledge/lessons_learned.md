@@ -290,3 +290,38 @@ Resultado: 94 CHDs quebrados movidos, 31 re-adicionados na queue (63 ja estavam)
 5. Deleta arquivos originais apos conversao
 
 **Regra:** Delegar conversao CHD a subagent em background para paralelizar com downloads. Main agent foca em manter downloads acima de 40MB/s.
+
+## 27. archive.org bloqueia IP por rate limiting (timeout total)
+
+**Problema:** Apos muitos downloads consecutivos do archive.org (centenas de ROMs), o IP da maquina foi bloqueado. Todos os endpoints do archive.org (metadata, search, download) retornam timeout (HTTP 000 apos 15s). O bloqueio e por IP, nao por cookie — o cookie continua valido. Ping para archive.org (207.241.224.2) tambem falha (perda de pacotes).
+
+**Correcao:**
+1. Reiniciar o router/modem para pegar um IP novo
+2. Ou ativar VPN/proxy para acessar o archive.org
+3. Enquanto o IP estiver bloqueado, torrents via magnet (DHT) nao funcionam porque os torrents do archive.org dependem de trackers que tambem bloqueiam o IP
+4. Sites web alternativos (retrostic, romsdl, vimm) funcionam mas os caches locais nao tem os seriais pending
+5. myrient.com e um parked domain (site nao existe mais)
+
+**Regra OBRIGATORIA:** Quando archive.org parar de responder (timeout em todos os endpoints), NAO tentar workaround. Reportar ao usuario que o IP foi bloqueado por rate limiting e que e necessario reiniciar o router ou ativar VPN. Nao desperdicar tempo tentando plugins alternativos se os caches locais nao tem os seriais.
+
+## 28. Correcao de 41 warnings de lint: extrair sub-funcoes para reduzir complexidade cognitiva
+
+**Problema:** O projeto acumulou 41 warnings de lint (0 erros, mas 41 warnings). A maioria era complexidade cognitiva alta (>25) em funcoes longas que faziam muitas coisas. O AGENTS.md exige ZERO warnings, mas os warnings foram ignorados por varias sessoes.
+
+**Correcao:** Usar subagents em paralelo para corrigir todos os 41 warnings:
+- Batch 1 (services/download): 4 arquivos, 11 warnings — extrair sub-funcoes de chd_convert_one.js (main: 71→<25), chd_worker.js (processDir: 63→<25), index.js (processDownload: 36→<25), remover funcoes nao usadas (spawnDownload, convertDirToChd, moveOriginsToDuplicados)
+- Batch 2 (tools): 15 arquivos, 30 warnings — extrair sub-funcoes de convert_all_to_chd (81→<25), unecm (63→<25), archive_login (31→<25), remover variaveis/imports nao usados, corrigir no-param-reassign, no-collapsible-if, no-useless-escape, no-unused-collection
+
+**Regra OBRIGATORIA:** Nunca ignorar warnings. Se uma regra Sonar for inadequada, desativa-la com justificativa no eslint.config.mjs. Complexidade cognitiva >25 deve ser refatorada extraindo sub-funcoes. Usar subagents em paralelo para corrigir muitos arquivos rapidamente.
+
+## 29. Skill global /commit para workflow completo de commit
+
+**Problema:** O workflow de commit completo (7 passos: documentar, backup, safe point, lint, test, commit, push, contexto) estava documentado em `knowledge/workflows/commit.md` mas nao era executado automaticamente quando o usuario digitava `commit!`. A IA executava apenas uma versao reduzida (lint + test + commit), pulando documentacao, backup, safe point e contexto.
+
+**Correcao:** Criada skill global em `%APPDATA%\devin\skills\commit\SKILL.md` que:
+1. E disparada quando o usuario digita `commit!` ou `/commit`
+2. Executa todos os 7 passos do workflow (incluindo push)
+3. Expande o passo 1 (DOCUMENTAR) com sub-passos detalhados para cada arquivo de knowledge
+4. Adicionada regra em `global_rules.md` mapeando `commit!` → executar skill `/commit`
+
+**Regra OBRIGATORIA:** O workflow `commit!` sempre executa todos os passos. O passo 1 (DOCUMENTAR) e o mais importante — nada se perde. Os passos 2-3 (BACKUP + SAFE POINT) sao o seguro contra perda. O passo 6 (PUSH) e obrigatorio (a menos que nao haja remote).
