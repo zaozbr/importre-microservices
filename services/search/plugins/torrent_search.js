@@ -104,6 +104,48 @@ async function searchSolidTorrents(serial, title) {
   } catch { return []; }
 }
 
+// 6. Anime Tosho (torrents JP - tem API JSON, cobre jogos PSX JP)
+async function searchAnimeTosho(serial, title) {
+  if (!title || title.length < 3) return [];
+  try {
+    const cleanTitle = title.replace(/\[.*?\]|\(.*?\)/g, '').trim();
+    const q = encodeURIComponent(`${cleanTitle} PSX`);
+    const url = `https://animetosho.org/search/api?q=${q}&qx=1`;
+    const res = await axios.get(url, { timeout: TIMEOUT, headers: { 'User-Agent': USER_AGENT } });
+    const items = res.data || [];
+    const results = [];
+    for (const t of items.slice(0, 5)) {
+      if (!t.info_hash && !t.magnet_uri) continue;
+      const magnet = t.magnet_uri || `magnet:?xt=urn:btih:${t.info_hash}&dn=${encodeURIComponent(t.title)}`;
+      results.push(buildSource('animetosho', magnet, t.title, {
+        size: parseInt(t.total_size) || 0,
+        seeders: parseInt(t.seeders) || 0
+      }));
+    }
+    return results;
+  } catch { return []; }
+}
+
+// 7. Tokyo Toshokan (torrents JP - scraping)
+async function searchTokyoToshokan(serial, title) {
+  if (!title || title.length < 3) return [];
+  try {
+    const cleanTitle = title.replace(/\[.*?\]|\(.*?\)/g, '').trim();
+    const q = encodeURIComponent(`${cleanTitle} PSX`);
+    const url = `https://www.tokyotosho.info/search.php?terms=${q}&type=0`;
+    const res = await axios.get(url, { timeout: TIMEOUT, headers: { 'User-Agent': USER_AGENT } });
+    const html = res.data || '';
+    const magnetMatches = html.match(/magnet:\?xt=urn:btih:[a-fA-F0-9]{40}[^"'\s]*/g) || [];
+    const results = [];
+    for (const magnet of magnetMatches.slice(0, 3)) {
+      const hashMatch = magnet.match(/btih:([a-fA-F0-9]{40})/);
+      if (!hashMatch) continue;
+      results.push(buildSource('tokyotosho', magnet, `tokyotosho:${hashMatch[1].substring(0, 8)}`, {}));
+    }
+    return results;
+  } catch { return []; }
+}
+
 module.exports = {
   name: 'torrent_search',
   matchType: 'serial',
@@ -112,13 +154,15 @@ module.exports = {
   enabled: true,
   async search(serial, title) {
     // Buscar em paralelo em todas as fontes torrent
-    const [pb, nyaa, archT, solid] = await Promise.all([
+    const [pb, nyaa, archT, solid, animeT, tokyoT] = await Promise.all([
       searchPirateBay(serial, title),
       searchNyaa(serial, title),
       searchArchiveTorrent(serial, title),
-      searchSolidTorrents(serial, title)
+      searchSolidTorrents(serial, title),
+      searchAnimeTosho(serial, title),
+      searchTokyoToshokan(serial, title)
     ]);
-    const all = [...pb, ...nyaa, ...archT, ...solid];
+    const all = [...pb, ...nyaa, ...archT, ...solid, ...animeT, ...tokyoT];
     all.sort((a, b) => (b.metadata?.seeders || 0) - (a.metadata?.seeders || 0));
     return all;
   }
