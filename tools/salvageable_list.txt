@@ -1,0 +1,936 @@
+Jogos aproveitaveis em D:\roms\duplicados
+Total: 933
+
+[OTHER] _extract -- nao existe na colecao
+[OTHER] _rn -- nao existe na colecao
+[USA] [SLUS-00430] Treasure of the Deep -- nao existe na colecao
+[JPN] Time-Gal-&-Ninja-Hayate-SLPS-00383[SLPS-00383]-nao-conversivel -- nao existe na colecao
+[USA] Total Eclipse Turbo [U] [SLUS-00021] -- nao existe na colecao
+[OTHER] Total NBA '97 (Europe) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Touhaiden Akagi (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Touhou Chinyuuki - Halfling Hearts (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Touhou Chinyuuki - Halfling Hearts (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Toys Dream (Japan) -- nao existe na colecao
+[OTHER] Toys Dream (Japan)_1783840790 -- nao existe na colecao
+[OTHER] Transformers - Beast Wars Transmetals (USA) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Transport Tycoon 3D - Sl Kara Hajimeyou!! (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Trap Gunner (Japan) -- nao existe na colecao
+[OTHER] Trap Gunner (USA) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 01)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 02)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 03)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 04)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 05)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 06)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 07)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 08)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 09)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 10)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 11)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 12) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 12)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 13) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 13)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 14) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 14)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 15) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 15)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 16) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 16)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 17) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 17)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 18) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 18)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 19) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 19)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 20) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 20)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 21) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 21)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 22) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 22)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 23) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 23)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 24) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 24)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 25) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 25)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 26) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 26)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 27) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 27)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 28) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 28)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 29) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 29)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 30) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 30)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 31) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 31)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 32) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 32)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 33) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 33)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 34) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 34)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 35) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 35)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 36) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 36)_1783841991 -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 37) -- nao existe na colecao
+[OTHER] Treasure Gear (Japan) (Track 37)_1783841991 -- nao existe na colecao
+[OTHER] Tricky Sliders - Freestyle Snowboard (Japan) -- nao existe na colecao
+[OTHER] Tricky Sliders - Freestyle Snowboard (Japan)_1783840848 -- nao existe na colecao
+[USA] Triple Play Baseball [SLUS-01345] -- nao existe na colecao
+[OTHER] Tron ni Kobun (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Tron ni Kobun (Japan) (Track 2) -- nao existe na colecao
+[OTHER] True Love Story - Remember My Heart (Japan) -- nao existe na colecao
+[OTHER] True Love Story (Japan) -- nao existe na colecao
+[OTHER] True Love Story Fan Disc (Japan) -- nao existe na colecao
+[OTHER] Tsuridou - Keiryuu Mizuumi-hen (Japan) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Tsuridou - Umitsuri-hen (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Tsuukai!! Slot Shooting (Japan) (Track 12) -- nao existe na colecao
+[OTHER] Tunguska - Legend of Faith (Europe) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 02) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 03) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 04) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 05) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 06) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 07) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 08) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 09) -- nao existe na colecao
+[USA] Turnabout-SLUS-01499 (Track 10) -- nao existe na colecao
+[OTHER] Twilight Syndrome - Saikai (Japan) -- nao existe na colecao
+[OTHER] Twilight Syndrome - Saikai (Japan)_1783843045 -- nao existe na colecao
+[OTHER] Twilight Syndrome - Saikai (Japan)-nao-conversivel -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 01)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 02)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 03)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 04)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 05)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 06)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 07)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 08)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 09)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 10)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 11)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 12) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 12)_1783841761 -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 13) -- nao existe na colecao
+[OTHER] Twin Goddesses (Japan) (Track 13)_1783841761 -- nao existe na colecao
+[OTHER] Twisted Metal - Small Brawl (USA) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 01) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 02) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 03) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 04) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 05) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 06) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 07) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 08) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 09) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 10) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 11) -- nao existe na colecao
+[OTHER] Twisted Metal - World Tour (Europe) (Track 12) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 1) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 2) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 3) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 4) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 5) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 6) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 7) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 8) -- nao existe na colecao
+[OTHER] Twisted Metal (USA) (Track 9) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 01) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 01)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 02) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 02)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 03) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 03)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 04) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 04)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 05) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 05)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 06) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 06)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 07) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 07)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 08) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 08)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 09) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 09)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 10) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 10)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 11) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 11)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 12) -- nao existe na colecao
+[OTHER] Twisted Metal 2 (USA) (Track 12)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 01) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 02) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 02)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 03) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 03)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 04) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 04)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 05) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 05)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 06) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 06)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 07) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 07)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 08) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 08)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 09) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 09)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 10) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 10)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 11) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 11)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 12) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 12)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 13) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 13)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 14) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 14)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 15) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 15)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 16) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 16)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 17) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 17)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 18) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 18)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 19) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 19)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 20) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 20)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 21) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 21)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 22) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 22)_1 -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 23) -- nao existe na colecao
+[OTHER] Twisted Metal 4 (USA) (Track 23)_1 -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 01) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 02) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 03) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 04) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 05) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 06) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 07) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 08) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 09) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 10) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 11) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 12) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 13) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 14) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 15) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 16) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 17) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 18) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 19) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 20) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 21) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 22) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 23) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 24) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 25) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 26) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 27) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 28) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 29) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 30) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 31) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 32) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 33) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 34) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 35) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 36) -- nao existe na colecao
+[OTHER] Twisted Metal III (USA) (v1.1) (Track 37) -- nao existe na colecao
+[OTHER] Two-Tenkaku (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Two-Tenkaku (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Two-Tenkaku (Japan) (Track 3) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 01) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 02) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 03) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 04) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 05) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 06) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 07) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 08) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 09) -- nao existe na colecao
+[OTHER] U-SA (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Uchuu Seibutsu Furopon-kun P! (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Uchuu Seibutsu Furopon-kun P! (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Uchuu Seibutsu Furopon-kun P! (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Uchuu Seibutsu Furopon-kun P! (Japan) (Track 4) -- nao existe na colecao
+[OTHER] Uchuu Seibutsu Furopon-kun P! (Japan) (Track 5) -- nao existe na colecao
+[OTHER] Uchuu Seibutsu Furopon-kun P! (Japan) (Track 6) -- nao existe na colecao
+[OTHER] Uchuu Seibutsu Furopon-kun P! (Japan) (Track 7) -- nao existe na colecao
+[OTHER] Uchuu Seibutsu Furopon-kun P! (Japan) (Track 8) -- nao existe na colecao
+[OTHER] Uchuu Senkan Yamato - Eiyuu no Kiseki (Japan) -- nao existe na colecao
+[OTHER] Uchuu Senkan Yamato - Haruka naru Hoshi Iscandar (Japan) -- nao existe na colecao
+[OTHER] UEFA Champions League - Season 1998-99 (Europe) (Track 1) -- nao existe na colecao
+[OTHER] UEFA Euro 2000 (Europe) -- nao existe na colecao
+[OTHER] UFO - A Day in the Life (Japan) -- nao existe na colecao
+[OTHER] UFO - A Day in the Life (Japan)-nao-conversivel -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 01) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 02) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 03) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 04) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 05) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 06) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 07) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 08) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 09) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 10) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 11) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 12) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 13) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 14) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 15) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 16) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 17) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 18) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 19) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 20) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 21) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 22) -- nao existe na colecao
+[OTHER] Ultimate 8 Ball (USA) (Track 23) -- nao existe na colecao
+[OTHER] Ultimate Fighting Championships -- nao existe na colecao
+[OTHER] Ultraman - Fighting Evolution (Japan) -- nao existe na colecao
+[OTHER] Ultraman Tiga & Dyna Fighting Evolution - New Generations (Japan) (Track 01) -- nao existe na colecao
+[JPN] Ungra Walker (Japan) [SLPM-87055] -- nao existe na colecao
+[OTHER] Uranai 2, The - Mainichi no Tarot Uranai (Japan) -- nao existe na colecao
+[OTHER] V-Rally - Championship Edition 2 (Japan) (Track 1) -- nao existe na colecao
+[OTHER] V-Rally - Championship Edition 2 (Japan) (Track 2) -- nao existe na colecao
+[OTHER] V-Rally - Championship Edition 2 (Japan) (Track 3) -- nao existe na colecao
+[OTHER] V-Rally - Championship Edition 2 (Japan) (Track 4) -- nao existe na colecao
+[OTHER] V-Rally - Championship Edition 2 (Japan) (Track 5) -- nao existe na colecao
+[OTHER] V-Rally - Championship Edition 2 (Japan) (Track 6) -- nao existe na colecao
+[OTHER] V-Rally - Championship Edition 2 (Japan) (Track 7) -- nao existe na colecao
+[OTHER] V-Rally - Championship Edition 2 (Japan) (Track 8) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 1) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 1)_1783841592 -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 2) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 2)_1783841592 -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 3) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 3)_1783841592 -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 4) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 4)_1783841592 -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 5) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 5)_1783841592 -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 6) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 6)_1783841592 -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 7) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 7)_1783841592 -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 8) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 8)_1783841592 -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 9) -- nao existe na colecao
+[OTHER] V2000 (Europe) (Track 9)_1783841592 -- nao existe na colecao
+[OTHER] Vagrant Story (USA) -- nao existe na colecao
+[OTHER] Valkyrie Profile - Disc 2 -- nao existe na colecao
+[OTHER] Valkyrie Profile - Disc 2_1 -- nao existe na colecao
+[OTHER] Valkyrie Profile - Disc 2_2 -- nao existe na colecao
+[OTHER] Valkyrie Profile (USA) (Disc 1) -- nao existe na colecao
+[OTHER] Valkyrie Profile (USA) (Disc 2) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 12) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 13) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 14) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 15) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 16) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 17) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 18) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 19) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 20) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 21) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 22) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 23) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 24) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 25) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 26) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 27) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 28) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 29) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 30) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 31) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 32) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 33) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 34) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 35) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 36) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 37) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 38) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 39) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 40) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 41) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 42) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 43) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 44) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 45) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 46) -- nao existe na colecao
+[OTHER] Vampire - The Night Warriors (Japan) (Track 47) -- nao existe na colecao
+[OTHER] Vandal Hearts (USA) -- nao existe na colecao
+[OTHER] Vandal Hearts II - Tenjou no Mon (Japan) -- nao existe na colecao
+[OTHER] Vanguard Bandits (USA) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 01) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 02) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 03) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 04) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 05) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 06) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 07) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 08) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 09) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 10) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 11) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 12) -- nao existe na colecao
+[OTHER] Vegas Casino (Europe) (Track 13) -- nao existe na colecao
+[OTHER] Versailles - A Game of Intrigue (Europe) -- nao existe na colecao
+[OTHER] Victory Boxing Champion Edition (Europe) (Track 01) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 12) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 13) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 14) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 15) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 16) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Battle (Japan) (Track 17) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 01) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 01)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 02) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 02)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 03) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 03)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 04) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 04)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 05) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 05)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 06) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 06)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 07) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 07)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 08) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 08)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 09) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 09)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 10) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 10)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 11) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 11)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 12) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 12)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 13) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 13)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 14) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 14)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 15) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 15)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 16) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 16)_1 -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 17) -- nao existe na colecao
+[OTHER] Vigilante 8 - 2nd Offense (USA) (Track 17)_1 -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 12) -- nao existe na colecao
+[OTHER] Virtual Ikusei Simulation - Nyan to Wonderful (Japan) (Track 13) -- nao existe na colecao
+[OTHER] Virtual Kasparov (Europe) (En,Fr,De,Es,It,Nl) (Track 1) -- nao existe na colecao
+[OTHER] Virtual Kasparov (Europe) (En,Fr,De,Es,It,Nl) (Track 2) -- nao existe na colecao
+[OTHER] Virtual Kasparov (Europe) (En,Fr,De,Es,It,Nl) (Track 3) -- nao existe na colecao
+[OTHER] Virtual Kasparov (Europe) (En,Fr,De,Es,It,Nl) (Track 4) -- nao existe na colecao
+[OTHER] Virtual Kasparov (Europe) (En,Fr,De,Es,It,Nl) (Track 5) -- nao existe na colecao
+[USA] Virtual Kasparov [SLUS-01341] -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 01) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 01)_1783841542 -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 02) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 03) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 04) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 05) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 06) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 07) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 08) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 09) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 10) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 11) -- nao existe na colecao
+[OTHER] Virus - It is Aware (Europe) (Track 12) -- nao existe na colecao
+[JPN] Vision Of Escaflowne, The (Japan) (Track 1) [SLPS-01014] -- nao existe na colecao
+[JPN] Vision Of Escaflowne, The (Japan) (Track 2) [SLPS-01014] -- nao existe na colecao
+[OTHER] VR Baseball 99 (Europe) (Track 1) -- nao existe na colecao
+[OTHER] VR Baseball 99 (Europe) (Track 2) -- nao existe na colecao
+[USA] VR Golf '97 [SLUS-00198] -- nao existe na colecao
+[OTHER] VR Soccer '96 (USA) (Track 1) -- nao existe na colecao
+[OTHER] VR Soccer '96 (USA) (Track 2) -- nao existe na colecao
+[USA] VR Soccer '96 [SLUS-00199] -- nao existe na colecao
+[USA] Walt Disney World Quest - Magical Racing Tour-SLUS-01106 -- nao existe na colecao
+[OTHER] Walt Disney's The Jungle Book - Groove Party (Europe) -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan) -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_1 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_10 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_11 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_12 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_13 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_14 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_15 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_16 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_17 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_18 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_19 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_2 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_20 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_21 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_22 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_23 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_24 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_25 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_26 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_27 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_3 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_4 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_5 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_6 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_7 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_8 -- nao existe na colecao
+[OTHER] Wan-der-Vehicles-Doggy-Bone-Daisakusen-(Japan)_9 -- nao existe na colecao
+[OTHER] WarCraft II - The Dark Saga (Japan) -- nao existe na colecao
+[OTHER] WarCraft II - The Dark Saga (Japan)_1783841857 -- nao existe na colecao
+[OTHER] WarCraft II - The Dark Saga (USA) (En,Fr,De,Es,It) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 01) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 02) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 03) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 04) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 05) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 06) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 07) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 08) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 09) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 10) -- nao existe na colecao
+[OTHER] WarGames - Defcon 1 (Europe) (Track 11) -- nao existe na colecao
+[OTHER] Warhammer - Dark Omen (Europe) -- nao existe na colecao
+[USA] Warhammer - Dark Omen [NTSC-U] [SLUS-00550] -- nao existe na colecao
+[OTHER] Warhammer - Shadow of the Horned Rat (Europe) (Track 1) -- nao existe na colecao
+[OTHER] Warhammer - Shadow of the Horned Rat (Europe) (Track 3) -- nao existe na colecao
+[OTHER] Warhammer - Shadow of the Horned Rat (Europe) (Track 4) -- nao existe na colecao
+[OTHER] Warhammer - Shadow of the Horned Rat (Europe) (Track 5) -- nao existe na colecao
+[OTHER] Warhammer - Shadow of the Horned Rat (Europe) (Track 6) -- nao existe na colecao
+[OTHER] Warhawk - The Red Mercury Missions (Europe) (Track 01) -- nao existe na colecao
+[OTHER] Warpath - Jurassic Park (USA) -- nao existe na colecao
+[USA] Warriors of Might and Magic [NTSC-U] [SLUS-01204] -- nao existe na colecao
+[OTHER] WCG1 -- nao existe na colecao
+[USA] WCW vs. The World [NTSC-U] [SLUS-00455] -- nao existe na colecao
+[OTHER] WE11World_19.1_Update -- nao existe na colecao
+[OTHER] We2002_2005_Winning Eleven 2005 - Iso Hack_Issonline_rip -- nao existe na colecao
+[OTHER] We2002_2005_Winning Eleven 2005 - Iso Hack_Issonline_rip_1783840647 -- nao existe na colecao
+[OTHER] Welcome House 2 - Keaton & His Uncle (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Welcome House 2 - Keaton & His Uncle (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Welcome House 2 - Keaton & His Uncle (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Welcome House 2 - Keaton & His Uncle (Japan) (Track 4) -- nao existe na colecao
+[OTHER] Welcome House 2 - Keaton & His Uncle (Japan) (Track 5) -- nao existe na colecao
+[OTHER] Welcome House 2 - Keaton & His Uncle (Japan) (Track 6) -- nao existe na colecao
+[OTHER] White Diamond (Japan) -- nao existe na colecao
+[OTHER] White Diamond (Japan)-nao-conversivel -- nao existe na colecao
+[OTHER] Whizz (Japan) -- nao existe na colecao
+[USA] Who Wants to be a Millionaire - 3rd Edition [NTSC-U] [SCUS-94644] -- nao existe na colecao
+[OTHER] Wild Arms (Japan) -- nao existe na colecao
+[OTHER] Wild Arms (USA) -- nao existe na colecao
+[OTHER] Wild Arms 2 (USA) (Disc 1) -- nao existe na colecao
+[USA] Wild Arms 2 [NTSC-U] [Disc2of2] [SCUS-94498] -- nao existe na colecao
+[OTHER] Wild Boater (Japan) -- nao existe na colecao
+[OTHER] Wild Boater (Japan)_1783840624 -- nao existe na colecao
+[USA] Wild Thornberrys - Animal Adventures [NTSC-U] [SLUS-01128] -- nao existe na colecao
+[OTHER] Wing Over (Europe) (Track 1) -- nao existe na colecao
+[OTHER] Wing Over (Europe) (Track 2) -- nao existe na colecao
+[OTHER] Wing Over (Europe) (Track 3) -- nao existe na colecao
+[OTHER] Wing Over (Europe) (Track 4) -- nao existe na colecao
+[OTHER] Wing Over (Europe) (Track 5) -- nao existe na colecao
+[OTHER] Wing Over (Europe) (Track 6) -- nao existe na colecao
+[OTHER] Wing Over (Europe) (Track 7) -- nao existe na colecao
+[OTHER] Wing Over 2 (Europe) (Track 1) -- nao existe na colecao
+[OTHER] Wing Over 2 (Europe) (Track 2) -- nao existe na colecao
+[OTHER] Wing Over 2 (Europe) (Track 3) -- nao existe na colecao
+[OTHER] Wing Over 2 (Europe) (Track 4) -- nao existe na colecao
+[OTHER] Winning Eleven J League Jikkyou Winning Eleven 2001 (Japan) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Winning Post 2 - Program '96 (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Winning Post 2 (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Winning Post 3 - Program '98 (Japan) -- nao existe na colecao
+[OTHER] Winning Post 3 (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Winning Post 3 (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Winning Post EX (Japan) -- nao existe na colecao
+[OTHER] Wip3out (Europe) (Track 01) -- nao existe na colecao
+[USA] Wipeout XL [NTSC-U] [SCUS-94351] -- nao existe na colecao
+[OTHER] Wizard's Harmony 2 (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Wizard's Harmony 2 (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Wizard's Harmony 2 (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Wizard's Harmony 2 (Japan) (Track 4) -- nao existe na colecao
+[OTHER] Wizard's Harmony R (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Wizard's Harmony R (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Wizard's Harmony R (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Wizard's Harmony R (Japan) (Track 4) -- nao existe na colecao
+[OTHER] Wizard's Harmony R (Japan) (Track 5) -- nao existe na colecao
+[OTHER] Wizardry - Dimguil (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Wizardry - Dimguil (Japan) (Track 1)_1783841646 -- nao existe na colecao
+[OTHER] Wizardry - Dimguil (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Wizardry - Dimguil (Japan) (Track 2)_1783841646 -- nao existe na colecao
+[OTHER] Wizardry - Dimguil (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Wizardry - Dimguil (Japan) (Track 3)_1783841646 -- nao existe na colecao
+[OTHER] Wizardry - Llylgamyn Saga (Japan) -- nao existe na colecao
+[OTHER] Wizardry - Llylgamyn Saga (Japan) (En,Ja) -- nao existe na colecao
+[OTHER] Wizardry - Llylgamyn Saga (Japan) (En,Ja)_1783841230 -- nao existe na colecao
+[OTHER] Wizardry - New Age of Llylgamyn (Japan) (En,Ja) -- nao existe na colecao
+[OTHER] Wolf Fang (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Wolf Fang (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Wolf Fang (Japan) (Track 3) -- nao existe na colecao
+[OTHER] World Championship Snooker (Europe) -- nao existe na colecao
+[OTHER] World Neverland 2 - Pluto Kyouwakoku Monogatari (Japan) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 1) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 2) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 3) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 4) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 5) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 6) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 7) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 8) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - Final Ver. (Japan) (Track 9) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 3 - World Cup France '98 (Japan) (Track 1) -- nao existe na colecao
+[OTHER] World Soccer Jikkyou Winning Eleven 4 (Japan) (Track 01) -- nao existe na colecao
+[OTHER] World Soccer Winning Eleven '97 (Japan) (Track 01) -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 1) [SLPM-87056] -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 2) [SLPM-87056] -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 3) [SLPM-87056] -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 4) [SLPM-87056] -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 5) [SLPM-87056] -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 6) [SLPM-87056] -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 7) [SLPM-87056] -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 8) [SLPM-87056] -- nao existe na colecao
+[JPN] World Soccer Winning Eleven 2002 (Japan) (Track 9) [SLPM-87056] -- nao existe na colecao
+[OTHER] World Stadium 3 (Japan) (Track 1) -- nao existe na colecao
+[OTHER] World Stadium 3 (Japan) (Track 1)_1783843161 -- nao existe na colecao
+[OTHER] World Stadium 3 (Japan) (Track 2) -- nao existe na colecao
+[OTHER] World Stadium 3 (Japan) (Track 2)_1783843161 -- nao existe na colecao
+[OTHER] World Stadium 5 (Japan) (Track 1) -- nao existe na colecao
+[OTHER] World Stadium 5 (Japan) (Track 2) -- nao existe na colecao
+[OTHER] World Stadium EX (Japan) (Track 1) -- nao existe na colecao
+[OTHER] World Stadium EX (Japan) (Track 2) -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan) -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_1 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_10 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_11 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_12 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_13 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_14 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_15 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_16 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_17 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_18 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_19 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_2 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_20 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_21 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_22 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_23 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_24 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_25 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_26 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_27 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_28 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_29 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_3 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_30 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_31 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_32 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_33 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_34 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_35 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_36 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_37 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_38 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_4 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_5 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_6 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_7 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_8 -- nao existe na colecao
+[OTHER] World-Greatest-Hits-Series-Vol.-1-Pro-Pinball-Big-Race-USA-(Japan)_9 -- nao existe na colecao
+[USA] World's Scariest Police Chases [NTSC-U] [SLUS-01165] -- nao existe na colecao
+[OTHER] Worms Armageddon (USA) -- nao existe na colecao
+[USA] Worms World Party [NTSC-U] [SLUS-01448] -- nao existe na colecao
+[OTHER] Wreckin Crew - Drive Dangerously (Europe) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 01) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 01)_1 -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 02) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 02)_1 -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 03) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 03)_1 -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 04) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 04)_1 -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 05) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 05)_1 -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 06) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 06)_1 -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 07) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 07)_1 -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 08) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 08)_1 -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 09) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 10) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 11) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 12) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 13) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 14) -- nao existe na colecao
+[OTHER] Wu-Tang - Shaolin Style (USA) (Track 15) -- nao existe na colecao
+[OTHER] Wu-Tang - Taste the Pain (Europe) (Track 01) -- nao existe na colecao
+[USA] WWF Attitude [NTSC-U] [SLUS-00831] -- nao existe na colecao
+[OTHER] WWF SmackDown! (USA) -- nao existe na colecao
+[OTHER] WWF SmackDown! 2 - Know Your Role (USA) -- nao existe na colecao
+[USA] WWF Wrestlemania - The Arcade Game [NTSC-U] [SLUS-00013] -- nao existe na colecao
+[OTHER] X-Com - Terror from the Deep (Europe) (Track 1) -- nao existe na colecao
+[OTHER] X-Com - Terror from the Deep (Europe) (Track 2) -- nao existe na colecao
+[OTHER] X-Com - Terror from the Deep (Europe) (Track 3) -- nao existe na colecao
+[OTHER] X-Com - Terror from the Deep (Europe) (Track 4) -- nao existe na colecao
+[OTHER] X-Com - Terror from the Deep (Europe) (Track 5) -- nao existe na colecao
+[OTHER] X-Com - Terror from the Deep (Europe) (Track 6) -- nao existe na colecao
+[OTHER] X-Men vs. Street Fighter (USA) -- nao existe na colecao
+[OTHER] Xevious 3D-G+ (USA) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 01) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 02) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 03) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 04) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 05) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 06) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 07) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 08) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 09) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 10) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 11) -- nao existe na colecao
+[OTHER] XI (Japan) (En,Ja) (Track 12) -- nao existe na colecao
+[OTHER] Yaku Tsuu - Noroi no Game (Japan) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - Faust (Japan) (Track 12) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - M771 (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 01)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 02)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 03)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 04)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 05)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 06)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 07)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 08)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 09)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 10)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Yamasa Digi Guide - New Pulsar R (Japan) (Track 11)_1783840961 -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 01) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 02) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 03) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 04) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 05) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 06) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 07) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 08) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 09) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 10) -- nao existe na colecao
+[OTHER] Yamasa Digi Selection (Japan) (Track 11) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 4) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 5) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 6) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 7) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 8) -- nao existe na colecao
+[OTHER] Yamasa Digi World - Tetra Master (Japan) (Track 9) -- nao existe na colecao
+[OTHER] Yeh Yeh Tennis (Europe) (En,Fr,De) (Track 01) -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De) -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_1 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_10 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_11 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_12 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_13 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_14 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_15 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_16 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_2 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_3 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_4 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_5 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_6 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_7 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_8 -- nao existe na colecao
+[OTHER] Yeh-Yeh-Tennis-(Europe)-(En,Fr,De)_9 -- nao existe na colecao
+[OTHER] Yetisports Deluxe (Europe) (Track 1) -- nao existe na colecao
+[OTHER] Yu-Gi-Oh! - Shin Duel Monsters - Fuuin Sareshi Kioku (Japan) -- nao existe na colecao
+[OTHER] Yu-Gi-Oh! Monster Capsule Breed & Battle (Japan) -- nao existe na colecao
+[OTHER] Yu-Gi-Oh! Monster Capsule Breed & Battle (Japan)_1783840806 -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku - Ensemble 2 (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku - Ensemble 2 (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku - Ensemble 2 (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku - Ensemble 2 (Japan) (Track 4) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku - Ensemble 2 (Japan) (Track 5) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku - Ensemble 2 (Japan) (Track 6) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku (Japan) (Track 4) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku (Japan) (Track 5) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku 2nd Album (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku 2nd Album (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku 2nd Album (Japan) (Track 3) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku 3 - Perpetual Blue (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Yuukyuu Gensoukyoku 3 - Perpetual Blue (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Yuukyuu Kumikyoku - All Star Project (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Yuukyuu Kumikyoku - All Star Project (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Zanac X Zanac (Japan) -- nao existe na colecao
+[OTHER] Zen-Nihon-GT-Senshuken-Max-Rev.-(Japan)-Disc2 -- nao existe na colecao
+[OTHER] Zen-Nihon-GT-Senshuken-Max-Rev.-(Japan)-Disc2_1 -- nao existe na colecao
+[OTHER] Zen-Nihon-GT-Senshuken-Max-Rev.-(Japan)-Disc2_2 -- nao existe na colecao
+[OTHER] Zen-Nihon-GT-Senshuken-Max-Rev.-(Japan)-Disc2_3 -- nao existe na colecao
+[OTHER] Zen-Nihon-GT-Senshuken-Max-Rev.-(Japan)-Disc2_4 -- nao existe na colecao
+[OTHER] Zen-Nihon-GT-Senshuken-Max-Rev.-(Japan)-Disc2_5 -- nao existe na colecao
+[OTHER] Zero_Divide_2-1997-09-02 -- nao existe na colecao
+[OTHER] Zeus - Carnage Heart Second (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Zeus - Carnage Heart Second (Japan) (Track 1)_1783841424 -- nao existe na colecao
+[OTHER] Zeus - Carnage Heart Second (Japan) (Track 2) -- nao existe na colecao
+[OTHER] Zeus - Carnage Heart Second (Japan) (Track 2)_1783841424 -- nao existe na colecao
+[OTHER] Zutto Issho With Me Everytime (Japan) (Track 1) -- nao existe na colecao
+[OTHER] Zutto Issho With Me Everytime (Japan) (Track 2) -- nao existe na colecao
+[OTHER] 銀河少女警察_II (CD1) (Track 1) -- nao existe na colecao
+[OTHER] 銀河少女警察_II (CD1) (Track 2) -- nao existe na colecao
+[OTHER] 銀河少女警察_II (CD1) (Track 3) -- nao existe na colecao
+[OTHER] 銀河少女警察_II (CD2) (Track 1) -- nao existe na colecao
+[OTHER] 銀河少女警察_II (CD2) (Track 2) -- nao existe na colecao

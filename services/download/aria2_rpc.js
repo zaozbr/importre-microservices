@@ -1,19 +1,153 @@
 /**
- * Cliente JSON-RPC para o daemon aria2c do Motrix (porta 16810).
+ * Cliente JSON-RPC para o daemon aria2c (porta dinamica via netstat).
  * Usa WebSocket como transporte primario (conexao unica persistente, 0 CLOSE_WAIT).
  * HTTP axios como fallback se WebSocket falhar.
  * Suporta HTTP, magnet links e arquivos .torrent locais.
+ *
+ * A porta RPC e descoberta dinamicamente:
+ * 1. netstat: PIDs de aria2c.exe -> portas em LISTENING -> probe
+ * 2. system.json do Motrix (rpc-listen-port)
+ * 3. Variavel de ambiente ARIA2_RPC_PORT
+ * 4. Fallback: 6800 (default historico)
  */
 const axios = require('axios');
 const WebSocket = require('ws');
+const { execSync } = require('child_process');
+const fs = require('fs');
 
-const RPC_URL = 'http://127.0.0.1:16810/jsonrpc';
-const WS_URL = 'ws://127.0.0.1:16810/jsonrpc';
+const SYSTEM_JSON = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\system.json';
+const DEFAULT_PORT = 6800;
 const RPC_TIMEOUT = 15000;
 const POLL_INTERVAL_MS = 5000;
 const DEFAULT_MAX_TIME_MS = 600000; // 10min por download
 
 let rpcId = 1;
+
+// === Descoberta dinamica de porta RPC ===
+let discoveredPort = null;
+let lastPortDiscovery = 0;
+const PORT_DISCOVERY_TTL_MS = 30000; // redescobre a cada 30s se necessario
+
+function execSyncSafe(cmd, timeoutMs = 5000) {
+  try { return execSync(cmd, { encoding: 'utf8', timeout: timeoutMs, windowsHide: true }); }
+  catch (e) { return e.stdout || ''; }
+}
+
+/** PIDs de todos os aria2c.exe rodando. */
+function allAria2cPids() {
+  const pids = new Set();
+  const output = execSyncSafe('wmic process where "name=\'aria2c.exe\'" get ProcessId /value');
+  for (const line of output.split('\n')) {
+    const m = line.match(/ProcessId=(\d+)/);
+    if (m) pids.add(m[1]);
+  }
+  return [...pids];
+}
+
+/** Portas em LISTENING pertencentes aos PIDs dados. */
+function portsForPids(pids) {
+  if (!pids.length) return [];
+  const pidSet = new Set(pids);
+  const ports = new Set();
+  const output = execSyncSafe('netstat -ano');
+  for (const line of output.split('\n')) {
+    if (!line.includes('LISTENING')) continue;
+    const m = line.match(/:(\d+)\s+\S+\s+\S+\s+(\d+)\s*$/);
+    if (m && pidSet.has(m[2])) {
+      ports.add(parseInt(m[1]));
+    }
+  }
+  return [...ports];
+}
+
+/** Le rpc-listen-port do system.json do Motrix. */
+function readConfiguredPort() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(SYSTEM_JSON, 'utf8'));
+    if (cfg['rpc-listen-port']) return parseInt(cfg['rpc-listen-port']);
+  } catch { /* sem config */ }
+  return null;
+}
+
+/** Probe async com axios. */
+async function probePortAsync(port) {
+  try {
+    const r = await axios.post(`http://127.0.0.1:${port}/jsonrpc`, {
+      jsonrpc: '2.0', method: 'aria2.getVersion', id: 'probe', params: []
+    }, { timeout: 3000 });
+    return !!(r.data.result && r.data.result.version);
+  } catch { return false; }
+}
+
+/**
+ * Descobre a porta RPC dinamicamente:
+ * 1. Porta ja conhecida (se ainda valida)
+ * 2. netstat: PIDs de aria2c.exe -> portas em LISTENING -> probe
+ * 3. system.json rpc-listen-port
+ * 4. Variavel de ambiente ARIA2_RPC_PORT
+ * 5. Fallback: 6800
+ */
+async function discoverPort() {
+  const now = Date.now();
+
+  // 1. Porta ja conhecida e ainda valida (TTL)
+  if (discoveredPort && (now - lastPortDiscovery) < PORT_DISCOVERY_TTL_MS) {
+    return discoveredPort;
+  }
+
+  // 2. netstat: encontra portas que aria2c.exe esta ouvindo
+  const pids = allAria2cPids();
+  if (pids.length) {
+    const ports = portsForPids(pids);
+    for (const port of ports) {
+      if (await probePortAsync(port)) {
+        if (discoveredPort !== port) {
+          logProgress(`Porta RPC descoberta via netstat: ${port}`);
+        }
+        discoveredPort = port;
+        lastPortDiscovery = now;
+        return port;
+      }
+    }
+  }
+
+  // 3. system.json do Motrix
+  const cfgPort = readConfiguredPort();
+  if (cfgPort && await probePortAsync(cfgPort)) {
+    discoveredPort = cfgPort;
+    lastPortDiscovery = now;
+    return cfgPort;
+  }
+
+  // 4. Variavel de ambiente
+  const envPort = parseInt(process.env.ARIA2_RPC_PORT);
+  if (envPort && await probePortAsync(envPort)) {
+    discoveredPort = envPort;
+    lastPortDiscovery = now;
+    return envPort;
+  }
+
+  // 5. Fallback: 6800
+  if (await probePortAsync(DEFAULT_PORT)) {
+    discoveredPort = DEFAULT_PORT;
+    lastPortDiscovery = now;
+    return DEFAULT_PORT;
+  }
+
+  // Nada encontrado — retornar ultima conhecida ou default
+  return discoveredPort || DEFAULT_PORT;
+}
+
+/** Obtem a porta atual (descobre se necessario). */
+async function getPort() {
+  return discoverPort();
+}
+
+/** Forca redescoberta (chamar se a conexao cair). */
+function invalidatePort() {
+  discoveredPort = null;
+  lastPortDiscovery = 0;
+}
 
 // === Cliente WebSocket RPC ===
 // Mantem uma unica conexao persistente - elimina CLOSE_WAIT completamente
@@ -22,10 +156,12 @@ let wsReady = false;
 let wsEverConnected = false; // Track se WS ja conectou alguma vez
 const wsCallbacks = new Map(); // id -> {resolve, reject, timeout}
 
-function connectWs() {
+async function connectWs() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+  const port = await getPort();
+  const wsUrl = `ws://127.0.0.1:${port}/jsonrpc`;
   try {
-    ws = new WebSocket(WS_URL);
+    ws = new WebSocket(wsUrl);
   } catch { ws = null; wsReady = false; return; }
   ws.on('open', () => { wsReady = true; wsEverConnected = true; });
   ws.on('message', (data) => {
@@ -47,6 +183,7 @@ function connectWs() {
       cb.reject(new Error('WebSocket closed'));
       wsCallbacks.delete(id);
     }
+    invalidatePort(); // forcar redescoberta na reconexao
     setTimeout(() => connectWs(), 3000);
   });
   ws.on('error', () => { wsReady = false; });
@@ -68,8 +205,8 @@ function wsRpc(method, params = []) {
   });
 }
 
-// Iniciar conexao WebSocket
-connectWs();
+// Iniciar conexao WebSocket (async, nao bloqueia require)
+connectWs().catch(() => {});
 
 // HTTP axios como fallback
 const http = require('http');
@@ -115,8 +252,6 @@ async function startMonitor() {
       // 3. Limpar cache de gids que nao estao nem ativos nem parados
       for (const [gid, st] of statusCache) {
         if (!activeGids.has(gid) && st.status === 'active') {
-          // Nao esta mais ativo mas tellStopped nao retornou - marcar como unknown
-          // Nao faz tellStatus individual (causa CLOSE_WAIT)
           statusCache.delete(gid);
         }
       }
@@ -138,7 +273,7 @@ async function rpc(method, params = []) {
   if (wsEverConnected) {
     for (let i = 0; i < 10; i++) {
       if (wsReady && ws && ws.readyState === WebSocket.OPEN) break;
-      if (!ws || ws.readyState === WebSocket.CLOSED) { connectWs(); }
+      if (!ws || ws.readyState === WebSocket.CLOSED) { await connectWs(); }
       await new Promise(r => setTimeout(r, 500));
     }
   }
@@ -146,11 +281,13 @@ async function rpc(method, params = []) {
     try {
       return await wsRpc(method, params);
     } catch (e) {
-      if (!e.message.includes('timeout')) connectWs();
+      if (!e.message.includes('timeout')) connectWs().catch(() => {});
     }
   }
   // Fallback HTTP (apenas se WS nao disponivel)
-  const r = await rpcAxios.post(RPC_URL, {
+  const port = await getPort();
+  const rpcUrl = `http://127.0.0.1:${port}/jsonrpc`;
+  const r = await rpcAxios.post(rpcUrl, {
     jsonrpc: '2.0',
     method,
     id: String(rpcId++),
@@ -165,13 +302,12 @@ async function rpc(method, params = []) {
  * Reduz drasticamente o overhead no daemon aria2.
  */
 async function multicall(calls) {
-  // Usar rpc() que tenta WebSocket primeiro
   const result = await rpc('system.multicall', [calls.map(c => ({ methodName: c.method, params: c.params }))]);
   return result.map(item => item[0] !== undefined ? item[0] : null);
 }
 
 /**
- * Verifica se o daemon aria2c do Motrix esta rodando.
+ * Verifica se o daemon aria2c esta rodando.
  * @returns {Promise<boolean>}
  */
 async function isAlive() {
@@ -182,6 +318,14 @@ async function isAlive() {
 }
 
 /**
+ * Retorna a porta RPC atual em uso.
+ * @returns {Promise<number>}
+ */
+async function getRpcPort() {
+  return getPort();
+}
+
+/**
  * Adiciona um download (HTTP, magnet ou .torrent) via RPC.
  * @param {string} url - URL HTTP, magnet link ou path para .torrent local
  * @param {string} dir - Diretorio de destino
@@ -189,7 +333,39 @@ async function isAlive() {
  * @param {object} opts - Opcoes extras do aria2 (headers, connections, etc)
  * @returns {Promise<string>} gid do download
  */
-async function addDownload(url, dir, filename, opts = {}) {
+/** Le cookies do archive.org e retorna como header string. */
+function getArchiveCookieHeader() {
+  try {
+    const cookieFile = 'F:\\importre\\archive_cookies.txt';
+    if (!fs.existsSync(cookieFile)) return null;
+    const cookies = fs.readFileSync(cookieFile, 'utf8');
+    const cookiePairs = [];
+    for (const line of cookies.split('\n')) {
+      if (line.startsWith('#') || !line.trim()) continue;
+      const parts = line.split('\t');
+      if (parts.length >= 7) cookiePairs.push(`${parts[5]}=${parts[6]}`);
+    }
+    return cookiePairs.length ? `Cookie: ${cookiePairs.join('; ')}` : null;
+  } catch { return null; }
+}
+
+/** Constroi array de headers para o download. */
+function buildHeaders(url, opts) {
+  const headerArr = [];
+  if (opts.headers) {
+    for (const [k, v] of Object.entries(opts.headers)) {
+      headerArr.push(`${k}: ${v}`);
+    }
+  }
+  if (url.includes('archive.org')) {
+    const cookieHeader = getArchiveCookieHeader();
+    if (cookieHeader) headerArr.push(cookieHeader);
+  }
+  return headerArr;
+}
+
+/** Constroi options do aria2 para addDownload. */
+function buildDownloadOptions(dir, filename, opts, headerArr) {
   const options = {
     dir,
     'max-connection-per-server': String(opts.connections || 16),
@@ -206,43 +382,20 @@ async function addDownload(url, dir, filename, opts = {}) {
     ...opts.aria2Options
   };
   if (filename) options.out = filename;
-  // Headers do usuario + cookies automaticos para archive.org
-  const headerArr = [];
-  if (opts.headers) {
-    for (const [k, v] of Object.entries(opts.headers)) {
-      headerArr.push(`${k}: ${v}`);
-    }
-  }
-  // Adicionar cookies do archive.org se a URL for archive.org
-  if (url.includes('archive.org')) {
-    try {
-      const fs = require('fs');
-      const cookieFile = 'F:\\importre\\archive_cookies.txt';
-      if (fs.existsSync(cookieFile)) {
-        const cookies = fs.readFileSync(cookieFile, 'utf8');
-        const cookiePairs = [];
-        for (const line of cookies.split('\n')) {
-          if (line.startsWith('#') || !line.trim()) continue;
-          const parts = line.split('\t');
-          if (parts.length >= 7) cookiePairs.push(`${parts[5]}=${parts[6]}`);
-        }
-        if (cookiePairs.length) {
-          headerArr.push(`Cookie: ${cookiePairs.join('; ')}`);
-        }
-      }
-    } catch { /* ignore */ }
-  }
   if (headerArr.length) options.header = headerArr;
+  return options;
+}
+
+async function addDownload(url, dir, filename, opts = {}) {
+  const headerArr = buildHeaders(url, opts);
+  const options = buildDownloadOptions(dir, filename, opts, headerArr);
 
   // magnet: ou .torrent local -> addTorrent
   // HTTP/HTTPS -> addUri
   if (url.startsWith('magnet:')) {
-    // addTorrent aceita [torrentFile|magnet, uris[], options]
     return rpc('aria2.addTorrent', [url, [], options]);
   }
   if (url.endsWith('.torrent') && !url.startsWith('http')) {
-    // .torrent local: ler como base64
-    const fs = require('fs');
     const torrentData = fs.readFileSync(url);
     return rpc('aria2.addTorrent', [torrentData.toString('base64'), [], options]);
   }
@@ -377,8 +530,6 @@ async function rpcDownload(url, outputPath, options = {}) {
     // Ler status do cache compartilhado (sem chamada RPC individual)
     let status = getCachedStatus(gid);
     if (!status) {
-      // gid nao esta no cache - pode ser novo ou o monitor ainda nao rodou
-      // Faz uma chamada direta como fallback (raro)
       try { status = await tellStatus(gid); }
       catch (e) {
         logProgress(`RPC erro obtendo status gid=${gid}: ${e.message}. Retry...`);
@@ -424,7 +575,6 @@ function checkTimeout(ctx) {
 }
 
 function handleStatus(status, gid, outputPath, isBt, _options) {
-  const fs = require('fs');
   if (status.status === 'complete') {
     if (isBt) return { done: true, value: resolveBtFile(status, outputPath) };
     if (fs.existsSync(outputPath)) return { done: true, value: outputPath };
@@ -441,7 +591,6 @@ function handleStatus(status, gid, outputPath, isBt, _options) {
 }
 
 function resolveBtFile(status, outputPath) {
-  const fs = require('fs');
   const files = status.files || [];
   const downloaded = files.find(f => f.completedLength === f.length && f.length > 0);
   if (downloaded && fs.existsSync(downloaded.path)) {
@@ -499,7 +648,6 @@ function formatSpeed(bps) {
 }
 
 function logProgress(msg) {
-  // Log silencioso - pode ser capturado por logger externo
   if (process.env.ARIA2_RPC_DEBUG) console.log(`[aria2_rpc] ${msg}`);
 }
 
@@ -507,6 +655,7 @@ module.exports = {
   rpc,
   multicall,
   isAlive,
+  getRpcPort,
   addDownload,
   tellStatus,
   removeDownload,
@@ -518,5 +667,7 @@ module.exports = {
   changeGlobalOption,
   purgeDownloadResult,
   rpcDownload,
-  RPC_URL
+  startMonitor,
+  getCachedStatus,
+  invalidatePort
 };

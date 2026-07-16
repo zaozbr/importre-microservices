@@ -2,22 +2,70 @@
  * convert_downloads_to_chd.js
  *
  * Converte todas as pastas em F:\downloads para .chd e move para D:\roms\library\roms\psx.
- * Processa em paralelo (max 4 conversões simultâneas com chdman).
- * Após converter, move arquivos originais para D:\roms\duplicados e deleta a pasta temporária.
+ * Fluxo: descomprimir .ecm (no F:) -> chdman gera .chd temp (no F:) -> mover .chd para D: -> limpar F:.
+ * Processa em paralelo (max 12 conversões simultâneas com chdman).
  *
  * Uso: node tools/convert_downloads_to_chd.js
  */
 const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
+const { decodeEcmStream, eccedcInit } = require('./unecm.js');
 
 const DOWNLOADS_DIR = 'F:\\downloads';
 const ROM_DIR = 'D:\\roms\\library\\roms\\psx';
-const DUPLICADOS_DIR = 'D:\\roms\\duplicados';
+const CHD_TEMP_DIR = 'F:\\chd_temp';
 const CHDMAN = 'F:\\importre\\chdman.exe';
-const MAX_PARALLEL = 4;
+const MAX_PARALLEL = 12;
 
-if (!fs.existsSync(DUPLICADOS_DIR)) fs.mkdirSync(DUPLICADOS_DIR, { recursive: true });
+if (!fs.existsSync(CHD_TEMP_DIR)) fs.mkdirSync(CHD_TEMP_DIR, { recursive: true });
+eccedcInit();
+
+// Descomprimir todos os .ecm de uma pasta para .bin/.img (no proprio F:)
+async function decompressEcms(dir) {
+  const allFiles = fs.readdirSync(dir, { withFileTypes: true });
+  const ecms = [];
+  function scan(d, prefix) {
+    for (const entry of allFiles) {
+      // so top-level por enquanto
+    }
+  }
+  // Buscar .ecm na raiz e em subpastas
+  function findEcms(d) {
+    const items = fs.readdirSync(d, { withFileTypes: true });
+    const result = [];
+    for (const item of items) {
+      const fullPath = path.join(d, item.name);
+      if (item.isDirectory()) {
+        result.push(...findEcms(fullPath));
+      } else if (item.name.toLowerCase().endsWith('.ecm')) {
+        result.push(fullPath);
+      }
+    }
+    return result;
+  }
+  const ecmFiles = findEcms(dir);
+  for (const ecmPath of ecmFiles) {
+    const outPath = ecmPath.replace(/\.ecm$/i, '');
+    if (fs.existsSync(outPath)) {
+      // Ja descomprimido, deletar .ecm
+      fs.unlinkSync(ecmPath);
+      continue;
+    }
+    const ecmSize = fs.statSync(ecmPath).size;
+    console.log(`[ECM] Descomprimindo ${path.basename(ecmPath)} (${(ecmSize / 1048576).toFixed(0)}MB)`);
+    try {
+      await decodeEcmStream(ecmPath, outPath);
+      // Deletar .ecm apos descomprimir com sucesso
+      fs.unlinkSync(ecmPath);
+      console.log(`[ECM-OK] ${path.basename(outPath)} descomprimido`);
+    } catch (e) {
+      console.log(`[ECM-ERROR] ${path.basename(ecmPath)}: ${e.message}`);
+      // Deletar saida parcial se existir
+      try { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); } catch {}
+    }
+  }
+}
 
 function findRomFiles(dir) {
   const files = fs.readdirSync(dir);
@@ -56,7 +104,9 @@ function findRomFiles(dir) {
     return generated;
   }
   // Procurar em subpastas (discos)
-  const subdirs = files.filter(f => fs.statSync(path.join(dir, f)).isDirectory());
+  const subdirs = files.filter(f => {
+    try { return fs.statSync(path.join(dir, f)).isDirectory(); } catch { return false; }
+  });
   const result = [];
   for (const sd of subdirs) {
     const sub = path.join(dir, sd);
@@ -64,14 +114,22 @@ function findRomFiles(dir) {
     const subCues = subFiles.filter(f => f.toLowerCase().endsWith('.cue'));
     const subIsos = subFiles.filter(f => f.toLowerCase().endsWith('.iso'));
     const subBins = subFiles.filter(f => f.toLowerCase().endsWith('.bin'));
+    const subImgs = subFiles.filter(f => f.toLowerCase().endsWith('.img'));
     if (subCues.length > 0) result.push(...subCues.map(f => path.join(sub, f)));
     else if (subIsos.length > 0) result.push(...subIsos.map(f => path.join(sub, f)));
     else if (subBins.length > 0) {
-      // Gerar .cue para .bin em subpasta
       for (const bin of subBins) {
         const cuePath = path.join(sub, bin.replace(/\.bin$/i, '.cue'));
         if (!fs.existsSync(cuePath)) {
           fs.writeFileSync(cuePath, `FILE "${bin}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
+        }
+        result.push(cuePath);
+      }
+    } else if (subImgs.length > 0) {
+      for (const img of subImgs) {
+        const cuePath = path.join(sub, img.replace(/\.img$/i, '.cue'));
+        if (!fs.existsSync(cuePath)) {
+          fs.writeFileSync(cuePath, `FILE "${img}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n`);
         }
         result.push(cuePath);
       }
@@ -80,7 +138,7 @@ function findRomFiles(dir) {
   return result;
 }
 
-// Corrigir .cue que referencia arquivo inexistente (.img quando so existe .bin)
+// Corrigir .cue que referencia arquivo inexistente (path absoluto, extensao errada, etc)
 function fixCueReferences(cuePath) {
   try {
     let content = fs.readFileSync(cuePath, 'utf8');
@@ -92,21 +150,33 @@ function fixCueReferences(cuePath) {
       const m = ref.match(/FILE\s+"([^"]+)"/i);
       if (!m) continue;
       const refFile = m[1];
-      const refPath = path.join(dir, refFile);
-      if (!fs.existsSync(refPath)) {
-        // Procurar arquivo com extensao diferente
-        const baseName = refFile.replace(/\.(img|bin|iso)$/i, '');
-        const altBin = path.join(dir, baseName + '.bin');
-        const altImg = path.join(dir, baseName + '.img');
-        const altIso = path.join(dir, baseName + '.iso');
-        if (fs.existsSync(altBin)) {
-          content = content.replace(refFile, path.basename(altBin));
-          changed = true;
-        } else if (fs.existsSync(altImg)) {
-          content = content.replace(refFile, path.basename(altImg));
-          changed = true;
-        } else if (fs.existsSync(altIso)) {
-          content = content.replace(refFile, path.basename(altIso));
+      // Se for path absoluto (C:\..., D:\..., L:\..., etc), sempre substituir
+      const isAbsolute = /^[A-Za-z]:[\\/]/.test(refFile) || refFile.startsWith('/');
+      const baseName = path.basename(refFile);
+      const refPath = path.join(dir, baseName);
+      if (isAbsolute || !fs.existsSync(refPath)) {
+        // Listar todos arquivos .bin/.img/.iso na pasta
+        const allFiles = fs.readdirSync(dir);
+        const candidates = allFiles.filter(f => /\.(bin|img|iso)$/i.test(f));
+        // Tentar match por nome base (sem extensao)
+        const wantedBase = baseName.replace(/\.(img|bin|iso)$/i, '').toLowerCase();
+        let found = candidates.find(f => {
+          const fb = f.replace(/\.(bin|img|iso)$/i, '').toLowerCase();
+          return fb === wantedBase;
+        });
+        // Se nao encontrou por nome exato, usar o unico .bin/.img disponivel
+        if (!found && candidates.length === 1) {
+          found = candidates[0];
+        }
+        // Se ainda nao encontrou, tentar por similaridade (primeiros 10 chars)
+        if (!found && wantedBase.length > 5) {
+          found = candidates.find(f => {
+            const fb = f.replace(/\.(bin|img|iso)$/i, '').toLowerCase();
+            return fb.startsWith(wantedBase.substring(0, 10)) || wantedBase.startsWith(fb.substring(0, 10));
+          });
+        }
+        if (found) {
+          content = content.replace(refFile, found);
           changed = true;
         }
       }
@@ -117,25 +187,50 @@ function fixCueReferences(cuePath) {
   } catch {}
 }
 
-function convertToChd(cuePath, chdPath) {
+// Converter para .chd temporario no F: e depois mover para D:
+async function convertToChd(cuePath, chdFinalPath) {
+  const chdName = path.basename(chdFinalPath);
+  const chdTempPath = path.join(CHD_TEMP_DIR, chdName);
+
   return new Promise((resolve, reject) => {
-    const args = ['createcd', '-i', cuePath, '-o', chdPath, '-c', 'none'];
+    const args = ['createcd', '-i', cuePath, '-o', chdTempPath, '-c', 'none'];
     execFile(CHDMAN, args, { timeout: 600000, maxBuffer: 1024 * 1024 }, (err) => {
       if (err) {
         // Tentar com force flag
-        execFile(CHDMAN, [...args, '-f'], { timeout: 600000, maxBuffer: 1024 * 1024 }, (err2) => {
-          if (err2) reject(err2);
-          else resolve();
+        execFile(CHDMAN, [...args, '-f'], { timeout: 600000, maxBuffer: 1024 * 1024 }, async (err2) => {
+          if (err2) {
+            // Limpar .chd temp se existir
+            try { if (fs.existsSync(chdTempPath)) fs.unlinkSync(chdTempPath); } catch {}
+            reject(err2);
+          } else {
+            await moveChdToDest(chdTempPath, chdFinalPath);
+            resolve();
+          }
         });
       } else {
-        resolve();
+        moveChdToDest(chdTempPath, chdFinalPath).then(resolve).catch(reject);
       }
     });
   });
 }
 
+// Mover .chd do temp (F:) para destino (D:) - copia + delete (cross-device)
+async function moveChdToDest(chdTempPath, chdFinalPath) {
+  if (!fs.existsSync(chdTempPath) || fs.statSync(chdTempPath).size === 0) {
+    throw new Error('CHD temporario nao foi criado ou esta vazio');
+  }
+  // fs.rename nao funciona entre drives diferentes - usar copy + unlink
+  fs.copyFileSync(chdTempPath, chdFinalPath);
+  fs.unlinkSync(chdTempPath);
+}
+
 async function processFolder(folderName) {
   const folderPath = path.join(DOWNLOADS_DIR, folderName);
+
+  // 1. Descomprimir .ecm primeiro (no F:)
+  await decompressEcms(folderPath);
+
+  // 2. Encontrar ROMs
   const romFiles = findRomFiles(folderPath);
 
   if (romFiles.length === 0) {
@@ -156,10 +251,10 @@ async function processFolder(folderName) {
     } else {
       chdName = `${folderName}.chd`;
     }
-    const chdPath = path.join(ROM_DIR, chdName);
+    const chdFinalPath = path.join(ROM_DIR, chdName);
 
     // Se CHD já existe, pular
-    if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 0) {
+    if (fs.existsSync(chdFinalPath) && fs.statSync(chdFinalPath).size > 0) {
       console.log(`[EXISTS] ${chdName} já existe`);
       results.push({ chd: chdName, status: 'exists' });
       continue;
@@ -171,11 +266,12 @@ async function processFolder(folderName) {
       if (romPath.toLowerCase().endsWith('.cue')) {
         fixCueReferences(romPath);
       }
-      await convertToChd(romPath, chdPath);
+      // chdman gera no F: temp, depois move para D:
+      await convertToChd(romPath, chdFinalPath);
 
-      // Verificar se CHD foi criado
-      if (fs.existsSync(chdPath) && fs.statSync(chdPath).size > 0) {
-        console.log(`[OK] ${chdName} (${(fs.statSync(chdPath).size / 1048576).toFixed(0)}MB)`);
+      // Verificar se CHD foi criado em D:
+      if (fs.existsSync(chdFinalPath) && fs.statSync(chdFinalPath).size > 0) {
+        console.log(`[OK] ${chdName} (${(fs.statSync(chdFinalPath).size / 1048576).toFixed(0)}MB)`);
         results.push({ chd: chdName, status: 'ok' });
       } else {
         console.log(`[FAIL] ${chdName} não foi criado`);
@@ -187,22 +283,12 @@ async function processFolder(folderName) {
     }
   }
 
-  // Se pelo menos 1 CHD foi criado com sucesso, mover originais para duplicados
+  // Se pelo menos 1 CHD foi criado com sucesso, DELETAR originais (liberar espaco no F:)
   const successCount = results.filter(r => r.status === 'ok' || r.status === 'exists').length;
   if (successCount > 0 && successCount === romFiles.length) {
     try {
-      const destDir = path.join(DUPLICADOS_DIR, folderName);
-      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-      // Mover todos arquivos da pasta original
-      const allFiles = fs.readdirSync(folderPath);
-      for (const f of allFiles) {
-        const src = path.join(folderPath, f);
-        const dst = path.join(destDir, f);
-        try { fs.renameSync(src, dst); } catch { fs.copyFileSync(src, dst); fs.unlinkSync(src); }
-      }
-      // Deletar pasta original vazia
-      try { fs.rmdirSync(folderPath, { recursive: true }); } catch {}
-      console.log(`[CLEAN] ${folderName}: originais movidos para duplicados, pasta removida`);
+      fs.rmSync(folderPath, { recursive: true, force: true });
+      console.log(`[CLEAN] ${folderName}: originais deletados, pasta removida`);
     } catch (e) {
       console.log(`[CLEAN-ERROR] ${folderName}: ${e.message}`);
     }

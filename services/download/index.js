@@ -574,7 +574,7 @@ async function tryResolveUrl(source, directExts) {
 
 // === Semáforo para limitar conversoes CHD concorrentes ===
 // chdman e CPU-intensivo - max 2 simultaneos
-const chdSemaphore = { current: 0, max: 2, waiters: [] };
+const chdSemaphore = { current: 0, max: 6, waiters: [] };
 
 function acquireChdSlot() {
   return new Promise((resolve) => {

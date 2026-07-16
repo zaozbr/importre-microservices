@@ -5,13 +5,14 @@
  *
  * Estrategia (simples e robusta):
  * - Hack no <head>, ANTES do AngularJS bootstrapar
- * - Descobre a porta RPC sincronamente (XHR sync) antes do AriaNg ler o localStorage
- * - Atualiza rpcPort no localStorage via JSON.parse/stringify (nao regex)
+ * - Descobre a porta RPC via endpoint /rpc-port (mesma origem, sem CORS)
+ * - Valida via proxy /jsonrpc-proxy (mesma origem, sem CORS)
+ * - Atualiza rpcPort no localStorage via JSON.parse/stringify
  * - AriaNg conecta na porta certa na primeira vez
  * - Poll async a cada 10s; se daemon cair e voltar numa porta diferente,
  *   atualiza localStorage e recarrega (com anti-loop no sessionStorage)
  * - Badge de status com a porta descoberta
- * - SEM patches de XHR/fetch do AriaNg (zero interferencia)
+ * - SEM XHR cross-origin (tudo passa pelo proxy na mesma origem)
  *
  * Uso: node tools/inject_ariang_hack.js
  */
@@ -34,8 +35,6 @@ const hack = `<!-- ariaNgResilience START -->
   var connected = false;
   var reloadGuardKey = 'ariaNgResilience_reloaded_at';
   var OPTIONS_KEY = 'AriaNg.Options';
-  // O servidor web (ariang_web.js) descobre a porta via netstat e expoe em /rpc-port
-  // Nenhuma lista hardcoded — a porta vem do sistema operacional.
 
   function log(msg) {
     console.log('[ariaNgResilience] ' + msg);
@@ -72,8 +71,7 @@ const hack = `<!-- ariaNgResilience START -->
   function updateConfiguredPort(port) {
     try {
       var raw = localStorage.getItem(OPTIONS_KEY);
-      if (!raw) return false;
-      var opts = JSON.parse(raw);
+      var opts = raw ? JSON.parse(raw) : {};
       var oldPort = opts.rpcPort;
       opts.rpcPort = String(port);
       if (!opts.rpcHost || opts.rpcHost === 'localhost') opts.rpcHost = '127.0.0.1';
@@ -88,10 +86,47 @@ const hack = `<!-- ariaNgResilience START -->
     } catch(e) { log('Erro atualizando localStorage: ' + e.message); return false; }
   }
 
+  /* === Probe RPC via proxy (mesma origem, sem CORS) === */
+  function probeRpcSync(port) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/jsonrpc-proxy', false);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({jsonrpc:'2.0',method:'aria2.getVersion',id:'probe',params:[]}));
+      if (xhr.status === 200) {
+        var data = JSON.parse(xhr.responseText);
+        if (data.result && data.result.version) {
+          return data.result.version;
+        }
+      }
+    } catch(e) {}
+    return null;
+  }
+
+  function probeRpcAsync(port, cb) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.timeout = 5000;
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          try {
+            var data = JSON.parse(xhr.responseText);
+            if (data.result && data.result.version) { cb(data.result.version); return; }
+          } catch(e) {}
+        }
+        cb(null);
+      };
+      xhr.onerror = xhr.ontimeout = function() { cb(null); };
+      xhr.open('POST', '/jsonrpc-proxy', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({jsonrpc:'2.0',method:'aria2.getVersion',id:'probe',params:[]}));
+    } catch(e) { cb(null); }
+  }
+
   /* === Descobrir porta RPC (sincrono, antes do AngularJS) ===
-     Busca do endpoint /rpc-port do servidor web (ariang_web.js).
+     Usa o endpoint /rpc-port do servidor web (ariang_web.js).
      O servidor descobre via netstat (PIDs de aria2c.exe em LISTENING).
-     Fallback: porta configurada no localStorage. */
+     Validacao via proxy /jsonrpc-proxy (mesma origem, sem CORS). */
   function discoverPortSync() {
     // 1. Pergunta ao servidor web qual porta o aria2c esta ouvindo
     try {
@@ -102,20 +137,12 @@ const hack = `<!-- ariaNgResilience START -->
         var info = JSON.parse(xhr.responseText);
         if (info.port) {
           var port = parseInt(info.port);
-          // Valida com probe RPC
-          try {
-            var xhr2 = new XMLHttpRequest();
-            xhr2.open('POST', 'http://127.0.0.1:' + port + '/jsonrpc', false);
-            xhr2.setRequestHeader('Content-Type', 'application/json');
-            xhr2.send(JSON.stringify({jsonrpc:'2.0',method:'aria2.getVersion',id:'probe',params:[]}));
-            if (xhr2.status === 200) {
-              var data = JSON.parse(xhr2.responseText);
-              if (data.result && data.result.version) {
-                log('Daemon encontrado na porta ' + port + ' via /rpc-port (v' + data.result.version + ')');
-                return port;
-              }
-            }
-          } catch(e) {}
+          // Valida via proxy (mesma origem)
+          var version = probeRpcSync(port);
+          if (version) {
+            log('Daemon encontrado na porta ' + port + ' (v' + version + ')');
+            return port;
+          }
         }
       }
     } catch(e) {}
@@ -123,19 +150,11 @@ const hack = `<!-- ariaNgResilience START -->
     // 2. Fallback: porta configurada no localStorage
     var configured = getConfiguredPort();
     if (configured) {
-      try {
-        var xhr3 = new XMLHttpRequest();
-        xhr3.open('POST', 'http://127.0.0.1:' + configured + '/jsonrpc', false);
-        xhr3.setRequestHeader('Content-Type', 'application/json');
-        xhr3.send(JSON.stringify({jsonrpc:'2.0',method:'aria2.getVersion',id:'probe',params:[]}));
-        if (xhr3.status === 200) {
-          var data2 = JSON.parse(xhr3.responseText);
-          if (data2.result && data2.result.version) {
-            log('Daemon encontrado na porta ' + configured + ' via localStorage');
-            return configured;
-          }
-        }
-      } catch(e) {}
+      var version2 = probeRpcSync(configured);
+      if (version2) {
+        log('Daemon encontrado na porta ' + configured + ' via localStorage (v' + version2 + ')');
+        return configured;
+      }
     }
 
     log('Nenhuma porta respondendo');
@@ -154,23 +173,10 @@ const hack = `<!-- ariaNgResilience START -->
             var info = JSON.parse(xhr.responseText);
             if (info.port) {
               var port = parseInt(info.port);
-              // Valida com probe RPC
-              var xhr2 = new XMLHttpRequest();
-              xhr2.timeout = 3000;
-              xhr2.onload = function() {
-                if (xhr2.status === 200) {
-                  try {
-                    var data = JSON.parse(xhr2.responseText);
-                    if (data.result && data.result.version) { cb(port); return; }
-                  } catch(e) {}
-                }
-                // Fallback localStorage
+              probeRpcAsync(port, function(version) {
+                if (version) { cb(port); return; }
                 discoverPortAsyncFallback(cb);
-              };
-              xhr2.onerror = xhr2.ontimeout = function() { discoverPortAsyncFallback(cb); };
-              xhr2.open('POST', 'http://127.0.0.1:' + port + '/jsonrpc', true);
-              xhr2.setRequestHeader('Content-Type', 'application/json');
-              xhr2.send(JSON.stringify({jsonrpc:'2.0',method:'aria2.getVersion',id:'probe',params:[]}));
+              });
               return;
             }
           } catch(e) {}
@@ -186,143 +192,80 @@ const hack = `<!-- ariaNgResilience START -->
   function discoverPortAsyncFallback(cb) {
     var configured = getConfiguredPort();
     if (!configured) { cb(null); return; }
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.timeout = 3000;
-      xhr.onload = function() {
-        if (xhr.status === 200) {
-          try {
-            var data = JSON.parse(xhr.responseText);
-            if (data.result && data.result.version) { cb(configured); return; }
-          } catch(e) {}
-        }
-        cb(null);
-      };
-      xhr.onerror = xhr.ontimeout = function() { cb(null); };
-      xhr.open('POST', 'http://127.0.0.1:' + configured + '/jsonrpc', true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({jsonrpc:'2.0',method:'aria2.getVersion',id:'probe',params:[]}));
-    } catch(e) { cb(null); }
+    probeRpcAsync(configured, function(version) {
+      if (version) { cb(configured); } else { cb(null); }
+    });
   }
 
   /* === Verificar se daemon esta vivo (async) === */
   function checkAliveAsync(cb) {
-    if (!rpcPort) { cb(false); return; }
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.timeout = 5000;
-      xhr.onload = function() {
-        try {
-          var data = JSON.parse(xhr.responseText);
-          cb(!!(data.result && data.result.version));
-        } catch(e) { cb(false); }
-      };
-      xhr.onerror = xhr.ontimeout = function() { cb(false); };
-      xhr.open('POST', 'http://127.0.0.1:' + rpcPort + '/jsonrpc', true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({jsonrpc:'2.0',method:'aria2.getVersion',id:'alive',params:[]}));
-    } catch(e) { cb(false); }
-  }
-
-  /* === Recarregar pagina com flag anti-loop === */
-  function safeReload(reason) {
-    try {
-      var last = parseInt(sessionStorage.getItem(reloadGuardKey) || '0');
-      var now = Date.now();
-      if (now - last < 15000) {
-        log('Reload bloqueado (anti-loop): ultimo ha ' + (now - last) + 'ms. Razao: ' + reason);
-        setBadge('Conectado :' + rpcPort + ' (reload bloqueado)', '#27ae60');
-        connected = true;
-        return;
-      }
-      sessionStorage.setItem(reloadGuardKey, String(now));
-      log('Recarregando pagina: ' + reason);
-      location.reload();
-    } catch(e) { log('Erro no reload: ' + e.message); }
-  }
-
-  /* === Loop de monitoramento (async, apos inicializacao) === */
-  function poll() {
-    checkAliveAsync(function(alive) {
-      if (alive) {
-        if (!connected) {
-          connected = true;
-          setBadge('Conectado :' + rpcPort, '#27ae60');
-          log('Daemon conectado na porta ' + rpcPort);
-        }
-        setTimeout(poll, 10000);
-      } else {
-        connected = false;
-        setBadge('Desconectado - buscando...', '#e74c3c');
-        log('Daemon caiu na porta ' + rpcPort + '. Buscando...');
-        discoverPortAsync(function(port) {
-          if (port && port !== rpcPort) {
-            log('Daemon voltou na porta ' + port + ' (era ' + rpcPort + ')');
-            rpcPort = port;
-            updateConfiguredPort(port);
-            setBadge('Encontrado :' + port + ' - recarregando...', '#e67e22');
-            safeReload('daemon voltou na porta ' + port);
-            return;
-          }
-          if (port && port === rpcPort) {
-            connected = true;
-            setBadge('Conectado :' + port, '#27ae60');
-            log('Daemon voltou na mesma porta ' + port);
-            setTimeout(poll, 10000);
-            return;
-          }
-          setBadge('Procurando daemon...', '#e74c3c');
-          setTimeout(poll, 5000);
-        });
-      }
+    probeRpcAsync(rpcPort, function(version) {
+      cb(!!version);
     });
   }
 
-  /* === INICIALIZACAO SINCRONA (roda antes do AngularJS) === */
-  var discoveredPort = discoverPortSync();
-  if (discoveredPort) {
-    rpcPort = discoveredPort;
+  /* === Inicializacao sincrona (antes do AngularJS) === */
+  rpcPort = discoverPortSync();
+
+  if (rpcPort) {
+    updateConfiguredPort(rpcPort);
     connected = true;
-    var configured = getConfiguredPort();
-    if (configured !== discoveredPort) {
-      log('Porta configurada (' + configured + ') != descoberta (' + discoveredPort + '). Atualizando localStorage...');
-      updateConfiguredPort(discoveredPort);
-    }
-    log('Hack inicializado - daemon na porta ' + discoveredPort);
+    setBadge('RPC:' + rpcPort, '#27ae60');
   } else {
-    log('Daemon nao encontrado na inicializacao.');
+    setBadge('Sem daemon', '#e74c3c');
   }
 
-  /* === Badge + poll async apos DOM ready === */
-  function startAsync() {
+  // Append badge quando body estiver disponivel
+  if (document.body) {
     appendBadge();
-    if (discoveredPort) {
-      setBadge('Conectado :' + rpcPort, '#27ae60');
-    } else {
-      setBadge('Daemon offline', '#e74c3c');
-    }
-    setTimeout(poll, 10000);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startAsync);
   } else {
-    startAsync();
+    document.addEventListener('DOMContentLoaded', appendBadge);
   }
 
-  window.ariaNgResilience = {
-    getPort: function() { return rpcPort; },
-    isConnected: function() { return connected; },
-    rediscover: function() { discoverPortAsync(function(p) { if (p) { rpcPort = p; updateConfiguredPort(p); } }); }
-  };
+  /* === Poll async: reconectar se daemon cair e voltar === */
+  setInterval(function() {
+    discoverPortAsync(function(newPort) {
+      if (!newPort) {
+        if (connected) {
+          connected = false;
+          setBadge('Desconectado', '#e74c3c');
+        }
+        return;
+      }
+      if (!connected || newPort !== rpcPort) {
+        var oldPort = rpcPort;
+        rpcPort = newPort;
+        updateConfiguredPort(newPort);
+        connected = true;
+        setBadge('RPC:' + newPort, '#27ae60');
+        if (oldPort && oldPort !== newPort) {
+          log('Porta mudou: ' + oldPort + ' -> ' + newPort + '. Recarregando...');
+          // Anti-loop: so recarrega uma vez por 10s
+          var lastReload = sessionStorage.getItem(reloadGuardKey);
+          var now = Date.now().toString();
+          if (!lastReload || (parseInt(now) - parseInt(lastReload)) > 10000) {
+            sessionStorage.setItem(reloadGuardKey, now);
+            location.reload();
+          }
+        }
+      } else {
+        setBadge('RPC:' + rpcPort, '#27ae60');
+      }
+    });
+  }, 10000);
 
-  log('Hack carregado (head, pre-AngularJS) - porta: ' + discoveredPort);
+  log('Hack inicializado. Porta: ' + rpcPort);
 })();
 </script>
 <!-- ariaNgResilience END -->`;
 
-// Injetar no <head>, ANTES do AngularJS bootstrapar
-html = html.replace('</head>', hack + '</head>');
+// Inserir hack no <head>, antes de qualquer script do AriaNg
+const headClose = html.indexOf('</head>');
+if (headClose < 0) {
+  console.error('</head> nao encontrado!');
+  process.exit(1);
+}
+html = html.substring(0, headClose) + hack + html.substring(headClose);
 fs.writeFileSync(file, html, 'utf8');
-console.log('Hack injetado no <head> de', file);
-console.log('Estrategia: JSON.parse/stringify + descoberta sincrona pre-AngularJS');
+console.log('Hack injetado com sucesso em ' + file);
+console.log('Tamanho do hack: ' + hack.length + ' bytes');

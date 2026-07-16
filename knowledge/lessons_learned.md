@@ -192,3 +192,101 @@ O `ariang_web.js` expõe endpoint `/rpc-port` que retorna a porta descoberta. O 
 **Correcao:** Usar `ia configure` (CLI oficial do internetarchive) que faz login via API interna `xauthn` e salva cookies em `~/.config/internetarchive/ia.ini`. Extrair de la e salvar em formato Netscape.
 
 **Regra:** Para extrair cookies HttpOnly de servicos com CLI oficial, usar a CLI em vez de tentar ler o banco de cookies do browser.
+
+## 19. DuckStation audit: esperar o scan terminar COMPLETAMENTE
+
+**Problema:** Ao usar o DuckStation para auditar CHDs quebrados, fechei o processo antes do scan terminar (parou na letra B). O log só tinha 1203 linhas e encontrei apenas 9 CHDs com problema. O usuário achou mais de 50 manualmente depois.
+
+**Correcao:**
+1. O DuckStation escaneia sequencialmente (A-Z). Para 7400+ CHDs, demora 5-10 minutos.
+2. Sinal de termino: linha "Finished game list" no log OU arquivo `cache/gamelist.cache` criado.
+3. O log `duckstation.log` fica locked enquanto o DuckStation roda — usar `[System.IO.File]::Open(..., ReadWrite)` para contornar.
+4. Habilitar `LogLevel = Debug` e `LogToFile = true` em `settings.ini` antes do scan.
+5. Deletar `cache/gamelist.cache` antes para forçar rescan completo.
+
+**Regra:** NUNCA interromper um scan/auditoria antes de confirmar que terminou. Verificar por marcador de fim ("Finished") ou arquivo de saida gerado.
+
+## 20. Padroes de nomes de CHD: (N) no nome = duplicata/track
+
+**Problema:** Apos a deduplicacao, 320 CHDs com sufixo `(1)`, `(2)`, etc. permaneciam na colecao. Esses sao tracks individuais ou duplicatas renomeadas que passaram pelo filtro de deduplicacao.
+
+**Correcao:** CHDs com padrao `\(\d+\)` no nome (ex: `Akumajou-Dracula-X...SLPM-86023(1).chd`) sao sempre duplicatas/tracks e devem ser movidos para `D:\roms\duplicados`. Nomes legitimos de jogos NAO usam `(N)`.
+
+**Regra:** Qualquer CHD com `(N)` no nome e suspeito de ser duplicata/track. Mover para duplicados e reavaliar.
+
+## 21. Download service: porta RPC hardcoded vs aria2c real
+
+**Problema:** O `aria2_rpc.js` tinha porta hardcoded 16810 (Motrix). Quando o aria2c foi iniciado manualmente na porta 6800, o download service nao conseguia se conectar e ficava parado (active:2 mas 0 downloads no aria2).
+
+**Correcao:** A porta RPC deve ser descoberta dinamicamente (via netstat + PIDs de aria2c.exe), nao hardcoded. O `motrix_watchdog.js` ja faz isso, mas o `aria2_rpc.js` (cliente) nao. Corrigido para usar variavel de ambiente `ARIA2_RPC_PORT` com fallback 6800.
+
+**Regra:** NUNCA hardcodear portas de servicos que podem rodar em portas diferentes. Descobrir dinamicamente ou usar variavel de ambiente.
+
+## 22. AriaNg hack: servidor web + injecao no index.html
+
+**Problema:** O AriaNg (interface web do aria2) nao descobre automaticamente a porta RPC do aria2c. A cada reinicio do daemon em porta diferente, o usuario tinha que reconfigurar manualmente.
+
+**Solucao (ja implementada):**
+1. `tools/ariang_web.js` — servidor web na porta 16801 que serve o AriaNg de `C:\AriaNg-Web\` e expoe endpoint `/rpc-port` com a porta descoberta via netstat
+2. `tools/inject_ariang_hack.js` — injeta script de resiliencia no `C:\AriaNg-Web\index.html` que:
+   - Descobre a porta RPC sincronamente antes do AngularJS bootstrapar
+   - Atualiza `localStorage` com a porta correta
+   - Poll async a cada 10s para reconexao automatica
+   - Badge de status no canto superior direito
+
+**Apos reinstalar o AriaNg Native:** O hack em `C:\AriaNg-Web\index.html` persiste. So verificar com `Get-Content C:\AriaNg-Web\index.html | Select-String "ariaNgResilience"` e reiniciar `ariang_web.js` se necessario.
+
+**Regra:** O AriaNg acessivel via `http://127.0.0.1:16801` (nao porta do aria2 nem do Motrix). Sempre iniciar `ariang_web.js` junto com os servicos.
+
+## 23. Queue cleanup: remover itens ja presentes na colecao
+
+**Problema:** A queue tinha 2755 itens, mas 2231 ja estavam na colecao (`D:\roms\library\roms\psx`). O download service tentava rebaixar jogos que ja existiam, desperdicando tempo e bandwidth.
+
+**Correcao:** Script `tools/clean_queue.js` compara seriais da queue com seriais extraidos dos CHDs da colecao. Match por:
+1. Serial exato (SLES-01267)
+2. Nome normalizado (remove tudo nao-alfanumerico, case-insensitive)
+
+Removidos 2231 itens. Queue foi de 2755 -> 524 (dos quais 372 completed, 108 pending, 40 searching, 2 ready, 2 downloading).
+
+**Regra:** Antes de retomar downloads, sempre limpar a queue de itens ja presentes na colecao. Rodar `node tools/clean_queue.js`.
+
+## 24. CHDs quebrados: mover para psx-quebrados e requeue
+
+**Problema:** CHDs corrompidos (invalid file, failed to read executable) estavam misturados com a colecao boa. O DuckStation loga esses erros mas nao os move.
+
+**Correcao:**
+1. Auditar com DuckStation (LogLevel=Debug, LogToFile=true, deletar gamelist.cache)
+2. Esperar scan terminar COMPLETAMENTE (ver licao 19)
+3. Parsear log com `tools/parse_and_move.js` — procura por "Failed to open disc image", "invalid file", "Failed to read executable"
+4. Mover CHDs quebrados para `D:\roms\psx-quebrados`
+5. Re-adicionar seriais na queue com `tools/requeue_broken.js`
+
+Resultado: 94 CHDs quebrados movidos, 31 re-adicionados na queue (63 ja estavam).
+
+**Regra:** CHDs quebrados devem ser movidos para `D:\roms\psx-quebrados` (nao deletados) e seus seriais re-adicionados na queue para re-download.
+
+## 25. Conversao CHD: tudo no drive F: (SSD), mover para F:\testes para testar
+
+**Problema:** Converter CHDs no drive D: (HDD) causava I/O bottleneck e conflitos com outros processos. Mover CHDs recem-convertidos direto para a colecao sem testar deixou CHDs invalidos passarem.
+
+**Correcao:**
+1. Todo processamento (download, extracao, conversao CHD) acontece no drive F: (SSD)
+2. CHDs convertidos vao para `F:\testes` (nao direto para a colecao)
+3. Usuario testa os CHDs no DuckStation antes de mover para `D:\roms\library\roms\psx`
+4. CHDs com problema em `F:\testes` sao apagados e re-queued
+5. CHDs bons sao movidos para a colecao
+
+**Regra:** Nunca mover CHDs recem-convertidos direto para a colecao. Passar por `F:\testes` para validacao manual primeiro.
+
+## 26. Subagent para conversao CHD em paralelo ao download
+
+**Problema:** Conversao CHD e download competem pelo mesmo I/O se feitos no mesmo processo. Fazer sequencialmente desperdica tempo.
+
+**Correcao:** Usar `run_subagent` com `is_background=true` para conversao CHD enquanto o main agent gerencia downloads. O subagent:
+1. Limpa `F:\work` e `F:\chd_temp` (sobras de conversoes interrompidas)
+2. Move CHDs soltos em F: para `F:\testes`
+3. Converte bins/cues em F: para CHD (ate 8 jobs paralelos)
+4. Move CHDs convertidos para `F:\testes`
+5. Deleta arquivos originais apos conversao
+
+**Regra:** Delegar conversao CHD a subagent em background para paralelizar com downloads. Main agent foca em manter downloads acima de 40MB/s.

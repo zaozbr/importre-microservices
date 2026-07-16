@@ -1,0 +1,5 @@
+Encontrados em duplicados: 1
+Nao encontrados: 217
+
+[serial] SLUS-00978 - 007-The-World-Is-Not-Enough-SLUS-00978
+  007Theworldisnotenoughusabeta-SLUS-00978.chd

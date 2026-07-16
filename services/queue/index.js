@@ -107,6 +107,22 @@ function isReady(item) {
   return item.status === 'ready' && (item.sources || []).some(s => s.url);
 }
 
+/** Limpa itens de completed/in_progress que voltaram para ready (re-queue). */
+function cleanStaleState() {
+  const q = getQueue();
+  let cleaned = 0;
+  for (const item of q.queue) {
+    if (item.status === 'ready') {
+      if (q.completed[item.serial]) { delete q.completed[item.serial]; cleaned++; }
+      if (q.in_progress[item.serial]) { delete q.in_progress[item.serial]; cleaned++; }
+    }
+  }
+  if (cleaned > 0) markDirty();
+  return cleaned;
+}
+// Rodar a cada 30s para garantir consistencia
+setInterval(cleanStaleState, 30000);
+
 function canRetry(item) {
   const retries = item.retry_count || 0;
   if (retries >= MAX_RETRY) return false;

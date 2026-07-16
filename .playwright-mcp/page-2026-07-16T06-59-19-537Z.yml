@@ -1,0 +1,123 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - banner [ref=f2e3]:
+      - generic "AriaNg v1.3.14" [ref=f2e5] [cursor=pointer]:
+        - generic [ref=f2e6]:
+          - generic [ref=f2e7]:
+            - text: AriaNg
+            - generic [ref=f2e8]: 
+          - text: 
+      - navigation [ref=f2e9]:
+        - list [ref=f2e10]:
+          - listitem [ref=f2e11]:
+            - link " New" [ref=f2e12] [cursor=pointer]:
+              - /url: "#!/new"
+              - generic [ref=f2e13]: 
+              - text: New
+          - listitem [ref=f2e14]
+          - listitem [ref=f2e15]:
+            - generic "Start": 
+          - listitem [ref=f2e16]:
+            - generic "Pause": 
+          - listitem [ref=f2e17]:
+            - generic "Delete":
+              - generic: 
+              - generic: 
+          - listitem [ref=f2e18]
+          - listitem [ref=f2e19]:
+            - generic "Select All": 
+          - listitem [ref=f2e20]:
+            - generic "Display Order":
+              - generic: 
+              - generic: 
+            - text: 
+          - listitem [ref=f2e21]
+          - listitem [ref=f2e22]:
+            - link "" [ref=f2e23] [cursor=pointer]:
+              - /url: https://github.com/mayswind/AriaNg
+        - list [ref=f2e26]:
+          - listitem [ref=f2e27]:
+            - textbox "Search" [ref=f2e28]
+            - generic: 
+    - complementary [ref=f2e29]:
+      - list [ref=f2e32]:
+        - listitem [ref=f2e33]: Download
+        - listitem [ref=f2e34]:
+          - link " Downloading (1)" [ref=f2e35] [cursor=pointer]:
+            - /url: "#!/downloading"
+            - generic [ref=f2e36]: 
+            - text: Downloading (1)
+        - listitem [ref=f2e37]:
+          - link " Waiting" [ref=f2e38] [cursor=pointer]:
+            - /url: "#!/waiting"
+            - generic [ref=f2e39]: 
+            - text: Waiting
+        - listitem [ref=f2e40]:
+          - link " Finished / Stopped" [ref=f2e41] [cursor=pointer]:
+            - /url: "#!/stopped"
+            - generic [ref=f2e42]: 
+            - text: Finished / Stopped
+        - listitem [ref=f2e43]: Settings
+        - listitem [ref=f2e44]:
+          - link " AriaNg Settings" [ref=f2e45] [cursor=pointer]:
+            - /url: "#!/settings/ariang"
+            - generic [ref=f2e46]: 
+            - text: AriaNg Settings
+        - listitem [ref=f2e47]:
+          - link " Aria2 Settings " [ref=f2e48] [cursor=pointer]:
+            - /url: javascript:void(0);
+            - generic [ref=f2e49]: 
+            - text: Aria2 Settings
+            - generic [ref=f2e50]: 
+        - listitem [ref=f2e52]:
+          - link "Connected  Aria2 Status" [ref=f2e53] [cursor=pointer]:
+            - /url: "#!/status"
+            - generic [ref=f2e54]: Connected
+            - generic [ref=f2e55]: 
+            - text: Aria2 Status
+    - generic [ref=f2e59]:
+      - generic [ref=f2e61]:
+        - generic [ref=f2e63]:
+          - generic [ref=f2e65]:
+            - generic [ref=f2e66]: File Name
+            - generic [ref=f2e68]: File Size
+          - generic [ref=f2e71]:
+            - generic [ref=f2e72]: Progress
+            - generic [ref=f2e74]: Remaining
+          - generic [ref=f2e76]: Download Speed
+        - generic [ref=f2e79] [cursor=pointer]:
+          - generic [ref=f2e80]:
+            - generic "SLES-02201.7z" [ref=f2e83]
+            - generic [ref=f2e84]:
+              - text: 300.38 MB
+              - link "(1 Files)" [ref=f2e85]:
+                - /url: "#!/task/detail/f74959e91c6de36d"
+          - generic [ref=f2e86]:
+            - progressbar [ref=f2e88]:
+              - generic [ref=f2e89]: 95.03%
+            - generic [ref=f2e90]:
+              - text: 00:01:07
+              - generic [ref=f2e91]: "16"
+          - generic [ref=f2e92]: 225.08 KB/s
+        - generic:   
+      - generic [ref=f2e94]: Loading...
+    - contentinfo [ref=f2e111]:
+      - navigation [ref=f2e112]:
+        - list [ref=f2e113]:
+          - listitem [ref=f2e114]:
+            - button "" [ref=f2e115] [cursor=pointer]
+          - listitem [ref=f2e117]
+          - listitem [ref=f2e118]:
+            - button " Shortcut" [ref=f2e119] [cursor=pointer]:
+              - generic [ref=f2e120]: 
+              - text: Shortcut
+              - generic [ref=f2e121]: 
+        - generic "Click to pin" [ref=f2e123] [cursor=pointer]:
+          - generic [ref=f2e124]:
+            - generic [ref=f2e125]: 
+            - text: 225.33 KB/s
+          - generic [ref=f2e126]:
+            - generic [ref=f2e127]: 
+            - text: 0.00 B/s
+  - generic: RPC:6800
+  - generic [ref=f2e128] [cursor=pointer]: 127.0.0.1:6800 is connected
