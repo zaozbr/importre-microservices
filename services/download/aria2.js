@@ -96,17 +96,32 @@ async function rpcDownload(url, outputPath, options = {}) {
     Object.assign(headers, options.extraHeaders);
   }
 
+  // Para torrents/magnets: aumentar timeout (BT e mais lento) e selecionar apenas ROMs
+  const isBt = isMagnet || isTorrent;
+  const btOpts = buildBtOptions(isBt, isArchiveOrg);
+
   return rpc.rpcDownload(url, outputPath, {
     connections: options.connections || (isArchiveOrg ? 64 : 16),
     split: options.split || (isArchiveOrg ? 64 : 16),
-    maxTimeMs: options.maxTimeMs || 1800000,
+    maxTimeMs: options.maxTimeMs || btOpts.maxTimeMs,
     minSpeedMbps,
-    slowThresholdMs: options.slowThresholdMs || 180000,
-    stalledThresholdMs: options.stalledThresholdMs || 300000,
+    slowThresholdMs: options.slowThresholdMs || btOpts.slowThresholdMs,
+    stalledThresholdMs: options.stalledThresholdMs || btOpts.stalledThresholdMs,
     onProgress: options.onProgress,
     headers,
-    proxy
+    proxy,
+    btSelectFile: btOpts.btSelectFile
   });
+}
+
+function buildBtOptions(isBt, _isArchiveOrg) {
+  if (!isBt) return { maxTimeMs: 1800000, slowThresholdMs: 180000, stalledThresholdMs: 300000, btSelectFile: undefined };
+  return {
+    maxTimeMs: 3600000,      // 60min para BT
+    slowThresholdMs: 300000,  // 5min para considerar lento
+    stalledThresholdMs: 600000, // 10min para considerar parado
+    btSelectFile: '1-999'     // Selecionar todos os arquivos por padrao
+  };
 }
 
 module.exports = { aria2Download, parseSpeed, parseProgress, parseSize, speedToMbps };

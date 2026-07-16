@@ -10,7 +10,7 @@ app.use(express.json());
 
 // === Configuracao de retry ===
 // Backoff: 30s, 60s, 2min, 5min, 10min, 20min, 30min (cap)
-const MAX_RETRY = 10;
+const MAX_RETRY = 50;
 const RETRY_DELAYS = [5000, 10000, 15000, 30000, 30000, 60000, 60000];
 const RETRY_DELAY_CAP = 60000; // 1min
 

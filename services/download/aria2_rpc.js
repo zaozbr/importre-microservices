@@ -390,10 +390,11 @@ async function addDownload(url, dir, filename, opts = {}) {
   const headerArr = buildHeaders(url, opts);
   const options = buildDownloadOptions(dir, filename, opts, headerArr);
 
-  // magnet: ou .torrent local -> addTorrent
+  // magnet: -> addUri (aria2 trata magnet como URI especial)
+  // .torrent local -> addTorrent (base64)
   // HTTP/HTTPS -> addUri
   if (url.startsWith('magnet:')) {
-    return rpc('aria2.addTorrent', [url, [], options]);
+    return rpc('aria2.addUri', [[url], options]);
   }
   if (url.endsWith('.torrent') && !url.startsWith('http')) {
     const torrentData = fs.readFileSync(url);
@@ -570,6 +571,12 @@ function buildAddOpts(options, isBt) {
     addOpts.aria2Options['seed-time'] = '0';
     addOpts.aria2Options['bt-metadata-only'] = 'false';
     addOpts.aria2Options['bt-remove-unselected-file'] = 'true';
+    addOpts.aria2Options['bt-stop-timeout'] = '60'; // Para de baixar apos 60s sem progresso
+    addOpts.aria2Options['bt-request-peer-speed-limit'] = '1048576'; // 1MB/s min
+    // Selecionar apenas arquivos de ROM (filtrar arquivos nao-ROM)
+    if (options.btSelectFile) {
+      addOpts.aria2Options['select-file'] = options.btSelectFile;
+    }
   }
   return addOpts;
 }

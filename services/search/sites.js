@@ -69,7 +69,7 @@ async function searchAll(serial, title) {
   if (results.length < 3) {
     const webNames = names.filter(n => pluginPriority(n) >= 50 && isEnabled(n));
     const webPromises = webNames.map(async name => {
-      try { return await searchWithTimeout(name, serial, title, 15000); } catch (e) { return []; }
+      try { return await searchWithTimeout(name, serial, title, 45000); } catch (e) { return []; }
     });
     const webResults = (await Promise.all(webPromises)).flat();
     for (const s of webResults) {
