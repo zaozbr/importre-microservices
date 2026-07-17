@@ -63,6 +63,7 @@ function getQueue() {
   if (!queueCache) {
     queueCache = loadQueue();
     try { lastMtime = fs.statSync(QUEUE_PATH).mtimeMs; } catch (e) {}
+    syncCompletedStatus(queueCache);
     return queueCache;
   }
   // Verifica se o arquivo foi modificado externamente a cada 30s
@@ -75,10 +76,29 @@ function getQueue() {
         log.info('Queue.json modificado externamente, recarregando cache...');
         queueCache = loadQueue();
         lastMtime = mtime;
+        syncCompletedStatus(queueCache);
       }
     } catch (e) {}
   }
   return queueCache;
+}
+
+// Bug fix: itens em q.completed com status != "completed" bloqueiam next-pending
+// Sincroniza status de itens completos
+function syncCompletedStatus(q) {
+  if (!q || !q.completed) return;
+  let fixed = 0;
+  for (const item of q.queue) {
+    if (q.completed[item.serial] && item.status !== 'completed') {
+      item.status = 'completed';
+      delete q.in_progress[item.serial];
+      fixed++;
+    }
+  }
+  if (fixed > 0) {
+    log.info(`Sync: ${fixed} itens marcados como completed (estavam em outro status)`);
+    markDirty();
+  }
 }
 
 function markDirty() {

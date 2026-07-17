@@ -70,24 +70,25 @@ async function searchDuckDuckGoArchive(title) {
   } catch { return []; }
 }
 
-// Busca no itch.io (homebrew PSX e comum la)
-// Limitado a seriais HBREW-XXX: jogos comerciais nao existem no itch.io
-// e a busca retorna falsos positivos que falham no download
-async function searchItchIo(title, serial) {
-  // Apenas homebrew (seriais HBREW-XXX) devem ser buscados no itch.io
-  if (!serial || !serial.startsWith('HBREW-')) return [];
-  if (!title || title.length < 3) return [];
-  try {
-    const cleanTitle = cleanTitleStr(title);
-    const q = encodeURIComponent(`${cleanTitle} PSX`);
-    const url = `https://itch.io/search?q=${q}`;
-    const res = await axios.get(url, { timeout: TIMEOUT, headers: { 'User-Agent': UA } });
-    const html = res.data || '';
-    // Filtrar URLs estaticas (static.itch.io) e manter apenas paginas de jogos
-    const itchMatches = html.match(/https?:\/\/[a-zA-Z0-9-]+\.itch\.io\/[a-zA-Z0-9-]+/gi) || [];
-    const urls = [...new Set(itchMatches)].filter(u => !u.includes('static.itch.io') && !u.includes('itch.io/lib') && !u.includes('itch.io/translations')).slice(0, 3);
-    return urls.map(u => buildSource('itch.io', u, `${cleanTitle} (itch.io)`, {}));
-  } catch { return []; }
+// Busca no itch.io DESATIVADA — gera falsos positivos para jogos comerciais
+// e ate para homebrew (busca por titulo retorna jogos nao-PSX que falham no download)
+// Homebrew real vem do homebrew_index.json (plugin homebrew.js)
+// Para reativar: descomentar o codigo abaixo e remover o return []
+async function searchItchIo(_title, _serial) {
+  return [];
+  //Codigo original preservado para referencia:
+  //if (!serial || !serial.startsWith('HBREW-')) return [];
+  //if (!title || title.length < 3) return [];
+  //try {
+  //  const cleanTitle = cleanTitleStr(title);
+  //  const q = encodeURIComponent(`${cleanTitle} PSX`);
+  //  const url = `https://itch.io/search?q=${q}`;
+  //  const res = await axios.get(url, { timeout: TIMEOUT, headers: { 'User-Agent': UA } });
+  //  const html = res.data || '';
+  //  const itchMatches = html.match(/https?:\/\/[a-zA-Z0-9-]+\.itch\.io\/[a-zA-Z0-9-]+/gi) || [];
+  //  const urls = [...new Set(itchMatches)].filter(u => !u.includes('static.itch.io') && !u.includes('itch.io/lib') && !u.includes('itch.io/translations')).slice(0, 3);
+  //  return urls.map(u => buildSource('itch.io', u, `${cleanTitle} (itch.io)`, {}));
+  //} catch { return []; }
 }
 
 // Busca no GitHub (homebrew PSX e comum em repos)
