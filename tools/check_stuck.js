@@ -2,7 +2,7 @@ const axios = require('axios');
 
 (async () => {
   const r = await axios.post('http://127.0.0.1:16810/jsonrpc', {
-    jsonrpc: '2.0', id: '1', method: 'aria2.tellActive', params: []
+    jsonrpc: '2.0', id: '1', method: 'aria2.tellActive', params: ['token:devin']
   }, { timeout: 15000 });
 
   const active = r.data.result;

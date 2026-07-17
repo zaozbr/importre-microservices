@@ -152,6 +152,8 @@ export default [
       '**/*.css',
       'config/**',
       'eslint-report.json',
+      'dashboard/**', // React+Vite dashboard (JSX, browser globals)
+      'orchestrator/public/**', // build output do Vite
     ],
   },
 

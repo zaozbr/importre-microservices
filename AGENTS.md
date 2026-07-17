@@ -30,6 +30,54 @@
 - Helper: `tests/download/_setup.js` — mocka config e cria tmpDir isolado.
 - Scripts: `npm test`, `npm run test:unit`, `npm run test:stress`, `npm run test:integration`, `npm run test:resilience`.
 
+### Testes E2E por Linha de Pipeline (OBRIGATORIO — REGRA GLOBAL)
+
+**Toda linha de download e toda linha de search deve ter um teste E2E automatizado que verifica funcionamento de ponta a ponta.** "Linha" = cada plugin de fonte de search + cada fonte de download (rrSources).
+
+- **`tests/e2e/search_lines.test.js`** — Para cada plugin em `services/search/plugins/`:
+  - Carrega o plugin via `loader.js`
+  - Verifica que exporta `name`, `matchType`, `search()` function
+  - Chama `search(serial, title)` com seriais conhecidos
+  - Verifica que retorna array de sources `{ site, url, title }`
+  - Verifica que `url` e uma URL valida (http/https/magnet) ou string nao-vazia
+  - Verifica que nao lanca exception (tratamento de erro graceful)
+  - Reporta quais plugins estao broken/timeout/sem resultado
+
+- **`tests/e2e/download_lines.test.js`** — Para cada fonte em `rrSources`:
+  - Verifica que a fonte esta registrada no download service
+  - Verifica que tem resolver correspondente (tryResolveUrl ou fallback)
+  - Mocka HTTP e verifica que o download e submetido ao aria2
+  - Verifica que cooldown/slots funcionam para aquela fonte
+  - Verifica que erro 429 aciona cooldown da fonte
+
+- **`tests/e2e/rpc_token.test.js`** — Para cada arquivo que faz chamadas aria2 RPC:
+  - Verifica que todas chamadas incluem `token:devin` nos params
+  - Cobre: `aria2_rpc.js`, `motrix_watchdog.js`, `ariang_watchdog.js`, `orchestrator/index.js`
+
+- **`tests/e2e/orchestrator_api.test.js`** — Para cada rota do orchestrator:
+  - Verifica que responde (status 200 ou erro estruturado, nao 404)
+  - Verifica que `/api/status` retorna `globalSpeed` com `download`/`upload` numericos
+  - Verifica que `/aria2` proxy funciona com token
+
+### Regra: Bug -> Teste Unitario
+
+**Todo bug encontrado deve virar um teste unitario autoaplicavel.** Antes de corrigir um bug:
+1. Escrever um teste que reproduz o bug (deve falhar)
+2. Corrigir o bug
+3. Verificar que o teste agora passa
+4. O teste permanece na suite permanentemente (regression guard)
+
+### Reabsorcao Obrigatoria
+
+ANTES de processar qualquer novo prompt, reabsorver OBRIGATORIAMENTE:
+1. `AGENTS.md` (regras do projeto — NAO NEGOCIAVEIS)
+2. `knowledge/lessons_learned.md` (licoes aprendidas)
+3. Todos os workflows em `knowledge/workflows/`
+4. Todas as skills em `.devin/skills/`
+5. O HANDOVER mais recente em `knowledge/`
+
+Esta reabsorcao e SILICIOSA: nao exibir o conteudo lido no chat, apenas absorver e aplicar.
+
 ## Caminhos e Shell
 
 - Nunca usar `.` no inicio de caminhos absolutos ou comandos exec (ver skill `no-leading-dot`).

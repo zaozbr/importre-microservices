@@ -71,8 +71,11 @@ async function searchDuckDuckGoArchive(title) {
 }
 
 // Busca no itch.io (homebrew PSX e comum la)
-// Reativado: itchio-downloader resolve downloads via HTTP direto
-async function searchItchIo(title) {
+// Limitado a seriais HBREW-XXX: jogos comerciais nao existem no itch.io
+// e a busca retorna falsos positivos que falham no download
+async function searchItchIo(title, serial) {
+  // Apenas homebrew (seriais HBREW-XXX) devem ser buscados no itch.io
+  if (!serial || !serial.startsWith('HBREW-')) return [];
   if (!title || title.length < 3) return [];
   try {
     const cleanTitle = cleanTitleStr(title);
@@ -136,12 +139,13 @@ module.exports = {
   needsMultiChunk: false,
   priority: 55,
   enabled: true,
-  async search(_serial, title) {
+  async search(serial, title) {
     // Busca SEMPRE pelo titulo - seriais homebrew sao inventados
+    // itch.io apenas para HBREW-XXX (jogos comerciais geram falsos positivos)
     const [ddg, ddgArch, itch, gh] = await Promise.all([
       searchDuckDuckGo(title),
       searchDuckDuckGoArchive(title),
-      searchItchIo(title),
+      searchItchIo(title, serial),
       searchGitHub(title)
     ]);
     return [...ddg, ...ddgArch, ...itch, ...gh];

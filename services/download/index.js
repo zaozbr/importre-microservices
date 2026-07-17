@@ -104,21 +104,34 @@ async function resolvePageDownload(pageUrl, siteHint) {
   return resolveGenericLink($, pageUrl);
 }
 
-// itch.io: usa itchio-downloader (HTTP direto, sem browser)
+// itch.io: usa itchio-downloader com direct HTTP (sem Puppeteer)
+// Puppeteer fallback falha com "spawn UNKNOWN" no Windows — usar apenas direct HTTP
 // Baixa o arquivo para DOWNLOAD_DIR e retorna localPath
 async function resolveItchIoDownload(pageUrl) {
-  const { downloadGame } = require('itchio-downloader');
   const itchDir = path.join(DOWNLOAD_DIR, 'itch');
   if (!fs.existsSync(itchDir)) { try { fs.mkdirSync(itchDir, { recursive: true }); } catch {} }
-  const result = await downloadGame({
-    itchGameUrl: pageUrl,
-    downloadDirectory: itchDir,
-    inMemory: false,
-  });
-  if (!result || !result.status || !result.filePath) {
-    throw new Error(`itch.io download falhou: ${result?.message || 'resposta invalida'}`);
+
+  // PATH 1: downloadGameDirect (HTTP puro, sem browser) — preferencial
+  try {
+    const { downloadGameDirect } = require('itchio-downloader/dist/itchDownloader/downloadGameDirect');
+    const directResult = await downloadGameDirect({
+      itchGameUrl: pageUrl,
+      downloadDirectory: itchDir,
+      inMemory: false,
+    });
+    if (directResult && directResult.status && directResult.filePath) {
+      return { localPath: directResult.filePath, size: directResult.bytesDownloaded };
+    }
+    // Direct HTTP falhou — logar motivo e NAO tentar Puppeteer (quebrado no Windows)
+    const reason = directResult?.failReason || directResult?.message || 'unknown';
+    const httpStatus = directResult?.httpStatus ? ` (HTTP ${directResult.httpStatus})` : '';
+    throw new Error(`itch.io direct HTTP falhou: ${reason}${httpStatus}`);
+  } catch (e) {
+    // Se ja e nosso erro re-lancado, propagar
+    if (e.message.includes('itch.io direct HTTP falhou')) throw e;
+    // Erro inesperado no direct HTTP
+    throw new Error(`itch.io direct HTTP erro: ${e.message}`);
   }
-  return { localPath: result.filePath, size: result.bytesDownloaded };
 }
 
 function resolveCoolrom($) {

@@ -26,6 +26,7 @@ const fs = require('fs');
 const http = require('http');
 
 const SYSTEM_JSON = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\system.json';
+const ARIA2_RPC_TOKEN = ARIA2_RPC_TOKEN;
 const ARIA2C_EXE = 'F:\\importre\\Motrix\\app\\resources\\engine\\aria2c.exe';
 const SESSION_DIR = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\session';
 const LOG_FILE = 'F:\\importre\\logs\\ariang_watchdog.log';
@@ -120,7 +121,7 @@ function portsForPids(pids) {
 /** Sonda uma porta com aria2.getVersion — retorna a porta se vivo. */
 async function probePort(port, timeoutMs = 3000) {
   try {
-    const r = await rpc.post(rpcUrl(port), { jsonrpc: '2.0', method: 'aria2.getVersion', id: 'probe', params: [] },
+    const r = await rpc.post(rpcUrl(port), { jsonrpc: '2.0', method: 'aria2.getVersion', id: 'probe', params: [ARIA2_RPC_TOKEN] },
       { timeout: timeoutMs, httpAgent: new http.Agent({ keepAlive: false }) });
     if (r.data.result && r.data.result.version) return port;
   } catch { /* morto */ }
@@ -191,25 +192,25 @@ async function collectRpcState() {
   if (!discoveredPort) return state;
   const url = rpcUrl(discoveredPort);
   try {
-    const r = await rpc.post(url, { jsonrpc: '2.0', method: 'aria2.getVersion', id: 'diag', params: [] },
+    const r = await rpc.post(url, { jsonrpc: '2.0', method: 'aria2.getVersion', id: 'diag', params: [ARIA2_RPC_TOKEN] },
       { timeout: 5000, httpAgent: new http.Agent({ keepAlive: false }) });
     if (r.data.result) { state.alive = true; state.version = r.data.result.version; }
   } catch (e) { state.getVersionError = e.message; }
   if (!state.alive) return state;
   try {
-    const r = await rpc.post(url, { jsonrpc: '2.0', method: 'aria2.getGlobalStat', id: 'diag', params: [] },
+    const r = await rpc.post(url, { jsonrpc: '2.0', method: 'aria2.getGlobalStat', id: 'diag', params: [ARIA2_RPC_TOKEN] },
       { timeout: 5000, httpAgent: new http.Agent({ keepAlive: false }) });
     state.globalStat = r.data.result;
   } catch (e) { state.globalStatError = e.message; }
   try {
-    const r = await rpc.post(url, { jsonrpc: '2.0', method: 'aria2.tellActive', id: 'diag', params: [0, 100] },
+    const r = await rpc.post(url, { jsonrpc: '2.0', method: 'aria2.tellActive', id: 'diag', params: [ARIA2_RPC_TOKEN, 0, 100] },
       { timeout: 5000, httpAgent: new http.Agent({ keepAlive: false }) });
     for (const d of r.data.result) {
       if (d.errorCode !== '0') state.activeErrors.push({ gid: d.gid, errorCode: d.errorCode, errorMessage: d.errorMessage });
     }
   } catch (e) { state.tellActiveError = e.message; }
   try {
-    const r = await rpc.post(url, { jsonrpc: '2.0', method: 'aria2.tellStopped', id: 'diag', params: [0, 50] },
+    const r = await rpc.post(url, { jsonrpc: '2.0', method: 'aria2.tellStopped', id: 'diag', params: [ARIA2_RPC_TOKEN, 0, 50] },
       { timeout: 5000, httpAgent: new http.Agent({ keepAlive: false }) });
     for (const d of r.data.result) {
       if (d.status === 'error') state.stoppedErrors.push({ gid: d.gid, errorCode: d.errorCode, errorMessage: d.errorMessage });
@@ -444,7 +445,7 @@ function startWebServer() {
 async function applyConfigs() {
   if (!discoveredPort) return false;
   try {
-    await rpc.post(rpcUrl(discoveredPort), { jsonrpc: '2.0', method: 'aria2.changeGlobalOption', id: '1', params: [{
+    await rpc.post(rpcUrl(discoveredPort), { jsonrpc: '2.0', method: 'aria2.changeGlobalOption', id: '1', params: [ARIA2_RPC_TOKEN, {
       'max-concurrent-downloads': '60',
       'max-connection-per-server': '16',
       'split': '16',

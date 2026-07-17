@@ -76,7 +76,7 @@ function readConfiguredPort() {
 
 async function probePort(port) {
   try {
-    const r = await rpcAxios.post(rpcUrl(port), { jsonrpc: '2.0', method: 'aria2.getVersion', id: 'probe', params: [] }, { timeout: 3000 });
+    const r = await rpcAxios.post(rpcUrl(port), { jsonrpc: '2.0', method: 'aria2.getVersion', id: 'probe', params: ['token:devin'] }, { timeout: 3000 });
     if (r.data.result && r.data.result.version) return port;
   } catch { /* morto */ }
   return null;
@@ -126,7 +126,7 @@ async function rpc(method, params = []) {
   const port = discoveredPort || await discoverPort();
   if (!port) throw new Error('daemon aria2c nao encontrado');
   const r = await rpcAxios.post(rpcUrl(port), {
-    jsonrpc: '2.0', method, id: String(rpcId++), params
+    jsonrpc: '2.0', method, id: String(rpcId++), params: ['token:devin', ...params]
   });
   if (r.data.error) throw new Error(`RPC: ${r.data.error.message}`);
   return r.data.result;

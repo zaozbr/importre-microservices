@@ -419,6 +419,30 @@ app.post('/reprocess-failures', (req, res) => {
   res.json({ ok: true, moved });
 });
 
+// Limpa itens presos com retry_count alto que estao em loop infinito
+// Move para status "failed" permanentemente
+app.post('/clear-stuck', (req, res) => {
+  const maxRetry = parseInt(req.body?.maxRetry) || 50;
+  const q = getQueue();
+  let cleared = 0;
+  const clearedItems = [];
+  for (const item of q.queue) {
+    if ((item.retry_count || 0) >= maxRetry && item.status !== 'completed') {
+      if (!q.failed) q.failed = {};
+      item.status = 'failed';
+      item.last_failed = new Date().toISOString();
+      q.failed[item.serial] = { ...item };
+      clearedItems.push(item.serial);
+      cleared++;
+    }
+  }
+  // Remove itens failed da queue ativa
+  q.queue = q.queue.filter(i => i.status !== 'failed');
+  markDirty();
+  log.info(`Clear stuck: ${cleared} itens movidos para failed (retry >= ${maxRetry})`);
+  res.json({ ok: true, cleared, items: clearedItems });
+});
+
 // === Watchdogs ===
 
 function startQueueDrainWatchdog() {

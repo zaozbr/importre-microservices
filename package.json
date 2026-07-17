@@ -18,13 +18,22 @@
     "lint:fix": "eslint services orchestrator shared tools tests --fix --no-error-on-unmatched-pattern",
     "lint:report": "eslint services orchestrator shared tools tests --no-error-on-unmatched-pattern -f json -o eslint-report.json || true",
     "sonar": "sonar-scanner -Dproject.settings=sonar-project.properties",
-    "test": "mocha tests/download/**/*.test.js --timeout 120000 --exit",
+    "test": "mocha tests/download/**/*.test.js tests/e2e/**/*.test.js --timeout 120000 --exit",
     "test:unit": "mocha tests/download/unit.test.js --timeout 30000 --exit",
     "test:integration": "mocha tests/download/integration.test.js --timeout 120000 --exit",
     "test:stress": "mocha tests/download/stress.test.js --timeout 120000 --exit",
-    "test:resilience": "mocha tests/download/resilience.test.js --timeout 120000 --exit"
+    "test:resilience": "mocha tests/download/resilience.test.js --timeout 120000 --exit",
+    "test:e2e": "mocha tests/e2e/**/*.test.js --timeout 60000 --exit",
+    "test:e2e:search": "mocha tests/e2e/search_lines.test.js --timeout 60000 --exit",
+    "test:e2e:download": "mocha tests/e2e/download_lines.test.js --timeout 60000 --exit",
+    "test:e2e:rpc": "mocha tests/e2e/rpc_token.test.js --timeout 30000 --exit",
+    "test:e2e:orchestrator": "mocha tests/e2e/orchestrator_api.test.js --timeout 30000 --exit",
+    "dashboard": "vite --config dashboard/vite.config.js",
+    "dashboard:build": "vite build --config dashboard/vite.config.js"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.2",
+    "antd": "^6.5.0",
     "axios": "^1.7.2",
     "better-sqlite3": "^12.11.1",
     "cheerio": "^1.0.0-rc.12",
@@ -36,15 +45,19 @@
     "playwright-extra": "^4.3.6",
     "puppeteer-core": "^25.3.0",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "socks": "^2.8.9",
     "socks-proxy-agent": "^8.0.5",
     "ws": "^8.17.1"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.3",
     "chai": "^4.5.0",
     "eslint": "^9.39.5",
     "eslint-plugin-sonarjs": "^1.0.4",
     "globals": "^15.15.0",
-    "mocha": "^11.7.6"
+    "mocha": "^11.7.6",
+    "vite": "^8.1.4"
   }
 }

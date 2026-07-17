@@ -22,7 +22,7 @@ let stallCount = 0;
 
 function rpcAria2(method) {
   return new Promise(resolve => {
-    const data = JSON.stringify({ jsonrpc: '2.0', method, id: '1', params: [] });
+    const data = JSON.stringify({ jsonrpc: '2.0', method, id: '1', params: ['token:devin'] });
     const req = http.request(
       { hostname: '127.0.0.1', port: ARIA2_PORT, path: '/jsonrpc', method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Content-Length': data.length } },

@@ -73,7 +73,7 @@ function readConfiguredPort() {
 async function probePortAsync(port) {
   try {
     const r = await axios.post(`http://127.0.0.1:${port}/jsonrpc`, {
-      jsonrpc: '2.0', method: 'aria2.getVersion', id: 'probe', params: []
+      jsonrpc: '2.0', method: 'aria2.getVersion', id: 'probe', params: ['token:devin']
     }, { timeout: 3000 });
     return !!(r.data.result && r.data.result.version);
   } catch { return false; }
@@ -270,6 +270,8 @@ async function rpc(method, params = []) {
   // WebSocket apenas - sem HTTP fallback (HTTP causa CLOSE_WAIT no aria2c Windows)
   // Se WS ja conectou antes, esperar ate 5s para reconectar
   // Se WS nunca conectou (ex: testes), ir direto para HTTP fallback
+  // Token secreto do aria2 (rpc-secret=devin)
+  const tokenParams = ['token:devin', ...params];
   if (wsEverConnected) {
     for (let i = 0; i < 10; i++) {
       if (wsReady && ws && ws.readyState === WebSocket.OPEN) break;
@@ -279,7 +281,7 @@ async function rpc(method, params = []) {
   }
   if (wsReady && ws && ws.readyState === WebSocket.OPEN) {
     try {
-      return await wsRpc(method, params);
+      return await wsRpc(method, tokenParams);
     } catch (e) {
       if (!e.message.includes('timeout')) connectWs().catch(() => {});
     }
@@ -291,7 +293,7 @@ async function rpc(method, params = []) {
     jsonrpc: '2.0',
     method,
     id: String(rpcId++),
-    params
+    params: tokenParams
   });
   if (r.data.error) throw new Error(`RPC error: ${r.data.error.message} (code ${r.data.error.code})`);
   return r.data.result;
