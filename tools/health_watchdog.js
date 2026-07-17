@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { exec } = require('child_process');
 const { PORTS } = require('../shared/config');
+const { killBeforeStart } = require('../shared/kill_before_start');
 const fs = require('fs');
 
 const LOG_PATH = 'D:/roms/library/roms/_importre_state/health_watchdog.log';
@@ -45,7 +46,10 @@ async function restartAll() {
     await new Promise(r => setTimeout(r, 10000));
   } catch (e) {
     log('API restart falhou, tentando matar/renascer processos...');
-    await execPromise('taskkill /F /IM node.exe');
+    // Garbage collector: matar TODOS os processos nas portas dos servicos
+    for (const [name, port] of Object.entries(PORTS)) {
+      await killBeforeStart({ port, name, waitPort: true, waitTimeoutMs: 8000, log: (msg) => log('[GC] ' + msg) });
+    }
     await new Promise(r => setTimeout(r, 3000));
     await execPromise('node orchestrator/index.js', { cwd: 'F:/importre' });
   }

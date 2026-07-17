@@ -396,3 +396,25 @@ Resultado: 94 CHDs quebrados movidos, 31 re-adicionados na queue (63 ja estavam)
 7. CONTEXTO (arquivo de reabsorção)
 
 **Regra:** NUNCA commitar sem executar os 7 passos. O workflow esta em `knowledge/workflows/commit.md` e e inegociavel.
+
+## 35. Garbage collector antes de iniciar/reiniciar servicos (killBeforeStart)
+
+**Problema:** Ao reiniciar um servico (startService, startDaemon, startOrchestrator), o processo antigo nem sempre era morto completamente. Zumbis permaneciam na porta, causando EADDRINUSE, multiplas instancias do mesmo servico, janelas duplicadas e conflitos de bind.
+
+**Correcao:** Criado modulo `shared/kill_before_start.js` com funcao `killBeforeStart()` que:
+1. Mata o processo antigo por PID (se conhecido)
+2. Mata todos os zumbis na porta-alvo (via netstat)
+3. Mata por nome de imagem (opcional, ex: aria2c.exe)
+4. Aguarda a porta libererar (TIME_WAIT)
+5. SO ENTAO o novo processo e iniciado
+
+Aplicado em TODOS os pontos de inicio/reinicio:
+- `orchestrator/index.js`: startService, restart, healthCheck, performanceWatchdog (3 pontos)
+- `tools/restart_all.js`: startAria2, startOrchestrator
+- `tools/orchestrator_watchdog.js`: startOrchestrator
+- `tools/ariang_watchdog.js`: startDaemon, startWebServer
+- `tools/health_watchdog.js`: restartAll
+- `tools/ariang_web.js`: listen (garbage collector antes de bind)
+- `index.js`: startImportre, startChd
+
+**Regra OBRIGATORIA:** Todo spawn de servico OU janela DEVE chamar `killBeforeStart()` antes. NUNCA iniciar um processo sem garantir que o anterior foi morto e a porta esta livre. Isso vale para restart, healthcheck, watchdog e startup inicial.

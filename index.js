@@ -2,6 +2,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const { killBeforeStart } = require('./shared/kill_before_start');
 
 const ROOT = __dirname;
 const PYTHON = process.env.PYTHON || 'C:\\Users\\Usuario\\AppData\\Local\\Programs\\Python\\Python314\\python.exe';
@@ -25,8 +26,17 @@ function log(name, msg) {
   if (logs[name].length > 500) logs[name].shift();
 }
 
-function startImportre() {
+async function startImportre() {
   if (procs.importre) return;
+  // Garbage collector: matar zumbis na porta do importre antes de subir
+  await killBeforeStart({
+    port: IMPORTRE_PORT,
+    pid: procs.importre?.pid,
+    name: 'importre',
+    waitPort: false, // porta pode estar em TIME_WAIT
+    waitTimeoutMs: 5000,
+    log: (msg) => log('importre', '[GC] ' + msg),
+  });
   const args = [
     IMPORTRE_SCRIPT,
     '--workers', '20',
@@ -36,7 +46,8 @@ function startImportre() {
   log('importre', `Iniciando ${PYTHON} ${args.join(' ')}`);
   const proc = spawn(PYTHON, args, {
     cwd: ROOT,
-    env: { ...process.env, ROMS_DIR, STATE_DIR }
+    env: { ...process.env, ROMS_DIR, STATE_DIR },
+    windowsHide: true,
   });
   procs.importre = proc;
   proc.stdout.on('data', d => log('importre', d.toString().trim()));
@@ -48,13 +59,23 @@ function startImportre() {
   });
 }
 
-function startChd() {
+async function startChd() {
   if (procs.chd) return;
+  // Garbage collector: matar zumbis na porta do CHD antes de subir
+  await killBeforeStart({
+    port: CHD_PORT,
+    pid: procs.chd?.pid,
+    name: 'chd',
+    waitPort: false,
+    waitTimeoutMs: 5000,
+    log: (msg) => log('chd', '[GC] ' + msg),
+  });
   const args = [CHD_SCRIPT, '--workers', '2'];
   log('chd', `Iniciando ${PYTHON} ${args.join(' ')}`);
   const proc = spawn(PYTHON, args, {
     cwd: ROOT,
-    env: { ...process.env, ROMS_DIR, STATE_DIR }
+    env: { ...process.env, ROMS_DIR, STATE_DIR },
+    windowsHide: true,
   });
   procs.chd = proc;
   proc.stdout.on('data', d => log('chd', d.toString().trim()));
@@ -107,12 +128,14 @@ process.on('SIGINT', () => { stopAll(); process.exit(0); });
 process.on('SIGTERM', () => { stopAll(); process.exit(0); });
 
 const args = process.argv.slice(2);
-if (args.includes('--importre')) {
-  startImportre();
-} else if (args.includes('--chd')) {
-  startChd();
-} else {
-  startImportre();
-  startChd();
-  httpServer();
-}
+(async () => {
+  if (args.includes('--importre')) {
+    await startImportre();
+  } else if (args.includes('--chd')) {
+    await startChd();
+  } else {
+    await startImportre();
+    await startChd();
+    httpServer();
+  }
+})();

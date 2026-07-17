@@ -17,6 +17,7 @@ const { execSync, spawn } = require('child_process');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { killBeforeStart } = require('../shared/kill_before_start');
 
 const PORTS = {
   ORCHESTRATOR: 8767,
@@ -97,10 +98,21 @@ function httpGet(url, timeoutMs = 5000) {
   });
 }
 
-/** Inicia aria2c */
-function startAria2() {
+/** Inicia aria2c — SEMPRE mata zumbis antes */
+async function startAria2() {
   if (SKIP_ARIA2) { log('Pulando aria2 (--skip-aria2)'); return; }
-  // Verifica se ja esta rodando
+  // Garbage collector: matar todos os aria2c.exe zumbis e aguardar porta
+  if (!DRY_RUN) {
+    log('GC: limpando aria2c.exe zumbis...');
+    await killBeforeStart({
+      port: PORTS.ARIA2,
+      imageName: 'aria2c.exe',
+      name: 'aria2c',
+      waitPort: true,
+      waitTimeoutMs: 10000,
+      log: (msg) => log('  ' + msg),
+    });
+  }
   if (!isPortFree(PORTS.ARIA2)) {
     log('aria2c ja esta rodando na porta 6800');
     return;
@@ -143,10 +155,18 @@ function startAria2() {
   log('  aria2c iniciado');
 }
 
-/** Inicia orchestrator */
-function startOrchestrator() {
+/** Inicia orchestrator — SEMPRE mata zumbis na porta antes */
+async function startOrchestrator() {
   log('Iniciando orchestrator...');
   if (DRY_RUN) { log('  [dry-run] nao iniciando'); return; }
+  // Garbage collector: matar zumbis na porta do orchestrator
+  await killBeforeStart({
+    port: PORTS.ORCHESTRATOR,
+    name: 'orchestrator',
+    waitPort: true,
+    waitTimeoutMs: 10000,
+    log: (msg) => log('  ' + msg),
+  });
   spawn('node', ['orchestrator/index.js'], {
     cwd: PROJECT_DIR,
     detached: true,
@@ -208,13 +228,13 @@ async function phase3CheckPorts() {
 
 async function phase4StartAria2() {
   log('FASE 4: Iniciando aria2c...');
-  startAria2();
+  await startAria2();
   await sleep(3000);
 }
 
-function phase5StartOrchestrator() {
+async function phase5StartOrchestrator() {
   log('FASE 5: Iniciando orchestrator...');
-  startOrchestrator();
+  await startOrchestrator();
 }
 
 async function phase6WaitStabilize() {
@@ -280,7 +300,7 @@ async function main() {
   phase2CleanTemp();
   await phase3CheckPorts();
   await phase4StartAria2();
-  phase5StartOrchestrator();
+  await phase5StartOrchestrator();
   await phase6WaitStabilize();
   await phase7Healthcheck();
 

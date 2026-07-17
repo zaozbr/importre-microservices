@@ -7,6 +7,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
+const { killBeforeStart } = require('../shared/kill_before_start');
 
 const ROOT = path.resolve(__dirname, '..');
 const ORCH_PORT = 8767;
@@ -33,15 +34,25 @@ function checkOrchestrator() {
   });
 }
 
-function startOrchestrator() {
+async function startOrchestrator() {
   log('Iniciando orchestrator...');
+  // Garbage collector: matar zumbis na porta antes de subir
+  await killBeforeStart({
+    port: ORCH_PORT,
+    pid: orchProcess?.pid,
+    name: 'orchestrator',
+    waitPort: true,
+    waitTimeoutMs: 10000,
+    log: (msg) => log('  [GC] ' + msg),
+  });
   orchProcess = spawn('node', [
     '--max-old-space-size=4096',
     'orchestrator/index.js'
   ], {
     cwd: ROOT,
     stdio: 'ignore',
-    detached: false
+    detached: false,
+    windowsHide: true,
   });
 
   orchProcess.on('exit', (code) => {
@@ -80,7 +91,7 @@ async function loop() {
 log('Watchdog do orchestrator iniciado');
 (async () => {
   if (!await checkOrchestrator()) {
-    startOrchestrator();
+    await startOrchestrator();
   }
   setInterval(loop, CHECK_INTERVAL);
 })();

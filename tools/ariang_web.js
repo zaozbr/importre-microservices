@@ -1,5 +1,6 @@
 const http = require("http"), fs = require("fs"), path = require("path");
 const { execSync } = require("child_process");
+const { killBeforeStart } = require("../shared/kill_before_start");
 
 const dir = "C:\\AriaNg-Web";
 const SYSTEM_JSON = "C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\system.json";
@@ -109,7 +110,7 @@ const MIME = {
   ".map": "application/json"
 };
 
-http.createServer((req, res) => {
+const requestHandler = (req, res) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
     res.writeHead(200, {
@@ -150,4 +151,18 @@ http.createServer((req, res) => {
       res.end(data);
     }
   });
-}).listen(16801, () => console.log("AriaNg web em http://127.0.0.1:16801 (com proxy RPC)"));
+};
+
+// Garbage collector: matar zumbis na porta 16801 antes de fazer listen
+(async () => {
+  await killBeforeStart({
+    port: 16801,
+    name: 'ariang-web',
+    waitPort: true,
+    waitTimeoutMs: 8000,
+    log: (msg) => console.log('[GC] ' + msg),
+  });
+  http.createServer(requestHandler).listen(16801, () =>
+    console.log("AriaNg web em http://127.0.0.1:16801 (com proxy RPC)")
+  );
+})();

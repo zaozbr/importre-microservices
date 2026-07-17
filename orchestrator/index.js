@@ -4,6 +4,7 @@ const fs = require('fs');
 const { spawn, exec } = require('child_process');
 const path = require('path');
 const { PORTS, LOG_PATH, PSX_DIR, QUEUE_PATH, WORKERS } = require('../shared/config');
+const { killBeforeStart } = require('../shared/kill_before_start');
 const Logger = require('../shared/logger');
 
 const log = new Logger('orchestrator');
@@ -145,8 +146,20 @@ function shutdownOrchestrator(delay = 1000) {
   }, delay);
 }
 
-function startService(name, script) {
+async function startService(name, script) {
   if (controlState === 'stopped') return;
+  const port = PORTS[name.toUpperCase()];
+  // Limpar processo antigo e zumbis antes de iniciar (garbage collector)
+  if (port) {
+    await killBeforeStart({
+      port,
+      pid: services[name]?.pid,
+      name,
+      waitPort: true,
+      waitTimeoutMs: 8000,
+      log: (msg) => log.info('[GC] ' + msg),
+    });
+  }
   const heap = name === 'download' ? '12288' : '4096';
   const proc = spawn('node', [`--max-old-space-size=${heap}`, script], {
     cwd: ROOT,
@@ -512,12 +525,17 @@ app.get('/api/control/:action', async (req, res) => {
   } else if (action === 'restart') {
     const result = await killAndCleanup(false);
     res.json({ ok: true, state: 'restarting', result });
-    setTimeout(() => {
+    setTimeout(async () => {
       controlState = 'running';
-      startService('queue', SCRIPTS.queue);
-      startService('search', SCRIPTS.search);
-      startService('download', SCRIPTS.download);
-      startService('chd', SCRIPTS.chd);
+      // Garbage collector completo antes de reiniciar
+      for (const [name, port] of Object.entries(PORTS)) {
+        if (name === 'ORCHESTRATOR') continue;
+        await killBeforeStart({ port, name, waitPort: true, waitTimeoutMs: 8000, log: (msg) => log.info('[GC] ' + msg) });
+      }
+      await startService('queue', SCRIPTS.queue);
+      await startService('search', SCRIPTS.search);
+      await startService('download', SCRIPTS.download);
+      await startService('chd', SCRIPTS.chd);
     }, 2000);
   }
 });
@@ -591,8 +609,8 @@ async function performanceWatchdog() {
       log.warn(`[WATCHDOG-5m] ESTAGNACAO: 0 completos em ${(stagnantMs/1000).toFixed(0)}s. Reiniciando download service...`);
       const proc = services['download'];
       if (proc && proc.pid) await killByPid(proc.pid);
-      await killProcessByPort(PORTS.DOWNLOAD);
-      startService('download', SCRIPTS.download);
+      await killBeforeStart({ port: PORTS.DOWNLOAD, name: 'download', waitPort: true, waitTimeoutMs: 8000, log: (msg) => log.info('[GC] ' + msg) });
+      await startService('download', SCRIPTS.download);
       lastDlCompletedTime = Date.now();
     } else if (dlCompleted !== lastDlCompleted) {
       lastDlCompleted = dlCompleted;
@@ -603,16 +621,16 @@ async function performanceWatchdog() {
       log.warn('[WATCHDOG-5m] fila pronta vazia e busca subutilizada. Reiniciando search service...');
       const proc = services['search'];
       if (proc && proc.pid) await killByPid(proc.pid);
-      await killProcessByPort(PORTS.SEARCH);
-      startService('search', SCRIPTS.search);
+      await killBeforeStart({ port: PORTS.SEARCH, name: 'search', waitPort: true, waitTimeoutMs: 8000, log: (msg) => log.info('[GC] ' + msg) });
+      await startService('search', SCRIPTS.search);
     }
 
     if (active < WORKERS.DOWNLOAD / 2 && ready > 0) {
       log.warn('[WATCHDOG-5m] poucos downloads ativos. Reiniciando download service...');
       const proc = services['download'];
       if (proc && proc.pid) await killByPid(proc.pid);
-      await killProcessByPort(PORTS.DOWNLOAD);
-      startService('download', SCRIPTS.download);
+      await killBeforeStart({ port: PORTS.DOWNLOAD, name: 'download', waitPort: true, waitTimeoutMs: 8000, log: (msg) => log.info('[GC] ' + msg) });
+      await startService('download', SCRIPTS.download);
     }
 
     if (failed > 0 && ready < WORKERS.DOWNLOAD) {
@@ -647,9 +665,10 @@ async function healthCheck() {
       log.warn('[HEALTHCHECK-30s] ' + svc.name + ' service nao responde em /status (' + e.message + '). Reiniciando...');
       const proc = services[svc.name];
       if (proc && proc.pid) await killByPid(proc.pid);
-      await killProcessByPort(svc.port);
+      // Garbage collector: matar zumbis e aguardar porta liberar antes de reerguer
+      await killBeforeStart({ port: svc.port, name: svc.name, waitPort: true, waitTimeoutMs: 8000, log: (msg) => log.info('[GC] ' + msg) });
       if (controlState !== 'stopped') {
-        startService(svc.name, svc.script);
+        await startService(svc.name, svc.script);
       }
     }
   }
@@ -666,10 +685,15 @@ process.on('unhandledRejection', (e) => {
   try { log.error('rejection: ' + (e?.message || e)); } catch (logErr) {}
 });
 
-app.listen(PORTS.ORCHESTRATOR, '127.0.0.1', () => {
+app.listen(PORTS.ORCHESTRATOR, '127.0.0.1', async () => {
   log.info('Orchestrator em http://127.0.0.1:' + PORTS.ORCHESTRATOR);
-  startService('queue', SCRIPTS.queue);
-  startService('search', SCRIPTS.search);
-  startService('download', SCRIPTS.download);
-  startService('chd', SCRIPTS.chd);
+  // Limpar TODOS os zumbis antes de iniciar (garbage collector inicial)
+  for (const [name, port] of Object.entries(PORTS)) {
+    if (name === 'ORCHESTRATOR') continue;
+    await killBeforeStart({ port, name, waitPort: true, waitTimeoutMs: 5000, log: (msg) => log.info('[GC] ' + msg) });
+  }
+  await startService('queue', SCRIPTS.queue);
+  await startService('search', SCRIPTS.search);
+  await startService('download', SCRIPTS.download);
+  await startService('chd', SCRIPTS.chd);
 });

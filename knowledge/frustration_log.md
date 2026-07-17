@@ -115,3 +115,10 @@
 - **Contexto:** Tentativas de criar conta itch.io via axios falharam com 403 Forbidden (Cloudflare). Tentativas de resolver paginas de download via cheerio/axios tambem falharam. A unica forma de bypass foi usar Playwright (browser real) para criar a conta, e a biblioteca `itchio-downloader` (que implementa o fluxo CSRF internamente) para downloads.
 - **Impacto:** ~30 minutos perdidos tentando axios direto antes de migrar para Playwright + biblioteca especializada.
 - **Acao corretiva:** Para sites com Cloudflare, usar Playwright para autenticacao e bibliotecas especializadas para downloads. Nao tentar axios direto em sites protegidos por Cloudflare.
+
+## 17. Processos zumbis acumulando em restart de servicos
+
+- **Data:** 2026-07-17 (sessao 5)
+- **Contexto:** Usuario reportou que ao reiniciar servicos, processos antigos e janelas nao eram limpos antes de reabrir. Isso causava portas ocupadas, multiplas instancias do mesmo servico e janelas duplicadas. O sistema nao tinha um "garbage collector" centralizado.
+- **Impacto:** Usuario teve que pedir explicitamente: "acrescente em todo lugar que for ativar um servico ou abrir uma janela, pra ter certeza de kill o processo antigo e ou janela que necessitou de restart". Isso deveria ser padrao desde o inicio.
+- **Acao corretiva:** Criado modulo `shared/kill_before_start.js` com funcao `killBeforeStart()` aplicado em TODOS os 8 arquivos que fazem spawn de servicos. Teste automatizado criado (7 testes). Regra adicionada ao lessons_learned #35.

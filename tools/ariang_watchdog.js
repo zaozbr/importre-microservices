@@ -24,6 +24,7 @@ const axios = require('axios');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const http = require('http');
+const { killBeforeStart } = require('../shared/kill_before_start');
 
 const SYSTEM_JSON = 'C:\\Users\\Usuario\\AppData\\Roaming\\Motrix\\system.json';
 const ARIA2_RPC_TOKEN = ARIA2_RPC_TOKEN;
@@ -405,11 +406,21 @@ async function confirmZombiesDead(deadlineMs = 8000) {
 // START DAEMON — sempre na porta original do system.json
 // ============================================================
 
-function startDaemon() {
+async function startDaemon() {
   const port = readOriginalPort();
   const sessionFile = `${SESSION_DIR}\\download.session`;
   if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
   if (!fs.existsSync(sessionFile)) fs.writeFileSync(sessionFile, '');
+
+  // Garbage collector: matar TODOS os aria2c.exe e aguardar porta antes de subir
+  await killBeforeStart({
+    port,
+    imageName: 'aria2c.exe',
+    name: 'aria2c-daemon',
+    waitPort: true,
+    waitTimeoutMs: 15000,
+    log: (msg) => log('[GC] ' + msg),
+  });
 
   let trackers = '';
   try { trackers = JSON.parse(fs.readFileSync(SYSTEM_JSON, 'utf8'))['bt-tracker'] || ''; } catch {}
@@ -436,10 +447,18 @@ function startDaemon() {
   log(`Daemon iniciado na porta ${port}`);
 }
 
-function startWebServer() {
-  if (fs.existsSync(ARIANG_WEB_SCRIPT)) {
-    spawn('node', [ARIANG_WEB_SCRIPT], { windowsHide: true, detached: true, stdio: 'ignore' }).unref();
-  }
+async function startWebServer() {
+  if (!fs.existsSync(ARIANG_WEB_SCRIPT)) return;
+  // Garbage collector: matar node.exe zumbis do ariang_web.js na porta web
+  const webPort = discoverWebPort();
+  await killBeforeStart({
+    port: webPort,
+    name: 'ariang-web',
+    waitPort: false, // ariang_web.js pode usar porta dinamica
+    waitTimeoutMs: 5000,
+    log: (msg) => log('[GC] ' + msg),
+  });
+  spawn('node', [ARIANG_WEB_SCRIPT], { windowsHide: true, detached: true, stdio: 'ignore' }).unref();
 }
 
 async function applyConfigs() {
@@ -528,7 +547,7 @@ async function check() {
     }
 
     log(`Subindo aria2c na porta original ${targetPort}...`);
-    startDaemon();
+    await startDaemon();
     lastRestart = Date.now();
     totalRestarts++;
     log(`aria2c reiniciado. Aguardando 12s para estabilizar...`);
@@ -554,7 +573,7 @@ async function check() {
     killPids(webNodePids);
     if (webNodePids.length) await sleep(1000);
     log('Reiniciando web server...');
-    startWebServer();
+    await startWebServer();
     await sleep(2000);
     const webAlive2 = await isWebAlive();
     if (webAlive2) log('Web server voltou!');
