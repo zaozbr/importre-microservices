@@ -150,7 +150,9 @@ function startService(name, script) {
   const heap = name === 'download' ? '12288' : '4096';
   const proc = spawn('node', [`--max-old-space-size=${heap}`, script], {
     cwd: ROOT,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+    detached: true
   });
   services[name] = proc;
   // Handler seguro: ignora EPIPE e erros de stream silenciosamente

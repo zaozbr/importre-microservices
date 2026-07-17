@@ -115,7 +115,7 @@ function convertOne(job) {
   return new Promise((resolve) => {
     log.info(`Convertendo ${job.chdName}`);
     status.converting.push(job.chdName);
-    const proc = spawn(CHDMAN_PATH, ['createcd', '-i', job.cuePath, '-o', job.chdPath, '-f'], { cwd: PSX_DIR });
+    const proc = spawn(CHDMAN_PATH, ['createcd', '-i', job.cuePath, '-o', job.chdPath, '-f'], { cwd: PSX_DIR, windowsHide: true });
     let stderr = '';
     proc.stderr.on('data', d => { stderr += d.toString(); });
     proc.on('exit', (_code) => {
