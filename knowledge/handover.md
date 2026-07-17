@@ -1,29 +1,56 @@
 # HANDOVER — Importre Microservices
 
 ## Data
-2026-07-17 (sessao 5)
+2026-07-17 (sessao 6)
 
 ## Sistema
-- **Orchestrator (8767):** PARADO (servicos nao rodando no momento)
-- **Queue (9011):** PARADO
-- **Search (9002):** RODANDO (PID 28808)
-- **Download (9003):** RODANDO (PID 37964)
-- **CHD (9004):** RODANDO (PID 61664)
-- **Aria2 RPC (6800):** RODANDO (8 downloads ativos)
+- **Orchestrator (8767):** RODANDO
+- **Queue (9011):** RODANDO (PID 51312)
+- **Search (9002):** status desconhecido
+- **Download (9003):** status desconhecido
+- **CHD (9004):** status desconhecido
+- **Aria2 RPC (6800):** RODANDO
 - **AriaNg Web (16801):** status desconhecido
 
 ## Estado atual da fila
-- pending: 4
-- searching: 37
+- pending: 0
+- searching: 0
 - ready: 0
 - downloading: 0
-- completed: 2458
-- failed: 0
-- Velocidade total: ~0.56 MB/s (abaixo do target de 20 MB/s — archive.org limitando)
+- cooldown: 0
+- completed: 523 (97.4%)
+- failed: 14 (jogos raros/undumped/homebrews sem URL)
+- Total: 537
 
-## Downloads ativos no aria2
-- SLUS-00519.14.rar: 66% (0.48 MB/s)
-- 7 CHDs raros do archive.org: 0% (Avast Web Shield bloqueando archive.org HTTPS)
+## Downloads concluidos nesta sessao
+- 7 CHDs raros do archive.org via curl HTTP (contornando Avast Web Shield):
+  - Zeiramzone (334.6MB), Soukyuu Gurentai (200.6MB), Zoku Gussun Oyoyo (406.8MB)
+  - Guuguuthropus (17.7MB), PokeTan (33.4MB), Reikoku (376MB), Kinniku Banzuke (74.6MB)
+- 16 jogos do Romspure via Playwright (subagent) — ~4.1GB total:
+  - SLPS-00946 (Ayakashi, 528MB), SLES-02693 (542MB), SLES-02441 (509MB), SLPS-00575 (466MB)
+  - SLPS-00488 (395MB), SLPM-86274 (394MB), SLPS-02252 (258MB), SLPS-00142 (208MB)
+  - SLPM-87255 (232MB), SLPS-02895 (138MB), SLPS-01147 (97MB), KinnikuBanzuke (85MB)
+  - SLPM-86148 (26MB), SCPS-10108 (33MB), SLPM-86045 (1.4MB), SLPS-02979 (1.9MB)
+- 2 homebrews do archive.org:
+  - HBREW-027 (Bow and Arrow PSX, 1.1MB)
+  - HBREW-044 (PSXMahjongg/Net Yaroze Collection, 39.3MB)
+- 2 jogos pendentes via Playwright:
+  - SLUS-00519 (Castlevania SOTN, 406.5MB)
+  - SLUS-00286 (Final Fantasy VII, 544.1MB)
+
+## Total baixado nesta sessao
+- 7 CHDs do archive.org (via curl HTTP): ~1.4GB
+- 16 jogos do Romspure (via Playwright): ~4.1GB
+- 2 homebrews do archive.org: ~40MB
+- 2 jogos pendentes do Romspure (via Playwright): ~950MB
+- **Total: ~6.5GB, 27 jogos**
+
+## 14 jogos falhados (sem fonte disponivel)
+- SLPM-87214, SLUS-01205, SLES-03235, SLPS-00289, SLPS-02311: jogos raros/obscuros
+- HBREW-013 (Flappy Adventure 3): URL de download nao encontrada
+- HBREW-032 (Turbo-Tihu): itch.io requer browser interativo
+- HBREW-041, HBREW-043, HBREW-021: homebrews sem fonte
+- yicestar-jap-UNKNOWN, yicestar-ntsc-UNKNOWN, WCG2-UNKNOWN, SBL0-UNKNOWN: seriais invalidos/placeholder
 
 ## Sessao atual — tarefas completadas
 1. **windowsHide corrigido** em orchestrator/index.js e services/chd/index.js (terminal roubava foco)

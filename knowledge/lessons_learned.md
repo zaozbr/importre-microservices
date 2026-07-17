@@ -418,3 +418,36 @@ Aplicado em TODOS os pontos de inicio/reinicio:
 - `index.js`: startImportre, startChd
 
 **Regra OBRIGATORIA:** Todo spawn de servico OU janela DEVE chamar `killBeforeStart()` antes. NUNCA iniciar um processo sem garantir que o anterior foi morto e a porta esta livre. Isso vale para restart, healthcheck, watchdog e startup inicial.
+
+## 10. Avast Web Shield bloqueia archive.org HTTPS
+
+**Problema:** Avast Web Shield intercepta conexoes HTTPS para archive.org e retorna 403, impedindo downloads de CHDs raros via aria2/axios/curl HTTPS.
+
+**Correcao:** Usar HTTP (porta 80) em vez de HTTPS. curl com http://archive.org/download/... funciona perfeitamente, contornando o Avast. Colecoes uteis: psx-roms-s-z-chd, psx-chd-roms-{a-z} (18 colecoes A-Z).
+
+## 11. Romspure requer Playwright (Cloudflare 403)
+
+**Problema:** Romspure retorna 403 para axios/curl (Cloudflare). Mesmo com headers corretos, o CDN sto.romsfast.com rejeita aria2c.
+
+**Correcao:** Usar Playwright (chromium, headless=false) para:
+1. Navegar para a pagina do jogo
+2. Extrair link /download/{slug}-{postId}
+3. Executar AJAX (romspure_get_nonce -> app_get_download_link) DENTRO do contexto do browser via page.evaluate(fetch(...))
+4. Baixar via page.waitForEvent('download') - o browser envia headers/cookies corretos
+5. Retry com backoff exponencial (8s, 16s, 24s) para rate limit 'Action too quick'
+
+Script: F:\importre\_romspure_dl.js. Baixou 16/16 jogos com sucesso (~4.1GB).
+
+## 12. itch.io requer CSRF token (nao baixa via curl)
+
+**Problema:** itch.io usa CSRF token e JavaScript para download. curl/curl HTTP baixa apenas a pagina HTML, nao o arquivo.
+
+**Correcao:** Usar Playwright com page.waitForEvent('download') ou browser interativo. Alternativa: baixar de mirror no archive.org quando disponivel.
+
+## 13. Colecoes CHD PSX no archive.org (mapa de colecoes)
+
+**Descoberta:** 18 colecoes A-Z de CHDs PSX no archive.org, todas acessiveis via HTTP:
+- psx-chd-roms-a ate psx-chd-roms-u-z (algumas letras combinadas)
+- psx-roms-s-z-chd (colecao alternativa S-Z)
+- Cada colecao contem CHDs individuais por jogo (nao precisa baixar colecao inteira)
+- URL pattern: http://archive.org/download/{colecao}/{nome}%20(Japan).chd

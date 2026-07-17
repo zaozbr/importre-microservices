@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { killPid, pidsOnPort, killByPort, isPortFree, killByName, killBeforeStart } = require('../../shared/kill_before_start');
+const { killPid, pidsOnPort, isPortFree, killByName, killBeforeStart } = require('../../shared/kill_before_start');
 
 describe('kill_before_start', () => {
   describe('pidsOnPort', () => {
