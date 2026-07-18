@@ -63,6 +63,8 @@ td.speed{font-family:Consolas,monospace;text-align:right;white-space:nowrap}
 td.status{white-space:nowrap}
 .status-tag{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700}
 .status-downloading{background:var(--green);color:#fff}
+.status-downloaded{background:var(--orange);color:#fff}
+.status-converted{background:var(--purple);color:#fff}
 .status-completed{background:var(--blue);color:#fff}
 .status-waiting{background:var(--yellow);color:#fff}
 .status-pending{background:var(--bg3);color:var(--txt2)}
@@ -81,7 +83,9 @@ td.status{white-space:nowrap}
   <a href="/legacy">&larr; Legacy</a>
   <div class="spacer"></div>
   <div class="stat-card"><div class="n dl" id="st-downloading">-</div><div class="l">Baixando</div></div>
-  <div class="stat-card"><div class="n ok" id="st-completed">-</div><div class="l">Completos</div></div>
+  <div class="stat-card"><div class="n" id="st-downloaded" style="color:var(--orange)">-</div><div class="l">Baixado s/ CHD</div></div>
+  <div class="stat-card"><div class="n" id="st-converted" style="color:var(--purple)">-</div><div class="l">Convertido s/ mover</div></div>
+  <div class="stat-card"><div class="n ok" id="st-completed">-</div><div class="l">Completo</div></div>
   <div class="stat-card"><div class="n" id="st-queued">-</div><div class="l">Na Fila</div></div>
   <div class="stat-card"><div class="n sr" id="st-searching">-</div><div class="l">Buscando</div></div>
   <div class="stat-card"><div class="n" id="st-total">-</div><div class="l">Total</div></div>
@@ -107,6 +111,8 @@ td.status{white-space:nowrap}
       <select id="filter-status">
         <option value="">Todos</option>
         <option value="downloading">Baixando</option>
+        <option value="downloaded">Baixado s/ CHD</option>
+        <option value="converted">Convertido s/ mover</option>
         <option value="completed">Completo</option>
         <option value="waiting">Esperando</option>
         <option value="pending">Pendente</option>
@@ -146,6 +152,8 @@ async function loadData(){
     if(data.error){ document.getElementById('dl-body').innerHTML = '<tr><td colspan="7" class="empty">Erro: '+data.error+'</td></tr>'; return; }
     allDownloads = data.downloads || [];
     document.getElementById('st-downloading').textContent = data.downloading || 0;
+    document.getElementById('st-downloaded').textContent = data.downloaded || 0;
+    document.getElementById('st-converted').textContent = data.converted || 0;
     document.getElementById('st-completed').textContent = data.completed || 0;
     document.getElementById('st-queued').textContent = data.queued || 0;
     document.getElementById('st-searching').textContent = data.searching || 0;
@@ -216,13 +224,15 @@ function render(){
     const serialDisplay = d.serial ? escapeHtml(d.serial) : '<span style="color:var(--txt2)">-</span>';
     const statusClass = 'status-' + (d.status||'unknown');
     const statusLabel = d.status === 'downloading' ? 'Baixando' :
+                       d.status === 'downloaded' ? 'Baixado s/ CHD' :
+                       d.status === 'converted' ? 'Convertido s/ mover' :
                        d.status === 'completed' ? 'Completo' :
                        d.status === 'waiting' ? 'Esperando' :
                        d.status === 'pending' ? 'Pendente' :
                        d.status === 'searching' ? 'Buscando' :
                        d.status === 'ready' ? 'Pronto' :
                        d.status === 'error' ? 'Erro' :
-                       (d.status||'?');
+                       (d.statusLabel || d.status || '?');
     html += '<tr>';
     html += '<td class="name" title="'+escapeHtml(d.file||'')+'">'+escapeHtml(d.name||'')+'</td>';
     html += '<td class="serial">'+serialDisplay+'</td>';

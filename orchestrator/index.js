@@ -327,7 +327,7 @@ function loadFaltantesNames(stateDir) {
   return names;
 }
 
-// Funcao auxiliar: carregar seriais da colecao
+// Funcao auxiliar: carregar seriais da colecao (D:\roms\library\roms\psx)
 function loadCollectionSerials(psxDir) {
   const serials = new Set();
   try {
@@ -341,9 +341,33 @@ function loadCollectionSerials(psxDir) {
   return serials;
 }
 
+// Funcao auxiliar: carregar CHDs em F:\testes (convertidos, nao movidos)
+function loadTestesChds(testesDir) {
+  const serials = new Set();
+  try {
+    for (const fn of fs.readdirSync(testesDir)) {
+      if (fn.endsWith('.chd')) {
+        const m = fn.match(/([A-Z]+-\d+)/);
+        if (m) serials.add(m[1].toUpperCase());
+      }
+    }
+  } catch { /* ignore */ }
+  return serials;
+}
+
+// Funcao auxiliar: determinar estagio do status do torrent
+function torrentStatus(info, matchedSerial, testesSerials) {
+  if (info.hasCtrl) return { status: 'downloading', progress: -1 };
+  if (matchedSerial && testesSerials.has(matchedSerial)) return { status: 'converted', progress: 100 };
+  return { status: 'downloaded', progress: 100 };
+}
+
 // Funcao auxiliar: classificar arquivos torrent em downloads
-function classifyTorrentFiles(torrentFiles, faltantesNames, collectionSerials) {
+// Status: downloading | downloaded (baixado, nao convertido) | converted (CHD em F:\testes, nao movido) | completed (na colecao D:)
+function classifyTorrentFiles(torrentFiles, faltantesNames, collectionSerials, testesSerials) {
   const downloads = [];
+  const seenSerials = new Set(); // dedup por serial
+  const seenNames = new Set();   // dedup por nome limpo
   for (const [fullPath, info] of Object.entries(torrentFiles)) {
     const fname = path.basename(fullPath, '.7z');
     const isPAL = fullPath.includes('PAL');
@@ -351,14 +375,23 @@ function classifyTorrentFiles(torrentFiles, faltantesNames, collectionSerials) {
     const region = isPAL ? 'PAL' : (isJP ? 'NTSC-J' : '?');
     const { serial: matchedSerial, score: matchScore } = matchTorrentFile(fname, faltantesNames, collectionSerials);
     if (matchScore < 0.5) continue;
+    // Ja esta na colecao final = completo de verdade, NAO mostrar
     if (matchedSerial && collectionSerials.has(matchedSerial)) continue;
+    // Dedup por serial
+    if (matchedSerial && seenSerials.has(matchedSerial)) continue;
+    // Dedup por nome limpo (evita "Armored Core" 3x)
+    const cleanRe = /[[(].*?[\])]/g;
+    const cleanName = fname.replace(cleanRe, '').replace(/[^a-z0-9\s]/gi, ' ').trim().toLowerCase();
+    if (seenNames.has(cleanName)) continue;
+    if (matchedSerial) seenSerials.add(matchedSerial);
+    seenNames.add(cleanName);
     const gameName = matchedSerial ? faltantesNames[matchedSerial] : fname;
-    const progress = info.hasCtrl ? -1 : 100;
     const sizeMB = Math.round(info.size / (1024 * 1024));
+    const { status, progress } = torrentStatus(info, matchedSerial, testesSerials);
     downloads.push({
       name: gameName, serial: matchedSerial || '', source: 'torrent-' + region,
       sourceLabel: 'Torrent ' + region, sizeMB, progress,
-      status: info.hasCtrl ? 'downloading' : 'completed', file: fname,
+      status, file: fname,
     });
   }
   return downloads;
@@ -435,7 +468,8 @@ app.get('/api/downloads-list', async (req, res) => {
     const torrentFiles = fs.existsSync(torrentDir) ? walkTorrentDir(torrentDir) : {};
     const faltantesNames = loadFaltantesNames(STATE_DIR);
     const collectionSerials = loadCollectionSerials(PSX_DIR);
-    downloads.push(...classifyTorrentFiles(torrentFiles, faltantesNames, collectionSerials));
+    const testesSerials = loadTestesChds('F:\\testes');
+    downloads.push(...classifyTorrentFiles(torrentFiles, faltantesNames, collectionSerials, testesSerials));
 
     // 2. Downloads do aria2 RPC (archive.org + outros via importre)
     downloads.push(...await processAria2Tasks(faltantesNames));
@@ -443,15 +477,24 @@ app.get('/api/downloads-list', async (req, res) => {
     // 3. Fila do importre (queue.json)
     await processQueueItems(downloads);
 
-    // Ordenar por progresso (maior primeiro)
-    downloads.sort((a, b) => b.progress - a.progress);
+    // Ordenar por status (downloading primeiro) e depois por progresso
+    const statusOrder = { downloading: 0, ready: 1, searching: 2, pending: 3, waiting: 4, downloaded: 5, converted: 6, completed: 7 };
+    downloads.sort((a, b) => {
+      const sa = statusOrder[a.status] ?? 99;
+      const sb = statusOrder[b.status] ?? 99;
+      if (sa !== sb) return sa - sb;
+      return b.progress - a.progress;
+    });
 
     res.json({
       total: downloads.length,
       downloading: downloads.filter(d => d.status === 'downloading').length,
-      completed: downloads.filter(d => d.status === 'completed' || d.progress === 100).length,
+      downloaded: downloads.filter(d => d.status === 'downloaded').length,
+      converted: downloads.filter(d => d.status === 'converted').length,
+      completed: downloads.filter(d => d.status === 'completed').length,
       queued: downloads.filter(d => d.status === 'waiting' || d.status === 'pending').length,
       searching: downloads.filter(d => d.status === 'searching').length,
+      ready: downloads.filter(d => d.status === 'ready').length,
       downloads,
     });
   } catch (e) {
