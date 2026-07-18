@@ -234,7 +234,9 @@ app.post('/queue/next-ready', (req, res) => {
   const q = getQueue();
   let ready = q.queue
     .filter(i => i.status === 'ready' && isReady(i) && !reservedReady.has(i.serial) && !q.in_progress[i.serial] && !q.completed[i.serial]);
-  console.log(`[next-ready] preferredSite=${preferredSite} ready=${ready.length} reserved=${reservedReady.size} inProgress=${Object.keys(q.in_progress).length}`);
+  if (ready.length > 0 || reservedReady.size > 0) {
+    console.log(`[next-ready] preferredSite=${preferredSite} ready=${ready.length} reserved=${reservedReady.size} inProgress=${Object.keys(q.in_progress).length}`);
+  }
   
   // Funcao de ordenacao: primeiro por % de conclusao (maior primeiro), depois por prioridade
   function sortByProgress(a, b) {
