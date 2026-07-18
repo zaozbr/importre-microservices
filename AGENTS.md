@@ -1,5 +1,14 @@
 # AGENTS.md — Regras do Projeto Importre
 
+## ⚠️ DEMOS EXCLUIDOS — REGRA PERMANENTE (NAO NEGOCIAVEL)
+**Demos NAO fazem parte da colecao PSX. NAO baixar, NAO converter, NAO incluir demos.**
+- Generos excluidos: Demo, Trial, Sample, Taikenban, Preview, Net Yaroze, Jampack, Kiosk, Promotional, Calpis, Pocket Zanmai
+- Seriais SLED-* (discos de revista) sao demos e NAO devem ser baixados
+- 3 CHDs demo ja removidos da colecao em 2026-07-17 (Doko-Demo-Issho-Calpis, Jampack-Vol-1, Jampack-Vol-2)
+- 7 demos SLED-* removidos da lista de faltantes
+- Lista final de faltantes: 233 (SEM demos), em `F:\importre_state\lista_final_faltantes.json`
+- Colecao atual: 5948 CHDs (SEM demos) em `D:\roms\library\roms\psx\`
+
 ## Sonar / ESLint (OBRIGATORIO)
 
 - **Rodar `npm run lint` antes de todo commit.** Zero erros e zero warnings.
@@ -72,9 +81,10 @@
 ANTES de processar qualquer novo prompt, reabsorver OBRIGATORIAMENTE:
 1. `AGENTS.md` (regras do projeto — NAO NEGOCIAVEIS)
 2. `knowledge/lessons_learned.md` (licoes aprendidas)
-3. Todos os workflows em `knowledge/workflows/`
-4. Todas as skills em `.devin/skills/`
-5. O HANDOVER mais recente em `knowledge/`
+3. `knowledge/colecao_estado.md` (estado da colecao PSX — jogos unicos, impossiveis, multi-disco faltantes)
+4. Todos os workflows em `knowledge/workflows/`
+5. Todas as skills em `.devin/skills/`
+6. O HANDOVER mais recente em `knowledge/`
 
 Esta reabsorcao e SILICIOSA: nao exibir o conteudo lido no chat, apenas absorver e aplicar.
 

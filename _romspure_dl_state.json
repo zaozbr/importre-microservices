@@ -1,0 +1,178 @@
+{
+  "done": [
+    "SLPM-86148",
+    "SLPS-00575",
+    "SLPS-02979",
+    "SLPS-00946",
+    "SCPS-10108",
+    "SLPM-87255",
+    "SLPS-02895",
+    "SLPM-86274",
+    "KinnikuBanzuke",
+    "SLES-02693",
+    "SLES-02441",
+    "SLPS-00488",
+    "SLPM-86045",
+    "SLPS-01147",
+    "SLPS-02252",
+    "SLPS-00142",
+    "SLUS-00519",
+    "SLUS-00286"
+  ],
+  "failed": [
+    {
+      "serial": "SLPM-86274",
+      "error": "could not obtain direct download URL"
+    },
+    {
+      "serial": "SLPS-01147",
+      "error": "could not obtain direct download URL"
+    }
+  ],
+  "results": [
+    {
+      "serial": "SLPM-86148",
+      "url": "https://sto.romsfast.com/PSX/Guuguuthropus (Japan) (Demo).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnNXYlo%3D",
+      "name": "Guuguuthropus (Japan) (Demo)",
+      "size": "25.98 M",
+      "gid": "1dc006dfe41ed216",
+      "out": "SLPM-86148.zip"
+    },
+    {
+      "serial": "SLPS-00575",
+      "url": "https://sto.romsfast.com/PSX/Zeiramzone (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnNXZF0%3D",
+      "name": "Zeiramzone (Japan)",
+      "size": "466.48 M",
+      "gid": "8c0118dcd8cff860",
+      "out": "SLPS-00575.zip"
+    },
+    {
+      "serial": "SLPS-02979",
+      "url": "https://sto.romsfast.com/PSX/Mahjong Ganryuu-jima (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnNYZlg%3D",
+      "name": "Mahjong Ganryuu-jima (Japan)",
+      "size": "1.92 M",
+      "gid": "cccbc8629248f148",
+      "out": "SLPS-02979.zip"
+    },
+    {
+      "serial": "SLPS-00946",
+      "url": "https://sto.romsfast.com/PSX/Ayakashi Ninden Kunoichiban (Japan) (Disc 1).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxTaFw%3D",
+      "name": "Ayakashi Ninden Kunoichiban (Japan) (Disc 1)",
+      "size": "528.37 M",
+      "out": "SLPS-00946.zip",
+      "saved": "F:\\downloads\\SLPS-00946.zip"
+    },
+    {
+      "serial": "SCPS-10108",
+      "url": "https://sto.romsfast.com/PSX/Pocket Zanmai - 3 Title Iri Taikenban (PAQA PokeTan Pocket Jiman) (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxSYFk%3D",
+      "name": "Pocket Zanmai - 3 Title Iri Taikenban (PAQA PokeTan Pocket Jiman) (Japan)",
+      "size": "32.99 M",
+      "out": "SCPS-10108.zip",
+      "saved": "F:\\downloads\\SCPS-10108.zip"
+    },
+    {
+      "serial": "SLPM-87255",
+      "url": "https://sto.romsfast.com/PSX/Soukyuu Gurentai - Oubu Shutsugeki (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxSYFE%3D",
+      "name": "Soukyuu Gurentai - Oubu Shutsugeki (Japan)",
+      "size": "232.32 M",
+      "out": "SLPM-87255.zip",
+      "saved": "F:\\downloads\\SLPM-87255.zip"
+    },
+    {
+      "serial": "SLPS-02895",
+      "url": "https://sto.romsfast.com/PSX/Paca Paca Passion Special (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxSYVE%3D",
+      "name": "Paca Paca Passion Special (Japan)",
+      "size": "138.45 M",
+      "out": "SLPS-02895.zip",
+      "saved": "F:\\downloads\\SLPS-02895.zip"
+    },
+    {
+      "serial": "SLPM-86274",
+      "url": "https://sto.romsfast.com/PSX/Reikoku - Ikeda Kizoku Shinrei Kenkyuujo (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxSY1g%3D",
+      "name": "Reikoku - Ikeda Kizoku Shinrei Kenkyuujo (Japan)",
+      "size": "394.78 M",
+      "out": "SLPM-86274.zip",
+      "saved": "F:\\downloads\\SLPM-86274.zip"
+    },
+    {
+      "serial": "KinnikuBanzuke",
+      "url": "https://sto.romsfast.com/PSX/Kinniku Banzuke - Road to Sasuke (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxSZFo%3D",
+      "name": "Kinniku Banzuke - Road to Sasuke (Japan)",
+      "size": "85.72 M",
+      "out": "KinnikuBanzuke.zip",
+      "saved": "F:\\downloads\\KinnikuBanzuke.zip"
+    },
+    {
+      "serial": "SLES-02693",
+      "url": "https://sto.romsfast.com/PSX/GZSZ Quiz (Germany).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxSZVo%3D",
+      "name": "GZSZ Quiz (Germany)",
+      "size": "542.18 M",
+      "out": "SLES-02693.zip",
+      "saved": "F:\\downloads\\SLES-02693.zip"
+    },
+    {
+      "serial": "SLES-02441",
+      "url": "https://sto.romsfast.com/PSX/GZSZ Vol. 2 (Germany) (Disc 1).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxSZ1g%3D",
+      "name": "GZSZ Vol. 2 (Germany) (Disc 1)",
+      "size": "508.95 M",
+      "out": "SLES-02441.zip",
+      "saved": "F:\\downloads\\SLES-02441.zip"
+    },
+    {
+      "serial": "SLPS-00488",
+      "url": "https://sto.romsfast.com/PSX/Zoku Gussun Oyoyo (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxSaFE%3D",
+      "name": "Zoku Gussun Oyoyo (Japan)",
+      "size": "395.42 M",
+      "out": "SLPS-00488.zip",
+      "saved": "F:\\downloads\\SLPS-00488.zip"
+    },
+    {
+      "serial": "SLPM-86045",
+      "url": "https://sto.romsfast.com/PSX/Katou Hifumi Kudan - Shougi Club (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxVYFs%3D",
+      "name": "Katou Hifumi Kudan - Shougi Club (Japan)",
+      "size": "1.39 M",
+      "out": "SLPM-86045.zip",
+      "saved": "F:\\downloads\\SLPM-86045.zip"
+    },
+    {
+      "serial": "SLPS-01147",
+      "url": "https://sto.romsfast.com/PSX/MeltyLancer - Re-inforce (Japan) (Demo).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxVYVk%3D",
+      "name": "MeltyLancer - Re-inforce (Japan) (Demo)",
+      "size": "97.24 M",
+      "out": "SLPS-01147.zip",
+      "saved": "F:\\downloads\\SLPS-01147.zip"
+    },
+    {
+      "serial": "SLPS-02252",
+      "url": "https://sto.romsfast.com/PSX/Mouja (Japan) (Honkakuha de 1300).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxVYlk%3D",
+      "name": "Mouja (Japan) (Honkakuha de 1300)",
+      "size": "257.84 M",
+      "out": "SLPS-02252.zip",
+      "saved": "F:\\downloads\\SLPS-02252.zip"
+    },
+    {
+      "serial": "SLPS-00142",
+      "url": "https://sto.romsfast.com/PSX/Senryaku Shougi (Japan).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxVY1s%3D",
+      "name": "Senryaku Shougi (Japan)",
+      "size": "208.9 M",
+      "out": "SLPS-00142.zip",
+      "saved": "F:\\downloads\\SLPS-00142.zip"
+    },
+    {
+      "serial": "SLUS-00519",
+      "url": "https://sto.romsfast.com/PSX/Castlevania - Symphony of the Night (Asia).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxZaV8%3D",
+      "name": "Castlevania - Symphony of the Night (Asia)",
+      "size": "387.64 M",
+      "out": "SLUS-00519.zip",
+      "saved": "F:\\downloads\\SLUS-00519.zip"
+    },
+    {
+      "serial": "SLUS-00286",
+      "url": "https://sto.romsfast.com/PSX/Final Fantasy VII (Europe) (Disc 1).zip?token=c3xZcFthXAJOFHF%2BUSYFaFIERUR5fl59WTZSVExCIn4IfFAzFFBDGXV2XnxYYVg%3D",
+      "name": "Final Fantasy VII (Europe) (Disc 1)",
+      "size": "518.88 M",
+      "out": "SLUS-00286.zip",
+      "saved": "F:\\downloads\\SLUS-00286.zip"
+    }
+  ]
+}

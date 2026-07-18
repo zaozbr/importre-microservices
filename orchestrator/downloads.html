@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importre — Lista de Downloads</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;
+  --txt:#c9d1d9;--txt2:#8b949e;--red:#e94560;--green:#3fb950;--yellow:#d29922;
+  --blue:#58a6ff;--purple:#bc8cff;--orange:#f0883e;
+}
+body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+.header{position:sticky;top:0;z-index:1000;background:var(--bg2);border-bottom:2px solid var(--red);padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,.6);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.header-title{font-size:20px;font-weight:800;color:var(--red);letter-spacing:1px}
+.header a{color:var(--blue);text-decoration:none;font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:5px}
+.header a:hover{background:var(--bg3)}
+.spacer{flex:1}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 12px;text-align:center;min-width:80px}
+.stat-card .n{font-size:18px;font-weight:800;color:var(--blue)}
+.stat-card .n.ok{color:var(--green)}
+.stat-card .n.dl{color:var(--yellow)}
+.stat-card .n.sr{color:var(--purple)}
+.stat-card .l{font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.content{padding:16px;max-width:1400px;margin:0 auto}
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.toolbar select,.toolbar input{background:var(--bg3);border:1px solid var(--border);color:var(--txt);padding:6px 10px;border-radius:5px;font-size:12px}
+.toolbar label{font-size:11px;color:var(--txt2);display:flex;align-items:center;gap:4px}
+table{width:100%;border-collapse:collapse;background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+thead th{background:var(--bg3);padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+thead th:hover{color:var(--txt)}
+thead th.sort-asc::after{content:' \u25B2';color:var(--green)}
+thead th.sort-desc::after{content:' \u25BC';color:var(--red)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+tbody tr:hover{background:var(--bg3)}
+tbody td{padding:8px 12px;font-size:12px;vertical-align:middle}
+td.name{font-weight:600;color:var(--txt);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.serial{font-family:Consolas,monospace;font-size:11px;color:var(--purple);white-space:nowrap}
+td.source{white-space:nowrap}
+.badge-src{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
+.badge-torrent-PAL{background:#1a73e8}
+.badge-torrent-NTSC-J{background:#e8451a}
+.badge-archive\.org{background:var(--green)}
+.badge-coolrom{background:var(--orange)}
+.badge-vimm{background:var(--purple)}
+.badge-romspure{background:#e91e63}
+.badge-romulation{background:#00bcd4}
+.badge-queue{background:var(--txt2)}
+.badge-search{background:var(--yellow);color:var(--bg)}
+.badge-ready{background:var(--blue)}
+.badge-torrent{background:#1a73e8}
+.progress-bar{width:120px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;position:relative;display:inline-block;vertical-align:middle}
+.progress-fill{height:100%;background:var(--green);transition:width .3s;border-radius:4px}
+.progress-fill.partial{background:var(--yellow)}
+.progress-fill.low{background:var(--orange)}
+.progress-fill.none{background:var(--bg3)}
+.progress-text{font-size:10px;color:var(--txt2);margin-left:6px;vertical-align:middle;font-family:Consolas,monospace}
+td.size{font-family:Consolas,monospace;text-align:right;white-space:nowrap;color:var(--txt2)}
+td.speed{font-family:Consolas,monospace;text-align:right;white-space:nowrap}
+.speed-val{color:var(--green);font-weight:700}
+.speed-zero{color:var(--txt2)}
+td.status{white-space:nowrap}
+.status-tag{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700}
+.status-downloading{background:var(--green);color:#fff}
+.status-completed{background:var(--blue);color:#fff}
+.status-waiting{background:var(--yellow);color:var(--bg)}
+.status-pending{background:var(--bg3);color:var(--txt2)}
+.status-searching{background:var(--purple);color:#fff}
+.status-ready{background:var(--blue);color:#fff}
+.status-error{background:#da3633;color:#fff}
+.empty{padding:40px;text-align:center;color:var(--txt2);font-size:14px}
+.update-bar{font-size:10px;color:var(--txt2);text-align:right;margin-top:8px}
+.filter-active{background:var(--blue)!important;color:#fff!important}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-title">IMPORTRE — DOWNLOADS</div>
+  <a href="/">&larr; Dashboard</a>
+  <a href="/legacy">&larr; Legacy</a>
+  <div class="spacer"></div>
+  <div class="stat-card"><div class="n dl" id="st-downloading">-</div><div class="l">Baixando</div></div>
+  <div class="stat-card"><div class="n ok" id="st-completed">-</div><div class="l">Completos</div></div>
+  <div class="stat-card"><div class="n" id="st-queued">-</div><div class="l">Na Fila</div></div>
+  <div class="stat-card"><div class="n sr" id="st-searching">-</div><div class="l">Buscando</div></div>
+  <div class="stat-card"><div class="n" id="st-total">-</div><div class="l">Total</div></div>
+</div>
+<div class="content">
+  <div class="toolbar">
+    <label>Buscar: <input type="text" id="filter-name" placeholder="Nome ou serial..." style="width:200px"></label>
+    <label>Fonte:
+      <select id="filter-source">
+        <option value="">Todas</option>
+        <option value="torrent-PAL">Torrent PAL</option>
+        <option value="torrent-NTSC-J">Torrent NTSC-J</option>
+        <option value="archive.org">Archive.org</option>
+        <option value="coolrom">CoolROM</option>
+        <option value="vimm">Vimm.net</option>
+        <option value="romspure">RomsPure</option>
+        <option value="romulation">Romulation</option>
+        <option value="queue">Na Fila</option>
+        <option value="search">Buscando</option>
+      </select>
+    </label>
+    <label>Status:
+      <select id="filter-status">
+        <option value="">Todos</option>
+        <option value="downloading">Baixando</option>
+        <option value="completed">Completo</option>
+        <option value="waiting">Esperando</option>
+        <option value="pending">Pendente</option>
+        <option value="searching">Buscando</option>
+        <option value="ready">Pronto</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="hide-completed"> Esconder completos</label>
+  </div>
+  <table id="dl-table">
+    <thead>
+      <tr>
+        <th data-sort="name">Jogo</th>
+        <th data-sort="serial">Serial</th>
+        <th data-sort="source">Fonte</th>
+        <th data-sort="progress">Progresso</th>
+        <th data-sort="sizeMB" style="text-align:right">Tamanho</th>
+        <th data-sort="speedMBps" style="text-align:right">Velocidade</th>
+        <th data-sort="status">Status</th>
+      </tr>
+    </thead>
+    <tbody id="dl-body">
+      <tr><td colspan="7" class="empty">Carregando...</td></tr>
+    </tbody>
+  </table>
+  <div class="update-bar" id="update-info">atualizando...</div>
+</div>
+<script>
+let allDownloads = [];
+let sortKey = 'progress';
+let sortDir = 'desc';
+
+async function loadData(){
+  try{
+    const r = await fetch('/api/downloads-list');
+    const data = await r.json();
+    if(data.error){ document.getElementById('dl-body').innerHTML = '<tr><td colspan="7" class="empty">Erro: '+data.error+'</td></tr>'; return; }
+    allDownloads = data.downloads || [];
+    document.getElementById('st-downloading').textContent = data.downloading || 0;
+    document.getElementById('st-completed').textContent = data.completed || 0;
+    document.getElementById('st-queued').textContent = data.queued || 0;
+    document.getElementById('st-searching').textContent = data.searching || 0;
+    document.getElementById('st-total').textContent = data.total || 0;
+    document.getElementById('update-info').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+    render();
+  }catch(e){
+    document.getElementById('dl-body').innerHTML = '<tr><td colspan="7" class="empty">Erro de conexao: '+e.message+'</td></tr>';
+  }
+}
+
+function getFiltered(){
+  const nameFilter = (document.getElementById('filter-name').value || '').toLowerCase();
+  const sourceFilter = document.getElementById('filter-source').value;
+  const statusFilter = document.getElementById('filter-status').value;
+  const hideCompleted = document.getElementById('hide-completed').checked;
+
+  let filtered = allDownloads.filter(d => {
+    if(nameFilter){
+      const haystack = ((d.name||'')+' '+(d.serial||'')+' '+(d.file||'')).toLowerCase();
+      if(!haystack.includes(nameFilter)) return false;
+    }
+    if(sourceFilter && d.source !== sourceFilter) return false;
+    if(statusFilter && d.status !== statusFilter) return false;
+    if(hideCompleted && (d.status === 'completed' || d.progress === 100)) return false;
+    return true;
+  });
+
+  // Sort
+  filtered.sort((a,b) => {
+    let av = a[sortKey] || 0;
+    let bv = b[sortKey] || 0;
+    if(typeof av === 'string') av = av.toLowerCase();
+    if(typeof bv === 'string') bv = bv.toLowerCase();
+    if(av < bv) return sortDir === 'asc' ? -1 : 1;
+    if(av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  return filtered;
+}
+
+function progressClass(pct){
+  if(pct >= 100) return '';
+  if(pct >= 50) return 'partial';
+  if(pct > 0) return 'low';
+  return 'none';
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function render(){
+  const filtered = getFiltered();
+  const tbody = document.getElementById('dl-body');
+  if(filtered.length === 0){
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum download encontrado</td></tr>';
+    return;
+  }
+  let html = '';
+  for(const d of filtered){
+    const pct = d.progress >= 0 ? d.progress : 0;
+    const pClass = progressClass(pct);
+    const srcClass = 'badge-' + (d.source||'').replace(/\./g,'\\.');
+    const speedDisplay = d.speedMBps > 0 ? '<span class="speed-val">'+d.speedMBps+' MB/s</span>' : '<span class="speed-zero">-</span>';
+    const sizeDisplay = d.sizeMB > 0 ? d.sizeMB + ' MB' : '-';
+    const serialDisplay = d.serial ? escapeHtml(d.serial) : '<span style="color:var(--txt2)">-</span>';
+    const statusClass = 'status-' + (d.status||'unknown');
+    const statusLabel = d.status === 'downloading' ? 'Baixando' :
+                       d.status === 'completed' ? 'Completo' :
+                       d.status === 'waiting' ? 'Esperando' :
+                       d.status === 'pending' ? 'Pendente' :
+                       d.status === 'searching' ? 'Buscando' :
+                       d.status === 'ready' ? 'Pronto' :
+                       d.status === 'error' ? 'Erro' :
+                       (d.status||'?');
+    html += '<tr>';
+    html += '<td class="name" title="'+escapeHtml(d.file||'')+'">'+escapeHtml(d.name||'')+'</td>';
+    html += '<td class="serial">'+serialDisplay+'</td>';
+    html += '<td class="source"><span class="badge-src '+srcClass+'">'+escapeHtml(d.sourceLabel||d.source||'')+'</span></td>';
+    html += '<td><div class="progress-bar"><div class="progress-fill '+pClass+'" style="width:'+pct+'%"></div></div><span class="progress-text">'+(d.progress >= 0 ? pct+'%' : '...')+'</span></td>';
+    html += '<td class="size">'+sizeDisplay+'</td>';
+    html += '<td class="speed">'+speedDisplay+'</td>';
+    html += '<td class="status"><span class="status-tag '+statusClass+'">'+statusLabel+'</span></td>';
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+
+  // Update sort indicators
+  document.querySelectorAll('thead th').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.dataset.sort === sortKey){
+      th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
+// Event listeners
+document.querySelectorAll('thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    if(sortKey === key){ sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+    else { sortKey = key; sortDir = 'desc'; }
+    render();
+  });
+});
+document.getElementById('filter-name').addEventListener('input', render);
+document.getElementById('filter-source').addEventListener('change', render);
+document.getElementById('filter-status').addEventListener('change', render);
+document.getElementById('hide-completed').addEventListener('change', render);
+
+// Auto-refresh a cada 5 segundos
+loadData();
+setInterval(loadData, 5000);
+</script>
+</body>
+</html>

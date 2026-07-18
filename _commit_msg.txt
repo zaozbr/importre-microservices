@@ -1,0 +1,19 @@
+feat: dashboard de downloads unificado + torrents seletivos + 15 CHDs convertidos
+
+- Nova pagina /downloads com lista unificada de todos os downloads
+  (torrents PAL/NTSC-J + aria2 RPC + fila do importre)
+  ordenada por progresso, com filtros por fonte/status/nome
+  auto-refresh 5s, badges coloridos por fonte, barras de progresso
+- API /api/downloads-list no orchestrator (unifica 3 fontes de download)
+- Torrents seletivos: --select-file para baixar apenas 420 arquivos
+  (177 PAL + 243 JP) dos 6932 originais, apos remover 294 duplicados
+- 15 CHDs convertidos dos torrents e movidos para colecao (6049 -> 6064)
+- Watchdog de performance (perf_watchdog.py) em background, target 40MB/s
+- Conversor torrent -> CHD (convert_torrent_chd.py) com filtro de faltantes
+- Documentacao atualizada: colecao_estado, lessons_learned (6 novas #14-19),
+  handover com detalhes de torrents seletivos, homebrews e dashboard
+- Lint: 0 erros, 0 warnings | Testes: 601 passing, 0 failing
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

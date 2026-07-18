@@ -3,7 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 const { spawn, exec } = require('child_process');
 const path = require('path');
-const { PORTS, LOG_PATH, PSX_DIR, QUEUE_PATH, WORKERS } = require('../shared/config');
+const { PORTS, LOG_PATH, PSX_DIR, QUEUE_PATH, WORKERS, DOWNLOAD_DIR, STATE_DIR } = require('../shared/config');
 const { killBeforeStart } = require('../shared/kill_before_start');
 const Logger = require('../shared/logger');
 
@@ -259,6 +259,203 @@ app.get('/api/chds', async (req, res) => {
     res.json({ chds });
   } catch (e) {
     res.json({ error: e.message });
+  }
+});
+
+// === API: Lista unificada de downloads (torrent + archive.org + homebrew) ===
+// Retorna todos os downloads em andamento com nome, fonte, progresso e velocidade
+
+// Funcao auxiliar: match fuzzy de nome de arquivo torrent com faltantes
+function matchTorrentFile(fname, faltantesNames, collectionSerials) {
+  const fnameLower = fname.toLowerCase();
+  let matchedSerial = null;
+  let matchScore = 0;
+  const cleanRe = /[[(].*?[\])]/g;
+  for (const [serial, name] of Object.entries(faltantesNames)) {
+    if (collectionSerials.has(serial)) continue;
+    const nameLower = (name || '').toLowerCase();
+    const fnameClean = fnameLower.replace(cleanRe, '').replace(/[^a-z0-9\s]/g, ' ').trim();
+    const nameClean = nameLower.replace(cleanRe, '').replace(/[^a-z0-9\s]/g, ' ').trim();
+    if (fnameClean.length <= 5 || nameClean.length <= 5) continue;
+    const prefix = fnameClean.substring(0, 15);
+    const namePrefix = nameClean.substring(0, 15);
+    if (prefix === namePrefix) {
+      return { serial, score: 1.0 };
+    }
+    const fWords = new Set(fnameClean.split(' ').filter(w => w.length > 2));
+    const nWords = new Set(nameClean.split(' ').filter(w => w.length > 2));
+    let common = 0;
+    for (const w of fWords) { if (nWords.has(w)) common++; }
+    const score = common / Math.max(fWords.size, nWords.size, 1);
+    if (score > matchScore) { matchScore = score; if (score >= 0.5) matchedSerial = serial; }
+  }
+  return { serial: matchedSerial, score: matchScore };
+}
+
+// Funcao auxiliar: caminhar diretorio torrent e coletar .7z
+function walkTorrentDir(dir) {
+  const files = {};
+  const walk = (d) => {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const fullPath = path.join(d, entry.name);
+      if (entry.isDirectory()) { walk(fullPath); continue; }
+      if (!entry.name.endsWith('.7z')) continue;
+      try {
+        const stat = fs.statSync(fullPath);
+        files[fullPath] = { size: stat.size, hasCtrl: fs.existsSync(fullPath + '.aria2'), mtime: stat.mtimeMs };
+      } catch { /* ignore */ }
+    }
+  };
+  walk(dir);
+  return files;
+}
+
+// Funcao auxiliar: carregar nomes de faltantes
+function loadFaltantesNames(stateDir) {
+  const faltantesPath = path.join(stateDir, 'lista_final_faltantes.json');
+  const names = {};
+  if (!fs.existsSync(faltantesPath)) return names;
+  try {
+    const fdata = JSON.parse(fs.readFileSync(faltantesPath, 'utf-8'));
+    for (const item of (fdata.uniqueMissing || [])) {
+      if (item.serial) names[item.serial.toUpperCase()] = item.name || item.serial;
+    }
+    for (const item of (fdata.hasAlternative || [])) {
+      if (item.serial) names[item.serial.toUpperCase()] = item.name || item.serial;
+    }
+  } catch { /* ignore */ }
+  return names;
+}
+
+// Funcao auxiliar: carregar seriais da colecao
+function loadCollectionSerials(psxDir) {
+  const serials = new Set();
+  try {
+    for (const fn of fs.readdirSync(psxDir)) {
+      if (fn.endsWith('.chd')) {
+        const m = fn.match(/([A-Z]+-\d+)/);
+        if (m) serials.add(m[1].toUpperCase());
+      }
+    }
+  } catch { /* ignore */ }
+  return serials;
+}
+
+// Funcao auxiliar: classificar arquivos torrent em downloads
+function classifyTorrentFiles(torrentFiles, faltantesNames, collectionSerials) {
+  const downloads = [];
+  for (const [fullPath, info] of Object.entries(torrentFiles)) {
+    const fname = path.basename(fullPath, '.7z');
+    const isPAL = fullPath.includes('PAL');
+    const isJP = fullPath.includes('NTSC-J');
+    const region = isPAL ? 'PAL' : (isJP ? 'NTSC-J' : '?');
+    const { serial: matchedSerial, score: matchScore } = matchTorrentFile(fname, faltantesNames, collectionSerials);
+    if (matchScore < 0.5) continue;
+    if (matchedSerial && collectionSerials.has(matchedSerial)) continue;
+    const gameName = matchedSerial ? faltantesNames[matchedSerial] : fname;
+    const progress = info.hasCtrl ? -1 : 100;
+    const sizeMB = Math.round(info.size / (1024 * 1024));
+    downloads.push({
+      name: gameName, serial: matchedSerial || '', source: 'torrent-' + region,
+      sourceLabel: 'Torrent ' + region, sizeMB, progress,
+      status: info.hasCtrl ? 'downloading' : 'completed', file: fname,
+    });
+  }
+  return downloads;
+}
+
+// Funcao auxiliar: processar tasks do aria2 RPC em downloads
+async function processAria2Tasks(faltantesNames) {
+  const downloads = [];
+  try {
+    const [active, waiting, stopped] = await Promise.all([
+      axios.post(ARIA2_RPC, { jsonrpc: '2.0', method: 'aria2.tellActive', id: 'dl', params: ARIA2_TOKEN }, { timeout: 3000 }),
+      axios.post(ARIA2_RPC, { jsonrpc: '2.0', method: 'aria2.tellWaiting', id: 'dl', params: [...ARIA2_TOKEN, 0, 50] }, { timeout: 3000 }),
+      axios.post(ARIA2_RPC, { jsonrpc: '2.0', method: 'aria2.tellStopped', id: 'dl', params: [...ARIA2_TOKEN, 0, 50] }, { timeout: 3000 }),
+    ]);
+    const allTasks = [...(active.data.result || []), ...(waiting.data.result || []), ...(stopped.data.result || [])];
+    for (const task of allTasks) {
+      const f = task.files?.[0];
+      if (!f) continue;
+      const fname = f.path ? path.basename(f.path) : (f.uris?.[0]?.uri || 'unknown');
+      const uri = f.uris?.[0]?.uri || '';
+      const { source, label: sourceLabel } = detectSource(uri, task);
+      const totalBytes = parseInt(f.length || '0', 10);
+      const completedBytes = parseInt(f.completedLength || '0', 10);
+      const progress = totalBytes > 0 ? Math.round((completedBytes / totalBytes) * 100) : 0;
+      const sizeMB = Math.round(totalBytes / (1024 * 1024));
+      const speedMBps = (parseInt(task.downloadSpeed || '0', 10) / (1024 * 1024)).toFixed(1);
+      const serialMatch = fname.match(/([A-Z]{3,4}-\d{3,5})/i);
+      const serial = serialMatch ? serialMatch[1].toUpperCase() : '';
+      const gameName = serial && faltantesNames[serial] ? faltantesNames[serial] : fname.replace(/\.(chd|7z|zip|bin|iso)$/i, '');
+      downloads.push({
+        name: gameName, serial, source, sourceLabel, sizeMB, progress,
+        speedMBps: parseFloat(speedMBps), status: task.status || 'unknown', gid: task.gid, file: fname,
+      });
+    }
+  } catch { /* aria2 indisponivel */ }
+  return downloads;
+}
+
+// Funcao auxiliar: processar fila do importre em downloads
+async function processQueueItems(downloads) {
+  try {
+    const qData = await serviceGet(PORTS.QUEUE, '/queue');
+    for (const item of (qData.queue || [])) {
+      if (!['downloading', 'ready', 'searching', 'pending'].includes(item.status)) continue;
+      const exists = downloads.some(d => d.serial === item.serial && d.source !== 'torrent-PAL' && d.source !== 'torrent-NTSC-J');
+      if (exists) continue;
+      downloads.push({
+        name: item.title || item.name || item.serial, serial: item.serial,
+        source: item.status === 'searching' ? 'search' : 'queue',
+        sourceLabel: item.status === 'searching' ? 'Buscando' : (item.status === 'ready' ? 'Pronto' : 'Na Fila'),
+        sizeMB: 0, progress: 0, status: item.status, file: '',
+      });
+    }
+  } catch { /* queue indisponivel */ }
+}
+
+// Funcao auxiliar: detectar fonte pela URL do aria2
+function detectSource(uri, task) {
+  if (uri.includes('coolrom')) return { source: 'coolrom', label: 'CoolROM' };
+  if (uri.includes('vimm')) return { source: 'vimm', label: 'Vimm.net' };
+  if (uri.includes('romspure')) return { source: 'romspure', label: 'RomsPure' };
+  if (uri.includes('romulation')) return { source: 'romulation', label: 'Romulation' };
+  if (uri.includes('archive.org')) return { source: 'archive.org', label: 'Archive.org' };
+  if (uri.startsWith('magnet:') || task.bittorrent) return { source: 'torrent', label: 'Torrent (BT)' };
+  return { source: 'archive.org', label: 'Archive.org' };
+}
+
+app.get('/api/downloads-list', async (req, res) => {
+  try {
+    const downloads = [];
+
+    // 1. Torrents (aria2c standalone em F:\downloads\psx_torrents)
+    const torrentDir = path.join(DOWNLOAD_DIR, 'psx_torrents');
+    const torrentFiles = fs.existsSync(torrentDir) ? walkTorrentDir(torrentDir) : {};
+    const faltantesNames = loadFaltantesNames(STATE_DIR);
+    const collectionSerials = loadCollectionSerials(PSX_DIR);
+    downloads.push(...classifyTorrentFiles(torrentFiles, faltantesNames, collectionSerials));
+
+    // 2. Downloads do aria2 RPC (archive.org + outros via importre)
+    downloads.push(...await processAria2Tasks(faltantesNames));
+
+    // 3. Fila do importre (queue.json)
+    await processQueueItems(downloads);
+
+    // Ordenar por progresso (maior primeiro)
+    downloads.sort((a, b) => b.progress - a.progress);
+
+    res.json({
+      total: downloads.length,
+      downloading: downloads.filter(d => d.status === 'downloading').length,
+      completed: downloads.filter(d => d.status === 'completed' || d.progress === 100).length,
+      queued: downloads.filter(d => d.status === 'waiting' || d.status === 'pending').length,
+      searching: downloads.filter(d => d.status === 'searching').length,
+      downloads,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -555,6 +752,11 @@ if (fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) {
 }
 app.get('/legacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'shell.html'));
+});
+
+// Pagina de lista de downloads (standalone HTML)
+app.get('/downloads', (req, res) => {
+  res.sendFile(path.join(__dirname, 'downloads.html'));
 });
 
 // Proxy para aria2 RPC (contorna CORS)

@@ -451,3 +451,93 @@ Script: F:\importre\_romspure_dl.js. Baixou 16/16 jogos com sucesso (~4.1GB).
 - psx-roms-s-z-chd (colecao alternativa S-Z)
 - Cada colecao contem CHDs individuais por jogo (nao precisa baixar colecao inteira)
 - URL pattern: http://archive.org/download/{colecao}/{nome}%20(Japan).chd
+
+## DEMOS EXCLUIDOS DA COLECAO PSX (2026-07-17)
+
+**Problema:** Demos (discos de revista, trials, samples, net yaroze) ocupavam espaco na colecao e na lista de faltantes sem agregarem valor.
+
+**Correcao:**
+- 3 CHDs demo removidos da colecao (Doko-Demo-Issho-Calpis, Jampack-Vol-1, Jampack-Vol-2)
+- 7 demos SLED-* removidos da lista de faltantes
+- 15 arquivos demo removidos de F:\downloads
+- Lista final: 233 faltantes (sem demos)
+- Colecao: 5948 CHDs (sem demos)
+- REGRA PERMANENTE: NAO baixar, converter ou incluir demos. Generos excluidos: Demo, Trial, Sample, Taikenban, Preview, Net Yaroze, Jampack, Kiosk, Promotional, Calpis, Pocket Zanmai
+- Documentado em AGENTS.md e knowledge/colecao_estado.md
+
+## 14. Torrents Redump PSX — download seletivo com --select-file (2026-07-18)
+
+**Problema:** Torrents Redump PAL (842GB) e NTSC-J (~600GB) contem TODOS os jogos PSX, mas so precisamos dos ~420 faltantes. Baixar tudo desperdica banda e espaco.
+
+**Solucao:**
+1. Listar arquivos do torrent com `aria2c -S torrent.torrent` (salva em txt)
+2. Cruzar nomes dos arquivos .7z com lista de faltantes (match fuzzy por nome, score >= 0.6)
+3. Gerar lista de indices: `pal_select.txt` e `jp_select.txt` (comma-separated)
+4. Iniciar aria2c com `--select-file=idx1,idx2,...` para baixar apenas os necessarios
+5. Resultado: 420 arquivos ao inves de 6932 (economia de ~99%)
+
+**Cuidados:**
+- O torrent baixa pieces inteiros (16MB) que podem conter dados de arquivos nao-selecionados
+- Arquivos .7z podem ter tamanho final mas conteudo corrompido (pieces esparsos)
+- 7-Zip retorna "Can't open as archive" para corrompidos — pular com returncode != 0
+- Arquivos sem .aria2 control file podem ainda estar corrompidos
+- Trackers extras (8 UDP + 2 WebSocket) sao essenciais para encontrar peers
+
+## 15. Watchdog de performance para torrents (2026-07-18)
+
+**Problema:** Torrents podem estagnar sem peers. Precisamos de monitoramento continuo que nao bloqueie o chat.
+
+**Solucao:** Script `perf_watchdog.py` rodando em background:
+- Mede velocidade a cada 30s (crescimento de arquivos .7z)
+- Target: 40MB/s total
+- Reinicia aria2c se 0 peers por 5+ minutos (10 ciclos x 30s)
+- Log em `F:\importre_state\perf_watchdog.log`
+- NAO mata aria2c a cada ciclo — da tempo para peers conectarem
+
+**Licao critica:** NAO reiniciar aria2c imediatamente quando peers = 0. Peers demoram 30-60s para conectar apos inicio. Reiniciar a cada ciclo impede conexão. So reiniciar apos 5+ minutos sem peers.
+
+## 16. Conversao torrent .7z -> CHD em massa (2026-07-18)
+
+**Problema:** 1248 arquivos .7z completos no torrent, mas muitos sao de jogos que ja temos. Precisamos filtrar e converter apenas os faltantes.
+
+**Solucao:** Script `convert_torrent_chd.py`:
+1. Lista .7z completos (size > 1024 bytes)
+2. Cruza com faltantes (match fuzzy por nome, score >= 0.6)
+3. Filtra os que ja temos na colecao
+4. Extrai .7z com 7-Zip, encontra .cue/.bin
+5. Converte com chdman createcd
+6. CHDs vao para `F:\testes` (para teste antes de mover para colecao)
+
+**Resultado sessao 8:** 15 CHDs convertidos e movidos para colecao (6049 -> 6064)
+
+## 17. Dashboard de downloads unificado (2026-07-18)
+
+**Problema:** Downloads espalhados em 3 fontes (torrent aria2c standalone, aria2 RPC do importre, fila do queue service). Sem visao unificada.
+
+**Solucao:** API `/api/downloads-list` + pagina HTML `/downloads`:
+- Unifica: torrents (PAL + NTSC-J) + aria2 RPC tasks + fila do importre
+- Ordena por progresso (maior primeiro)
+- Filtros: nome/serial, fonte, status, esconder completos
+- Badges coloridos por fonte
+- Barras de progresso visuais
+- Auto-refresh a cada 5s
+- Link no shell.html header
+
+## 18. Homebrews PSX — fontes e desafios (2026-07-18)
+
+**Descoberta:** 35 homebrews HBREW faltantes na colecao. Fontes:
+- **psxhomebrewgames.com:** lista 28 homebrews, 12 ja temos, 16 faltantes
+- **itch.io:** requer Playwright (CSRF token + JavaScript + modal de download)
+- **GameJolt:** URL direta em alguns casos
+- **GitHub:** muitos repositorios sem releases publicadas
+
+**Homebrews impossiveis:**
+- HBREW-021 (Zia): pago $15 USD
+- HBREW-041 (Half-Life PSX): em desenvolvimento, sem download publico
+- HBREW-043: sem fonte conhecida
+
+**Regra:** Homebrews NAO seguem a regra de exclusao de demos. Projetos independentes em alpha/demo sao validos para a colecao (diferente de demos comerciais).
+
+## 19. Myrient shut down (2026-07-18)
+
+**Descoberta:** Myrient (fonte de ROMs) foi desativado em marco 2026. NAO usar como fonte.
