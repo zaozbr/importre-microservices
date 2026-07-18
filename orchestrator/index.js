@@ -737,6 +737,11 @@ app.get('/api/control/:action', async (req, res) => {
   }
 });
 
+// Pagina de lista de downloads (standalone HTML) — ANTES do catch-all SPA
+app.get('/downloads', (req, res) => {
+  res.sendFile(path.join(__dirname, 'downloads.html'));
+});
+
 // Servir arquivos estaticos do build React (dashboard v5)
 const PUBLIC_DIR = path.join(__dirname, 'public');
 if (fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) {
@@ -752,11 +757,6 @@ if (fs.existsSync(path.join(PUBLIC_DIR, 'index.html'))) {
 }
 app.get('/legacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'shell.html'));
-});
-
-// Pagina de lista de downloads (standalone HTML)
-app.get('/downloads', (req, res) => {
-  res.sendFile(path.join(__dirname, 'downloads.html'));
 });
 
 // Proxy para aria2 RPC (contorna CORS)
